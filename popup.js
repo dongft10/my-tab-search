@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", (event) => {
   //   console.log("DOM fully loaded and parsed");
 
-  const searchInput = document.getElementById("searchInput");
-  const tabList = document.getElementById("tabList");
+  const searchInput = document.getElementById("search-input");
+  const tabList = document.getElementById("tab-list");
 
   let selectedIndex = 0;
 

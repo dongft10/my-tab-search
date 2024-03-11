@@ -3,13 +3,25 @@ body {
   min-height: 300px;
   padding: 10px;
   font-family: Arial, sans-serif;
+  border-radius: 20px;
 }
 
 .search-container {
   margin-bottom: 10px;
 }
 
-#tabList {
+#magnifying-glass {
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+  justify-content: center;
+}
+
+#search-input {
+  width: 290px;
+}
+
+#tab-list {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -17,7 +29,7 @@ body {
   overflow-y: auto;
 }
 
-#tabList li {
+#tab-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -29,17 +41,17 @@ body {
   transition: background-color 0.3s;
 }
 
-#tabList li > .close-btn {
+#tab-list li > .close-btn {
   float: right;
   vertical-align: middle;
   justify-content: center;
 }
 
-#tabList li:hover {
+#tab-list li:hover {
   background-color: #e0e0e0;
 }
 
-#tabList li.selected {
+#tab-list li.selected {
   background-color: lightblue;
 }
 
