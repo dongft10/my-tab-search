@@ -1,36 +1,51 @@
-# myTabSearch
+# my-tab-search
 
-#### Description
-chrome浏览器的标签页搜索扩展，支持快速搜索关键字并切换到对应的标签页。
-
-#### Software Architecture
-Software architecture description
-
-#### Installation
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### Instructions
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### Contribution
-
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+## Description
+Chrome browser tab management extension tools, supporting quick search for keywords and switch to the corresponding tab. Supporting to switch the selected tab entries by using the up and down arrow keys, and confirm to jump to the target page by pressing the enter key.
 
 
-#### Gitee Feature
+## Features
 
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+- Search and filter tabs based on title.
+- Quick access to relevant tabs.
+- Keyboard shortcut support for easy toggling.
+- Supporting to switch the selected tab entries by using the up and down arrow keys.
+
+## Installation
+
+1. Clone or download this repository.
+2. Open Google Chrome.
+3. Navigate to `chrome://extensions/`.
+4. Enable "Developer mode" at the top-right corner.
+5. Click on "Load unpacked" and select the extension directory.
+
+## Usage
+
+- Open the extension popup by clicking on the extension icon in the Chrome toolbar or use the default keyboard shortcut(Crtl + Shift + A , prefered!).
+- Enter your search query in the input field to filter tabs.
+- Click on a tab in the list Or press Up or Down arrow keys to select the target item and press Enter button to switch to it.
+
+## Keyboard Shortcut
+
+The default keyboard shortcut to toggle the extension is `Ctrl+Shift+A`.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
+## Author
+
+dddachui
+
+## Acknowledgments
+
+- Icons are from www.pngsucai.com.
+
+## Contributing
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/awesome-feature`).
+3. Commit your changes (`git commit -m 'Add awesome feature'`).
+4. Push to the branch (`git push origin feature/awesome-feature`).
+5. Open a pull request.
