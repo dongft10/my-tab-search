@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", (event) => {
+document.addEventListener("DOMContentLoaded", () => {
   //   console.log("DOM fully loaded and parsed");
 
   const searchInput = document.getElementById("search-input");
@@ -63,8 +63,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
         // add click event to switch to the selected tab
         li.addEventListener("click", function () {
-          chrome.tabs.update(tab.id, { active: true });
-          chrome.windows.update(tab.windowId, { focused: true });
+          chrome.tabs.update(tab.id, {active: true});
+          chrome.windows.update(tab.windowId, {focused: true});
           window.close();
         });
 
@@ -105,8 +105,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
     let index = tabIdMap.get(selectedIndex);
     console.log("enter index:" + index);
     chrome.tabs.get(index, (tab) => {
-      chrome.tabs.update(tab.id, { active: true });
-      chrome.windows.update(tab.windowId, { focused: true });
+      chrome.tabs.update(tab.id, {active: true});
+      chrome.windows.update(tab.windowId, {focused: true});
       window.close();
     });
   }
