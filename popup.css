@@ -57,6 +57,10 @@ body {
 
 .tab-title {
   font-weight: bold;
+  max-width: 285px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tab-info {
