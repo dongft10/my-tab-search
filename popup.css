@@ -1,7 +1,7 @@
 body {
   width: 350px;
   min-height: 300px;
-  padding: 10px;
+  padding: 5px;
   font-family: Arial, sans-serif;
 }
 
@@ -43,7 +43,8 @@ body {
 #tab-list li > .close-btn {
   float: right;
   vertical-align: middle;
-  justify-content: center;
+  justify-content: left;
+  width: 5px;
 }
 
 #tab-list li:hover {
@@ -61,4 +62,8 @@ body {
 .tab-info {
   color: #666;
   font-size: 0.9em;
+}
+
+.li-item {
+  width: 285px;
 }

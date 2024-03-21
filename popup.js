@@ -32,14 +32,26 @@ document.addEventListener("DOMContentLoaded", () => {
       filteredTabs.forEach((tab) => {
         const li = document.createElement("li");
 
+        // tab icon
+        const img = document.createElement('img');
+        img.src = faviconURL(tab.url)
+
+
+        const liItemDev = document.createElement("div");
+        liItemDev.classList.add("li-item");
+
         // create elements for tab title and URL info
         const titleDiv = document.createElement("div");
         titleDiv.classList.add("tab-title");
         titleDiv.textContent = tab.title;
 
-        // const urlInfoDiv = document.createElement("div");
-        // urlInfoDiv.classList.add("tab-info");
-        // urlInfoDiv.textContent = new URL(tab.url).pathname;
+        const urlInfoDiv = document.createElement("div");
+        urlInfoDiv.classList.add("tab-info");
+        urlInfoDiv.textContent = new URL(tab.url).hostname;
+
+        liItemDev.appendChild(titleDiv);
+        liItemDev.appendChild(urlInfoDiv);
+
 
         const closeBtn = document.createElement("div");
         closeBtn.classList.add("close-btn");
@@ -49,8 +61,8 @@ document.addEventListener("DOMContentLoaded", () => {
           handleCloseBtnClicked(tab.id);
         });
 
-        li.appendChild(titleDiv);
-        // li.appendChild(urlInfoDiv);
+        li.appendChild(img);
+        li.appendChild(liItemDev);
         li.appendChild(closeBtn);
 
         // 处理 list item 关闭按钮控制逻辑
@@ -82,6 +94,26 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  function faviconURL(u) {
+    const url = new URL(chrome.runtime.getURL("/_favicon/"));
+    url.searchParams.set("pageUrl", u);
+    url.searchParams.set("size", "26");
+    return url.toString();
+  }
+
+  function getFavicon(url) {
+    return 'background-image: -webkit-image-set(url(\'chrome://favicon/size/16@1x/' + url + '\') 1x, url(\'chrome://favicon/size/16@2x/' + url + '\') 2x)';
+  };
+
+  function escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
 
   // 处理List item 关闭标签事件
   function handleCloseBtnClicked(tabId) {
