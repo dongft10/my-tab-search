@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // create elements for tab title and URL info
         const titleDiv = document.createElement("div");
         titleDiv.classList.add("tab-title");
+        titleDiv.title = tab.title;
         titleDiv.textContent = tab.title;
 
         const urlInfoDiv = document.createElement("div");
