@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const searchInput = document.getElementById("search-input");
   const tabList = document.getElementById("tab-list");
 
-  let selectedIndex = 0;
+  let selectedIndex = -1;
 
   let lis = tabList.childNodes;
 
@@ -88,10 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
         i++;
       });
       lis = tabList.childNodes;
-      selectedIndex = 0;
+      selectedIndex = -1;
 
-      if (lis.length > 0) {
+      // 如果搜索结果只有一个，那么默认选中这一个，方便enter直接跳转
+      if (lis.length === 1) {
         lis[0].classList.add("selected");
+        selectedIndex = 0;
       }
     });
   }
@@ -107,15 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return 'background-image: -webkit-image-set(url(\'chrome://favicon/size/16@1x/' + url + '\') 1x, url(\'chrome://favicon/size/16@2x/' + url + '\') 2x)';
   };
 
-  function escapeHtml(unsafe) {
-    return unsafe
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  };
-
   // 处理List item 关闭标签事件
   function handleCloseBtnClicked(tabId) {
     chrome.tabs.remove(tabId, () => {
@@ -124,6 +117,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateSelection() {
+    if (lis.length > 0 && selectedIndex === -1) {
+      lis[0].classList.add("selected");
+      selectedIndex = 0;
+    }
     lis.forEach((li, index) => {
       if (index === selectedIndex) {
         console.log("selected index:" + index);
