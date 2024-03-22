@@ -34,24 +34,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // tab icon
         const img = document.createElement('img');
-        img.src = faviconURL(tab.url)
+        img.classList.add("li-img");
+        img.src = faviconURL(tab.url);
 
 
-        const liItemDev = document.createElement("div");
-        liItemDev.classList.add("li-item");
+        const listItemDiv = document.createElement("div");
+        listItemDiv.classList.add("li-item");
 
         // create elements for tab title and URL info
         const titleDiv = document.createElement("div");
         titleDiv.classList.add("tab-title");
-        titleDiv.title = tab.title;
         titleDiv.textContent = tab.title;
 
         const urlInfoDiv = document.createElement("div");
         urlInfoDiv.classList.add("tab-info");
         urlInfoDiv.textContent = new URL(tab.url).hostname;
 
-        liItemDev.appendChild(titleDiv);
-        liItemDev.appendChild(urlInfoDiv);
+        listItemDiv.appendChild(titleDiv);
+        listItemDiv.appendChild(urlInfoDiv);
 
 
         const closeBtn = document.createElement("div");
@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         li.appendChild(img);
-        li.appendChild(liItemDev);
+        li.appendChild(listItemDiv);
         li.appendChild(closeBtn);
 
         // 处理 list item 关闭按钮控制逻辑

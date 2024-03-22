@@ -1,30 +1,33 @@
 body {
   width: 350px;
   min-height: 300px;
-  padding: 5px;
+  padding: 0px;
+  margin: 0px;
   font-family: Arial, sans-serif;
 }
 
 .search-container {
-  margin-bottom: 10px;
+  padding: 5px;
+  margin: 10px 0px 10px 0px;
 }
 
 #magnifying-glass {
   width: 22px;
   height: 22px;
+  padding: 0px 5px;
   vertical-align: middle;
   justify-content: center;
 }
 
 #search-input {
-  width: 290px;
+  width: 280px;
+  padding: 5px;
 }
 
 #tab-list {
   list-style: none;
-  padding: 0;
-  margin: 0;
-  max-height: 90%;
+  padding: 0px;
+  margin: 5px 0px;
   overflow-y: auto;
 }
 
@@ -34,17 +37,20 @@ body {
   justify-content: space-between;
   cursor: pointer;
   padding: 10px;
-  border: 1px solid #ddd;
-  margin-bottom: 5px;
-  background-color: #f9f9f9;
+  margin: 0px;
+  background-color: #fff;
   transition: background-color 0.3s;
 }
 
 #tab-list li > .close-btn {
   float: right;
   vertical-align: middle;
-  justify-content: left;
-  width: 5px;
+  justify-content: center;
+  padding: 5px;
+}
+
+#tab-list li > .close-btn:hover {
+  background-color: #b7b7b7;
 }
 
 #tab-list li:hover {
@@ -55,19 +61,22 @@ body {
   background-color: lightblue;
 }
 
+.li-img {
+  margin-left: 0px;
+}
+
 .tab-title {
   font-weight: bold;
   max-width: 285px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .tab-info {
   color: #666;
   font-size: 0.9em;
+  margin-top: 2px;
 }
 
 .li-item {
-  width: 285px;
+  width: 90%;
+  padding: 0px 0px 0px 10px;
 }
