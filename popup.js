@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
-  //   console.log("DOM fully loaded and parsed");
 
   const searchInput = document.getElementById("search-input");
   const tabList = document.getElementById("tab-list");
+  const tabCount = document.getElementById("tab-count");
 
   let selectedIndex = -1;
 
@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   searchInput.focus();
 
   // Function to update the displayed tabs based on search input
-  function updateTabs() {
+  function updateTabs(nextSelectedTabId) {
     const query = searchInput.value.toLowerCase();
 
     chrome.tabs.query({}, (tabs) => {
@@ -30,71 +30,87 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // populate the tab list with the filtered tabs
       filteredTabs.forEach((tab) => {
-        const li = document.createElement("li");
+        try {
+          const li = document.createElement("li");
 
-        // tab icon
-        const img = document.createElement('img');
-        img.classList.add("li-img");
-        img.src = faviconURL(tab.url);
-
-
-        const listItemDiv = document.createElement("div");
-        listItemDiv.classList.add("li-item");
-
-        // create elements for tab title and URL info
-        const titleDiv = document.createElement("div");
-        titleDiv.classList.add("tab-title");
-        titleDiv.textContent = tab.title;
-
-        const urlInfoDiv = document.createElement("div");
-        urlInfoDiv.classList.add("tab-info");
-        urlInfoDiv.textContent = new URL(tab.url).hostname;
-
-        listItemDiv.appendChild(titleDiv);
-        listItemDiv.appendChild(urlInfoDiv);
+          // tab icon
+          const img = document.createElement('img');
+          img.classList.add("li-img");
+          img.src = faviconURL(tab.url);
 
 
-        const closeBtn = document.createElement("div");
-        closeBtn.classList.add("close-btn");
-        closeBtn.textContent = "";
-        closeBtn.addEventListener("click", function (e) {
-          e.stopPropagation();
-          handleCloseBtnClicked(tab.id);
-        });
+          const listItemDiv = document.createElement("div");
+          listItemDiv.classList.add("li-item");
 
-        li.appendChild(img);
-        li.appendChild(listItemDiv);
-        li.appendChild(closeBtn);
+          // create elements for tab title and URL info
+          const titleDiv = document.createElement("div");
+          titleDiv.classList.add("tab-title");
+          titleDiv.textContent = tab.title;
 
-        // 处理 list item 关闭按钮控制逻辑
-        li.addEventListener("mouseenter", function () {
-          closeBtn.textContent = "X";
-        });
-        li.addEventListener("mouseleave", function () {
+          const urlInfoDiv = document.createElement("div");
+          urlInfoDiv.classList.add("tab-info");
+          urlInfoDiv.textContent = new URL(tab.url).hostname;
+
+          listItemDiv.appendChild(titleDiv);
+          listItemDiv.appendChild(urlInfoDiv);
+
+
+          const closeBtn = document.createElement("div");
+          closeBtn.classList.add("close-btn");
           closeBtn.textContent = "";
-        });
+          closeBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            handleCloseBtnClicked(selectedIndex, tab.id);
+          });
 
-        // add click event to switch to the selected tab
-        li.addEventListener("click", function () {
-          chrome.tabs.update(tab.id, {active: true});
-          chrome.windows.update(tab.windowId, {focused: true});
-          window.close();
-        });
+          li.appendChild(img);
+          li.appendChild(listItemDiv);
+          li.appendChild(closeBtn);
 
-        // add the list item to the tab list
-        tabList.appendChild(li);
+          // 处理 list item 关闭按钮控制逻辑
+          li.addEventListener("mouseenter", function () {
+            closeBtn.textContent = "X";
+          });
+          li.addEventListener("mouseleave", function () {
+            closeBtn.textContent = "";
+          });
 
-        tabIdMap.set(i, tab.id);
-        i++;
+          // add click event to switch to the selected tab
+          li.addEventListener("click", function () {
+            chrome.tabs.update(tab.id, {active: true});
+            chrome.windows.update(tab.windowId, {focused: true});
+            window.close();
+          });
+
+          // add the list item to the tab list
+          tabList.appendChild(li);
+
+          tabIdMap.set(i, tab.id);
+          i++;
+        } catch (error) {
+          // 如果try块中抛出错误，这里将捕获到错误
+          // console.error("An error occurred:", error.message);
+        }
       });
-      lis = tabList.childNodes;
-      selectedIndex = -1;
 
-      // 如果搜索结果只有一个，那么默认选中这一个，方便enter直接跳转
-      if (lis.length === 1) {
-        lis[0].classList.add("selected");
-        selectedIndex = 0;
+      lis = tabList.childNodes;
+
+      // 默认选中这一个，方便enter直接跳转
+      if (lis.length > 0) {
+        console.log(nextSelectedTabId);
+        if (nextSelectedTabId !== 'undefined' && nextSelectedTabId >= 0) {
+          lis[nextSelectedTabId].classList.add("selected");
+          selectedIndex = nextSelectedTabId;
+        } else {
+          lis[0].classList.add("selected");
+          selectedIndex = 0;
+        }
       }
+
+      // 已打开标签总数展示控制
+      chrome.tabs.query({currentWindow: true}, function (tabs) {
+        tabCount.textContent = `${tabs.length} Tabs`;
+      });
     });
   }
 
@@ -105,14 +121,17 @@ document.addEventListener("DOMContentLoaded", () => {
     return url.toString();
   }
 
-  function getFavicon(url) {
-    return 'background-image: -webkit-image-set(url(\'chrome://favicon/size/16@1x/' + url + '\') 1x, url(\'chrome://favicon/size/16@2x/' + url + '\') 2x)';
-  };
-
   // 处理List item 关闭标签事件
-  function handleCloseBtnClicked(tabId) {
+  function handleCloseBtnClicked(selectedIndex, tabId) {
+    console.log('-----------close btn clicked. tabId:' + tabId + " ,selectedIndex:" + selectedIndex);
     chrome.tabs.remove(tabId, () => {
-      updateTabs();
+      let nextTabId;
+      if (selectedIndex >= 0) {
+        nextTabId = selectedIndex - 1;
+      } else {
+        nextTabId = -1;
+      }
+      updateTabs(nextTabId);
     });
   }
 
@@ -123,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     lis.forEach((li, index) => {
       if (index === selectedIndex) {
-        console.log("selected index:" + index);
         li.classList.add("selected");
       } else {
         li.classList.remove("selected");
@@ -133,12 +151,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleEnterButtonEvent() {
     let index = tabIdMap.get(selectedIndex);
-    console.log("enter index:" + index);
     chrome.tabs.get(index, (tab) => {
       chrome.tabs.update(tab.id, {active: true});
       chrome.windows.update(tab.windowId, {focused: true});
       window.close();
     });
+  }
+
+  function handleDeleteButtonEvent() {
+    let tabId = tabIdMap.get(selectedIndex);
+    handleCloseBtnClicked(selectedIndex, tabId);
   }
 
   searchInput.addEventListener("keydown", function (event) {
@@ -150,6 +172,8 @@ document.addEventListener("DOMContentLoaded", () => {
       updateSelection();
     } else if (event.key === "Enter") {
       handleEnterButtonEvent();
+    } else if (event.key === "Delete") {
+      handleDeleteButtonEvent();
     }
   });
 

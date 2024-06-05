@@ -1,33 +1,48 @@
 body {
   width: 350px;
   min-height: 300px;
-  padding: 0px;
-  margin: 0px;
+  padding: 0;
+  margin: 0;
   font-family: Arial, sans-serif;
 }
 
 .search-container {
+  display: flex; /* 启用Flexbox布局 */
+  align-items: center; /* 垂直居中对齐 */
+  justify-content: space-between; /* 子元素之间的间隔平均分布 */
   padding: 5px;
-  margin: 10px 0px 10px 0px;
+  margin: 10px 0 10px 0;
+}
+
+.search-container > *:last-child {
+  margin-right: 0; /* 最后一个元素不设置右侧边距 */
 }
 
 #magnifying-glass {
   width: 22px;
   height: 22px;
-  padding: 0px 5px;
+  padding: 0 5px;
+  vertical-align: middle;
+  justify-content: center;
+
+}
+
+#search-input {
+  flex-grow: 1; /* 让输入框占据剩余空间 */
+  margin: 0 10px; /* 添加左右边距 */
+  padding: 5px;
   vertical-align: middle;
   justify-content: center;
 }
 
-#search-input {
-  width: 270px;
-  padding: 5px;
+#tab-count {
+  font-weight: bold;
 }
 
 #tab-list {
   list-style: none;
-  padding: 0px;
-  margin: 5px 0px;
+  padding: 0;
+  margin: 5px 0;
   overflow-y: auto;
 }
 
@@ -37,7 +52,7 @@ body {
   justify-content: space-between;
   cursor: pointer;
   padding: 10px;
-  margin: 0px;
+  margin: 0;
   background-color: #fff;
   transition: background-color 0.3s;
 }
@@ -62,7 +77,7 @@ body {
 }
 
 .li-img {
-  margin-left: 0px;
+  margin-left: 0;
 }
 
 .tab-title {
@@ -78,5 +93,5 @@ body {
 
 .li-item {
   width: 90%;
-  padding: 0px 0px 0px 10px;
+  padding: 0 0 0 10px;
 }
