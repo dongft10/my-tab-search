@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const searchInput = document.getElementById("search-input");
   const tabList = document.getElementById("tab-list");
-  const tabCount = document.getElementById("tab-count");
+  let tabsCount = document.getElementById("tab-count");
 
   let selectedIndex = -1;
 
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
           closeBtn.textContent = "";
           closeBtn.addEventListener("click", function (e) {
             e.stopPropagation();
-            handleCloseBtnClicked(selectedIndex, tab.id);
+            handleCloseBtnClicked(tab.id);
           });
 
           li.appendChild(img);
@@ -92,12 +92,10 @@ document.addEventListener("DOMContentLoaded", () => {
           // console.error("An error occurred:", error.message);
         }
       });
-
       lis = tabList.childNodes;
 
       // 默认选中这一个，方便enter直接跳转
       if (lis.length > 0) {
-        console.log(nextSelectedTabId);
         if (nextSelectedTabId !== 'undefined' && nextSelectedTabId >= 0) {
           lis[nextSelectedTabId].classList.add("selected");
           selectedIndex = nextSelectedTabId;
@@ -108,9 +106,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // 已打开标签总数展示控制
+      let totalTabsCount = 0;
       chrome.tabs.query({currentWindow: true}, function (tabs) {
-        tabCount.textContent = `${tabs.length} Tabs`;
+        totalTabsCount += tabs.length;
+        chrome.tabs.query({currentWindow: false}, function (tabs) {
+          totalTabsCount += tabs.length;
+          tabsCount.textContent = `${totalTabsCount} Tabs`;
+        });
       });
+
     });
   }
 
@@ -122,8 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 处理List item 关闭标签事件
-  function handleCloseBtnClicked(selectedIndex, tabId) {
-    console.log('-----------close btn clicked. tabId:' + tabId + " ,selectedIndex:" + selectedIndex);
+  function handleCloseBtnClicked(tabId) {
     chrome.tabs.remove(tabId, () => {
       let nextTabId;
       if (selectedIndex >= 0) {
@@ -150,8 +153,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleEnterButtonEvent() {
-    let index = tabIdMap.get(selectedIndex);
-    chrome.tabs.get(index, (tab) => {
+    let tabId = tabIdMap.get(selectedIndex);
+    chrome.tabs.get(tabId, (tab) => {
       chrome.tabs.update(tab.id, {active: true});
       chrome.windows.update(tab.windowId, {focused: true});
       window.close();
@@ -160,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleDeleteButtonEvent() {
     let tabId = tabIdMap.get(selectedIndex);
-    handleCloseBtnClicked(selectedIndex, tabId);
+    handleCloseBtnClicked(tabId);
   }
 
   searchInput.addEventListener("keydown", function (event) {
