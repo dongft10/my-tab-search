@@ -94,11 +94,12 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       lis = tabList.childNodes;
 
-      // 默认选中这一个，方便enter直接跳转
+      // 默认选中，方便enter直接跳转
       if (lis.length > 0) {
         if (nextSelectedTabId !== 'undefined' && nextSelectedTabId >= 0) {
           lis[nextSelectedTabId].classList.add("selected");
           selectedIndex = nextSelectedTabId;
+          scrollIntoView(selectedIndex, "ArrowUp", 'auto');
         } else {
           lis[0].classList.add("selected");
           selectedIndex = 0;
@@ -107,13 +108,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 已打开标签总数展示控制
       let totalTabsCount = 0;
-      chrome.tabs.query({currentWindow: true}, function (tabs) {
-        totalTabsCount += tabs.length;
-        chrome.tabs.query({currentWindow: false}, function (tabs) {
+      if (query.length === 0) {
+        chrome.tabs.query({currentWindow: true}, function (tabs) {
           totalTabsCount += tabs.length;
-          tabsCount.textContent = `${totalTabsCount} Tabs`;
+          chrome.tabs.query({currentWindow: false}, function (tabs) {
+            totalTabsCount += tabs.length;
+            tabsCount.textContent = `${totalTabsCount} Tabs`;
+          });
         });
-      });
+      } else {
+        tabsCount.textContent = `${filteredTabs.length} Tabs`;
+      }
 
     });
   }
@@ -166,13 +171,52 @@ document.addEventListener("DOMContentLoaded", () => {
     handleCloseBtnClicked(tabId);
   }
 
+  function scrollIntoView(selectedIndex, eventKey, behavior) {
+    let itemRect = lis[selectedIndex].getBoundingClientRect();
+
+    let headLineHeight = 59;
+
+    let offset;
+    if (eventKey === 'ArrowDown') {
+      // 如果selectedItem在window下方
+      if (itemRect.bottom > (window.innerHeight)) {
+        offset = itemRect.bottom - window.innerHeight + window.scrollY;
+      }
+      // 如果selectedItem在window上方
+      if (itemRect.y < 0 && window.scrollY > 0) {
+        // itemRect.y 此时是负数
+        offset = itemRect.y + window.scrollY;
+      }
+    } else if (eventKey === 'ArrowUp') {
+      // 如果selectedItem在window下方
+      if (itemRect.bottom > window.innerHeight) {
+        // 计算拖动柄要补偿移动的距离
+        offset = itemRect.bottom - window.innerHeight + window.scrollY;
+      }
+      // 如果selectedItem在window上方
+      if (itemRect.y < 0 && window.scrollY > 0) {
+        offset = window.scrollY + itemRect.y;
+      }
+    }
+    if (offset <= headLineHeight) {
+      offset = 0;
+    }
+    window.scrollTo({
+      top: offset,
+      left: 0,
+      behavior: behavior === undefined ? 'smooth' : behavior
+    });
+  }
+
   searchInput.addEventListener("keydown", function (event) {
     if (event.key === "ArrowUp") {
       selectedIndex = Math.max(0, selectedIndex - 1);
       updateSelection();
+      scrollIntoView(selectedIndex, event.key);
     } else if (event.key === "ArrowDown") {
       selectedIndex = Math.min(lis.length - 1, selectedIndex + 1);
       updateSelection();
+      scrollIntoView(selectedIndex, event.key);
     } else if (event.key === "Enter") {
       handleEnterButtonEvent();
     } else if (event.key === "Delete") {
