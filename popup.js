@@ -201,11 +201,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (offset <= headLineHeight) {
       offset = 0;
     }
-    window.scrollTo({
-      top: offset,
-      left: 0,
-      behavior: behavior === undefined ? 'smooth' : behavior
-    });
+    if (offset !== undefined) {
+      window.scrollTo({
+        top: offset,
+        left: 0,
+        behavior: behavior === undefined ? 'smooth' : behavior
+      });
+    }
   }
 
   searchInput.addEventListener("keydown", function (event) {
