@@ -4,12 +4,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabList = document.getElementById("tab-list");
   let tabsCount = document.getElementById("tab-count");
 
+  // 搜索框所在行高度
+  const headLineHeight = 59;
+
+  // 当前选中的tab item
   let selectedIndex = -1;
-
+  // 标签列表
   let lis = tabList.childNodes;
-
+  // 标签Id与列表索引id的对应关系
   let tabIdMap = new Map();
 
+  // 焦点默认定位到搜索输入框
   searchInput.focus();
 
   // Function to update the displayed tabs based on search input
@@ -21,12 +26,11 @@ document.addEventListener("DOMContentLoaded", () => {
         tab.title.toLowerCase().includes(query)
       );
 
-      // clear the existing tab list
       tabList.innerHTML = "";
-
-      let i = 0;
-
       tabIdMap.clear();
+
+      // tabList index
+      let i = 0;
 
       // populate the tab list with the filtered tabs
       filteredTabs.forEach((tab) => {
@@ -34,10 +38,9 @@ document.addEventListener("DOMContentLoaded", () => {
           const li = document.createElement("li");
 
           // tab icon
-          const img = document.createElement('img');
-          img.classList.add("li-img");
-          img.src = faviconURL(tab.url);
-
+          const icon = document.createElement('img');
+          icon.classList.add("li-icon");
+          icon.src = faviconURL(tab.url);
 
           const listItemDiv = document.createElement("div");
           listItemDiv.classList.add("li-item");
@@ -47,13 +50,12 @@ document.addEventListener("DOMContentLoaded", () => {
           titleDiv.classList.add("tab-title");
           titleDiv.textContent = tab.title;
 
-          const urlInfoDiv = document.createElement("div");
-          urlInfoDiv.classList.add("tab-info");
-          urlInfoDiv.textContent = new URL(tab.url).hostname;
+          const urlHostNameDiv = document.createElement("div");
+          urlHostNameDiv.classList.add("tab-url-hostname");
+          urlHostNameDiv.textContent = new URL(tab.url).hostname;
 
           listItemDiv.appendChild(titleDiv);
-          listItemDiv.appendChild(urlInfoDiv);
-
+          listItemDiv.appendChild(urlHostNameDiv);
 
           const closeBtn = document.createElement("div");
           closeBtn.classList.add("close-btn");
@@ -63,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
             handleCloseBtnClicked(tab.id);
           });
 
-          li.appendChild(img);
+          li.appendChild(icon);
           li.appendChild(listItemDiv);
           li.appendChild(closeBtn);
 
@@ -82,11 +84,8 @@ document.addEventListener("DOMContentLoaded", () => {
             window.close();
           });
 
-          // add the list item to the tab list
           tabList.appendChild(li);
-
-          tabIdMap.set(i, tab.id);
-          i++;
+          tabIdMap.set(i++, tab.id);
         } catch (error) {
           // 如果try块中抛出错误，这里将捕获到错误
           // console.error("An error occurred:", error.message);
@@ -97,9 +96,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // 默认选中，方便enter直接跳转
       if (lis.length > 0) {
         if (nextSelectedTabId !== 'undefined' && nextSelectedTabId >= 0) {
-          lis[nextSelectedTabId].classList.add("selected");
           selectedIndex = nextSelectedTabId;
-          scrollIntoView(selectedIndex, "ArrowUp", 'auto');
+          lis[selectedIndex].classList.add("selected");
         } else {
           lis[0].classList.add("selected");
           selectedIndex = 0;
@@ -107,19 +105,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // 已打开标签总数展示控制
-      let totalTabsCount = 0;
       if (query.length === 0) {
-        chrome.tabs.query({currentWindow: true}, function (tabs) {
-          totalTabsCount += tabs.length;
-          chrome.tabs.query({currentWindow: false}, function (tabs) {
-            totalTabsCount += tabs.length;
-            tabsCount.textContent = `${totalTabsCount} Tabs`;
-          });
+        chrome.tabs.query({windowType: 'normal'}, function (tabs) {
+          tabsCount.textContent = `${tabs.length} Tabs`;
         });
       } else {
         tabsCount.textContent = `${filteredTabs.length} Tabs`;
       }
-
     });
   }
 
@@ -132,15 +124,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 处理List item 关闭标签事件
   function handleCloseBtnClicked(tabId) {
-    chrome.tabs.remove(tabId, () => {
-      let nextTabId;
-      if (selectedIndex >= 0) {
-        nextTabId = selectedIndex - 1;
-      } else {
-        nextTabId = -1;
-      }
-      updateTabs(nextTabId);
-    });
+    if (tabId !== undefined) {
+      chrome.tabs.remove(tabId, () => {
+        let nextTabId;
+        if (selectedIndex >= 0) {
+          nextTabId = selectedIndex - 1;
+        } else {
+          nextTabId = -1;
+        }
+        updateTabs(nextTabId);
+      });
+    }
   }
 
   function updateSelection() {
@@ -171,31 +165,34 @@ document.addEventListener("DOMContentLoaded", () => {
     handleCloseBtnClicked(tabId);
   }
 
-  function scrollIntoView(selectedIndex, eventKey, behavior) {
+  function scrollIntoView(selectedIndex, event, behavior) {
+    event.preventDefault();
+    if (lis.length === 0) {
+      return;
+    }
+    let eventKey = event.key;
     let itemRect = lis[selectedIndex].getBoundingClientRect();
-
-    let headLineHeight = 59;
 
     let offset;
     if (eventKey === 'ArrowDown') {
       // 如果selectedItem在window下方
-      if (itemRect.bottom > (window.innerHeight)) {
+      if (itemRect.bottom > window.innerHeight) {
         offset = itemRect.bottom - window.innerHeight + window.scrollY;
       }
       // 如果selectedItem在window上方
-      if (itemRect.y < 0 && window.scrollY > 0) {
-        // itemRect.y 此时是负数
-        offset = itemRect.y + window.scrollY;
+      if (itemRect.top < 0 && window.scrollY > 0) {
+        // itemRect.top 此时是负数
+        offset = itemRect.top + window.scrollY;
       }
-    } else if (eventKey === 'ArrowUp') {
+    } else if (eventKey === 'ArrowUp' || eventKey === 'Delete') {
       // 如果selectedItem在window下方
-      if (itemRect.bottom > window.innerHeight) {
+      if (itemRect.bottom > window.innerHeight + headLineHeight) {
         // 计算拖动柄要补偿移动的距离
         offset = itemRect.bottom - window.innerHeight + window.scrollY;
       }
       // 如果selectedItem在window上方
-      if (itemRect.y < 0 && window.scrollY > 0) {
-        offset = window.scrollY + itemRect.y;
+      if (itemRect.top < 0 && window.scrollY > 0) {
+        offset = window.scrollY + itemRect.top;
       }
     }
     if (offset <= headLineHeight) {
@@ -210,19 +207,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  searchInput.addEventListener("keydown", function (event) {
+  window.addEventListener("keydown", function (event) {
     if (event.key === "ArrowUp") {
       selectedIndex = Math.max(0, selectedIndex - 1);
       updateSelection();
-      scrollIntoView(selectedIndex, event.key);
+      scrollIntoView(selectedIndex, event);
     } else if (event.key === "ArrowDown") {
       selectedIndex = Math.min(lis.length - 1, selectedIndex + 1);
       updateSelection();
-      scrollIntoView(selectedIndex, event.key);
+      scrollIntoView(selectedIndex, event);
     } else if (event.key === "Enter") {
       handleEnterButtonEvent();
     } else if (event.key === "Delete") {
       handleDeleteButtonEvent();
+      scrollIntoView(selectedIndex, event, 'auto');
     }
   });
 
@@ -231,4 +229,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // initial tab update
   updateTabs();
+});
+
+// 当弹窗失去焦点的时候，默认关闭弹窗
+window.addEventListener('blur', function () {
+  window.close();
 });
