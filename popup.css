@@ -76,7 +76,7 @@ body {
   background-color: lightblue;
 }
 
-.li-img {
+.li-icon {
   margin-left: 0;
 }
 
@@ -85,7 +85,7 @@ body {
   max-width: 285px;
 }
 
-.tab-info {
+.tab-url-hostname {
   color: #666;
   font-size: 0.9em;
   margin-top: 2px;

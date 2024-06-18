@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "My Tab Search Extension",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "Search through opened tabs",
   "icons": {
     "16": "images/icon-16.png",
@@ -13,12 +13,21 @@
     "default_popup": "popup.html",
     "default_icon": "images/icon-48.png"
   },
-  "permissions": ["tabs","favicon"],
+  "permissions": [
+    "tabs",
+    "favicon"
+  ],
   "web_accessible_resources": [
     {
-      "resources": ["_favicon/*"],
-      "matches": ["<all_urls>"],
-      "extension_ids": ["*"]
+      "resources": [
+        "_favicon/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ],
+      "extension_ids": [
+        "*"
+      ]
     }
   ],
   "commands": {
