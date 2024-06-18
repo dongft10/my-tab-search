@@ -230,8 +230,3 @@ document.addEventListener("DOMContentLoaded", () => {
   // initial tab update
   updateTabs();
 });
-
-// 当弹窗失去焦点的时候，默认关闭弹窗
-window.addEventListener('blur', function () {
-  window.close();
-});
