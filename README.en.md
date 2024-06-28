@@ -1,5 +1,7 @@
 # my-tab-search
 
+![sample screenshot](images/image.png)
+
 ## Description
 Chrome browser tab management extension tools, supporting quick search for keywords and switch to the corresponding tab. Supporting to switch the selected tab entries by using the up and down arrow keys, and confirm to jump to the target page by pressing the enter key.
 
@@ -9,7 +11,8 @@ Chrome browser tab management extension tools, supporting quick search for keywo
 - Search and filter tabs based on title.
 - Quick access to relevant tabs.
 - Keyboard shortcut support for easy toggling.
-- Supporting to switch the selected tab entries by using the up and down arrow keys.
+- Supporting to switch the selected tab entry by using the up and down arrow key.
+- Support keyboard press Delete key to remove selected tab entry.
 
 ## Installation
 
