@@ -78,10 +78,20 @@ document.addEventListener("DOMContentLoaded", () => {
           });
 
           // add click event to switch to the selected tab
-          li.addEventListener("click", function () {
-            chrome.tabs.update(tab.id, {active: true});
-            chrome.windows.update(tab.windowId, {focused: true});
-            window.close();
+          li.addEventListener("click", async function () {
+            chrome.tabs.get(tab.id, (tab) => {
+              const windowId = tab.windowId;
+              console.log("Window ID:", windowId);
+              // 只发送消息给 background.js 处理
+              chrome.runtime.sendMessage({
+                action: "switchToTab",
+                data: {
+                  tabId: tab.id,
+                  windowId: windowId
+                }
+              });
+              window.close();
+            });
           });
 
           tabList.appendChild(li);
@@ -153,9 +163,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleEnterButtonEvent() {
     let tabId = tabIdMap.get(selectedIndex);
-    chrome.tabs.get(tabId, (tab) => {
-      chrome.tabs.update(tab.id, {active: true});
-      chrome.windows.update(tab.windowId, {focused: true});
+    chrome.runtime.sendMessage({
+      action: "switchToTab",
+      data: {tabId: tabId}
+    }, () => {
+      // 在消息发送完成后再关闭窗口
       window.close();
     });
   }
