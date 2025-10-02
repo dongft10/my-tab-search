@@ -26,8 +26,10 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
       try {
         const windowId = tab.windowId;
         if (!curTabId) {
-          preTabId = targetTabId;
           curTabId = targetTabId;
+          if (!preTabId) {
+            preTabId = targetTabId;
+          }
         } else if (curTabId !== targetTabId || preTabId === targetTabId) {
           const temp = curTabId;
           curTabId = targetTabId;
@@ -115,6 +117,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 // 监听标签页关闭，清理无效 ID
 chrome.tabs.onRemoved.addListener(async (tabId) => {
+  // console.log('[onRemoved] remove tab:' + tabId)
   if (curTabId === tabId) {
     curTabId = null;
   }
