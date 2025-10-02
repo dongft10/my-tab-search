@@ -65,23 +65,26 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId === curWindowId) {
     return;
   }
-  getActiveTabInWindow(windowId).then(async (tab) => {
-    if (curWindowId !== windowId) {
-      curWindowId = windowId;
-    }
-    if (tab.id !== curTabId) {
-      const temp = curTabId;
-      curTabId = tab.id;
-      preTabId = temp;
+  try {
+    const tab = await getActiveTabInWindow(windowId);
+    if (tab) {
+      if (curWindowId !== windowId) {
+        curWindowId = windowId;
+      }
+      if (tab.id !== curTabId) {
+        const temp = curTabId;
+        curTabId = tab.id;
+        preTabId = temp;
+      }
     }
     // console.log(`[窗口变化] windowId:${windowId}` +
     //   ' tabId:' + tab.id +
     //   ' curWindowId:' + curWindowId +
     //   ' curTabId:' + curTabId +
     //   ' preTabId:' + preTabId);
-  }).catch((error) => {
-    console.error('错误:', error.message);
-  });
+  } catch (error) {
+    console.error('处理窗口焦点变更时出错:', error.message);
+  }
 });
 
 // 注册快捷键命令
@@ -120,7 +123,6 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 // 监听标签页关闭，清理无效 ID
 chrome.tabs.onRemoved.addListener(async (tabId) => {
-  // console.log('[onRemoved] remove tab:' + tabId)
   if (curTabId === tabId) {
     curTabId = null;
   }
@@ -138,6 +140,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       handleSwitchToTab(targetTabId, windowId)
         .then(() => sendResponse({success: true}))
         .catch(error => sendResponse({success: false, error: error.message}));
+    } else {
+      sendResponse({success: false, error: "无效的标签页ID"});
     }
     return true; // 表示异步响应
   }
@@ -145,6 +149,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
 async function handleSwitchToTab(targetTabId, windowId) {
   try {
+    // 检查标签页是否存在
+    await chrome.tabs.get(targetTabId);
+
     // 激活目标标签页并聚焦窗口
     await chrome.tabs.update(targetTabId, {active: true});
     if (windowId && windowId !== curWindowId) {

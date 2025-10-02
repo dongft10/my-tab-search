@@ -78,10 +78,15 @@ document.addEventListener("DOMContentLoaded", () => {
           });
 
           // add click event to switch to the selected tab
-          li.addEventListener("click", async function () {
+          li.addEventListener("click", function () {
             chrome.tabs.get(tab.id, (tab) => {
+              if (chrome.runtime.lastError) {
+                console.warn('获取标签页信息失败:', chrome.runtime.lastError.message);
+                window.close();
+                return;
+              }
+
               const windowId = tab.windowId;
-              console.log("Window ID:", windowId);
               // 只发送消息给 background.js 处理
               chrome.runtime.sendMessage({
                 action: "switchToTab",
@@ -136,6 +141,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleCloseBtnClicked(tabId) {
     if (tabId !== undefined) {
       chrome.tabs.remove(tabId, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('关闭标签页失败:', chrome.runtime.lastError.message);
+          return;
+        }
         let nextTabId;
         if (selectedIndex >= 0) {
           nextTabId = selectedIndex - 1;
@@ -163,18 +172,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleEnterButtonEvent() {
     let tabId = tabIdMap.get(selectedIndex);
-    chrome.runtime.sendMessage({
-      action: "switchToTab",
-      data: {tabId: tabId}
-    }, () => {
-      // 在消息发送完成后再关闭窗口
-      window.close();
-    });
+    if (tabId !== undefined) {
+      chrome.runtime.sendMessage({
+        action: "switchToTab",
+        data: {tabId: tabId}
+      });
+    }
+    window.close();
   }
 
   function handleDeleteButtonEvent() {
     let tabId = tabIdMap.get(selectedIndex);
-    handleCloseBtnClicked(tabId);
+    if (tabId !== undefined) {
+      handleCloseBtnClicked(tabId);
+    }
   }
 
   function scrollIntoView(selectedIndex, event, behavior) {
