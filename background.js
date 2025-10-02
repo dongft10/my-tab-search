@@ -23,6 +23,10 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   const targetTabId = activeInfo.tabId;
   if (targetTabId) {
     chrome.tabs.get(targetTabId, (tab) => {
+      if (chrome.runtime.lastError) {
+        console.warn('获取标签页失败:', chrome.runtime.lastError.message);
+        return;
+      }
       try {
         const windowId = tab.windowId;
         if (!curTabId) {
@@ -34,12 +38,9 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
           const temp = curTabId;
           curTabId = targetTabId;
           preTabId = temp;
-        } else if (curTabId === targetTabId) {
-          // do nothing .
         }
-        chrome.tabs.update(targetTabId, {active: true});
+
         if (windowId !== curWindowId) {
-          chrome.windows.update(tab.windowId, {focused: true});
           curWindowId = windowId;
         }
         // console.log("[标签页激活] windowId:" + windowId +
@@ -86,7 +87,6 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
 // 注册快捷键命令
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "switch-to-previous-tab") {
-    // 优先使用内存中的值，否则从 storage 加载
     let targetTabId = preTabId;
     if (targetTabId) {
       try {
@@ -108,6 +108,9 @@ chrome.commands.onCommand.addListener(async (command) => {
         //   ' preTabId:' + preTabId)
       } catch (e) {
         console.log('Could not switch to the previous tab:', e);
+        if ((e.message && e.message.includes('Tabs cannot be edited right now'))) {
+          console.warn('标签页正在被拖拽，无法切换到上一个标签页');
+        }
         // preTab 可能已经关闭，清空记录
         preTabId = null;
       }
@@ -144,7 +147,7 @@ async function handleSwitchToTab(targetTabId, windowId) {
   try {
     // 激活目标标签页并聚焦窗口
     await chrome.tabs.update(targetTabId, {active: true});
-    if (windowId !== curWindowId) {
+    if (windowId && windowId !== curWindowId) {
       await chrome.windows.update(windowId, {focused: true});
       curWindowId = windowId;
     }
