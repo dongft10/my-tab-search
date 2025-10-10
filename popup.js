@@ -173,12 +173,19 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleEnterButtonEvent() {
     let tabId = tabIdMap.get(selectedIndex);
     if (tabId !== undefined) {
-      chrome.runtime.sendMessage({
-        action: "switchToTab",
-        data: {tabId: tabId}
+      chrome.tabs.get(tabId, (tab) => {
+        const windowId = tab.windowId;
+        // 只发送消息给 background.js 处理
+        chrome.runtime.sendMessage({
+          action: "switchToTab",
+          data: {
+            tabId: tabId,
+            windowId: windowId
+          }
+        });
+        window.close();
       });
     }
-    window.close();
   }
 
   function handleDeleteButtonEvent() {
