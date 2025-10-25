@@ -29,15 +29,13 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
       }
       try {
         const windowId = tab.windowId;
-        if (!curTabId) {
-          curTabId = targetTabId;
-          if (!preTabId) {
-            preTabId = targetTabId;
+        // 简化逻辑：只要当前激活的标签页与记录的不同，就更新当前和前一个标签页ID
+        if (curTabId !== targetTabId) {
+          // 只有在当前有有效的标签页ID时，才更新前一个标签页ID
+          if (curTabId) {
+            preTabId = curTabId;
           }
-        } else if (curTabId !== targetTabId || preTabId === targetTabId) {
-          const temp = curTabId;
           curTabId = targetTabId;
-          preTabId = temp;
         }
 
         if (windowId !== curWindowId) {
@@ -93,6 +91,15 @@ chrome.commands.onCommand.addListener(async (command) => {
     let targetTabId = preTabId;
     if (targetTabId) {
       try {
+        // 先检查标签页是否存在
+        const tabExists = await chrome.tabs.get(targetTabId).catch(() => null);
+        if (!tabExists) {
+          console.log('Previous tab no longer exists');
+          // 当preTab不存在时，尝试获取当前窗口的其他标签页
+          await findAlternativeTab();
+          return;
+        }
+
         await chrome.tabs.update(targetTabId, {active: true});
         const tab = await chrome.tabs.get(targetTabId);
         if (curWindowId !== tab.windowId) {
@@ -113,21 +120,75 @@ chrome.commands.onCommand.addListener(async (command) => {
         console.log('Could not switch to the previous tab:', e);
         if ((e.message && e.message.includes('Tabs cannot be edited right now'))) {
           console.warn('标签页正在被拖拽，无法切换到上一个标签页');
+          // 标签页拖拽时不重置preTabId，等待拖拽完成后重试
+          return;
         }
-        // preTab 可能已经关闭，清空记录
-        preTabId = null;
+        // 只在确认标签页不存在时才清空记录
+        try {
+          await chrome.tabs.get(targetTabId);
+        } catch {
+          console.log('Previous tab not found, trying to find alternative');
+          await findAlternativeTab();
+        }
       }
+    } else {
+      // 如果preTabId为null，尝试查找当前窗口的其他标签页
+      await findAlternativeTab();
     }
   }
 });
 
+// 当preTab不存在时，尝试查找当前窗口的其他标签页作为替代
+async function findAlternativeTab() {
+  try {
+    const tabs = await chrome.tabs.query({windowId: curWindowId, active: false});
+    if (tabs.length > 0) {
+      // 选择第一个非活动标签页作为替代
+      const altTab = tabs[0];
+      preTabId = altTab.id;
+      console.log('Found alternative tab:', preTabId);
+      // 尝试切换到这个替代标签页
+      await chrome.tabs.update(preTabId, {active: true});
+      const temp = curTabId;
+      curTabId = preTabId;
+      preTabId = temp;
+    }
+  } catch (e) {
+    console.error('Error finding alternative tab:', e);
+  }
+}
+
 // 监听标签页关闭，清理无效 ID
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   if (curTabId === tabId) {
-    curTabId = null;
+    // 当当前标签页关闭时，尝试找到一个新的当前标签页
+    try {
+      const tabs = await chrome.tabs.query({windowId: curWindowId, active: true});
+      if (tabs.length > 0) {
+        curTabId = tabs[0].id;
+      } else {
+        curTabId = null;
+      }
+    } catch (e) {
+      console.error('Error updating curTabId after tab closure:', e);
+      curTabId = null;
+    }
   }
   if (preTabId === tabId) {
-    preTabId = null;
+    // 当preTab关闭时，尝试找到一个替代的preTab
+    try {
+      const tabs = await chrome.tabs.query({windowId: curWindowId, active: false});
+      if (tabs.length > 0) {
+        // 找到一个不是当前标签页的标签页作为preTab
+        const altTab = tabs.find(tab => tab.id !== curTabId);
+        preTabId = altTab ? altTab.id : tabs[0].id;
+      } else {
+        preTabId = null;
+      }
+    } catch (e) {
+      console.error('Error finding alternative preTab after tab closure:', e);
+      preTabId = null;
+    }
   }
 });
 
