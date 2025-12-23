@@ -1,8 +1,11 @@
 // background.js
 
+// 初始化变量
 let curTabId = null;
 let preTabId = null;
 let curWindowId = null;
+
+// console.log('[TabSearch] Variables initialized:', {curTabId, preTabId, curWindowId});
 
 // 方法1：通过窗口ID查询当前活动标签页
 async function getActiveTabInWindow(windowId) {
@@ -55,6 +58,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
       }
     });
   }
+  // console.log('[TabSearch] Variables updated:', {curTabId, preTabId, curWindowId});
 });
 
 // 监听窗口变化（切换窗口时也要记录）
@@ -96,7 +100,7 @@ chrome.commands.onCommand.addListener(async (command) => {
         if (!tabExists) {
           console.log('Previous tab no longer exists');
           // 当preTab不存在时，尝试获取当前窗口的其他标签页
-          await findAlternativeTab();
+          // await findAlternativeTab();
           return;
         }
 
@@ -127,13 +131,11 @@ chrome.commands.onCommand.addListener(async (command) => {
         try {
           await chrome.tabs.get(targetTabId);
         } catch {
-          console.log('Previous tab not found, trying to find alternative');
-          await findAlternativeTab();
+          console.log('Previous tab not found, ignored...');
+          // console.log('Previous tab not found, trying to find alternative');
+          // await findAlternativeTab();
         }
       }
-    } else {
-      // 如果preTabId为null，尝试查找当前窗口的其他标签页
-      await findAlternativeTab();
     }
   }
 });
@@ -220,7 +222,7 @@ async function handleSwitchToTab(targetTabId, windowId) {
       curWindowId = windowId;
     }
     if (targetTabId !== curTabId) {
-      const temp = curTabId;
+      let temp = curTabId;
       curTabId = targetTabId;
       preTabId = temp;
     }
