@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "My Tab Search Extension",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Search through opened tabs",
   "icons": {
     "16": "images/icon-16.png",
