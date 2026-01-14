@@ -18,7 +18,8 @@
     "favicon",
     "storage",
     "activeTab",
-    "notifications"
+    "notifications",
+    "alarms"
   ],
   "web_accessible_resources": [
     {
@@ -45,10 +46,10 @@
     },
     "switch-to-previous-tab": {
       "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
+        "default": "Ctrl+Shift+D",
+        "mac": "Command+Shift+D"
       },
-      "description": "Switch to previously active tab"
+      "description": "切换到前一个已激活的标签页"
     }
   }
 }
