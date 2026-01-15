@@ -46,8 +46,8 @@
     },
     "switch-to-previous-tab": {
       "suggested_key": {
-        "default": "Ctrl+Shift+D",
-        "mac": "Command+Shift+D"
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
       },
       "description": "切换到前一个已激活的标签页"
     }
