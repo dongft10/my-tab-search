@@ -239,11 +239,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.addEventListener("keydown", function (event) {
     if (event.key === "ArrowUp") {
-      selectedIndex = Math.max(0, selectedIndex - 1);
+      if (selectedIndex <= 0) {
+        selectedIndex = lis.length - 1; // 如果已经在顶部，则跳转到底部
+      } else {
+        selectedIndex--;
+      }
       updateSelection();
       scrollIntoView(selectedIndex, event);
     } else if (event.key === "ArrowDown") {
-      selectedIndex = Math.min(lis.length - 1, selectedIndex + 1);
+      if (selectedIndex >= lis.length - 1) {
+        selectedIndex = 0; // 如果已经在底部，则跳转到顶部
+      } else {
+        selectedIndex++;
+      }
       updateSelection();
       scrollIntoView(selectedIndex, event);
     } else if (event.key === "Enter") {
