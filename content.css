@@ -1,0 +1,36 @@
+/* Additional styles for content script popup */
+
+/* Custom scrollbar styles */
+.my-tab-search-popup::-webkit-scrollbar {
+  width: 8px;
+}
+
+.my-tab-search-popup::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.my-tab-search-popup::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.4);
+  border-radius: 4px;
+}
+
+.my-tab-search-popup::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 136, 136, 0.6);
+}
+
+/* Animation for smoother appearance */
+@keyframes fadeInSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.my-tab-search-popup {
+  animation: fadeInSlideDown 0.3s ease-out forwards;
+}

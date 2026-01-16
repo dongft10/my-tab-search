@@ -418,6 +418,51 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     return true; // 表示异步响应
   }
+  
+  if (message.action === "getTabs") {
+    try {
+      const tabs = await chrome.tabs.query({windowType: 'normal'});
+      // 过滤掉扩展程序页面等特殊页面
+      const filteredTabs = tabs.filter(tab => 
+        !tab.url.startsWith('chrome-extension://') && 
+        !tab.url.startsWith('chrome://') && 
+        !tab.url.startsWith('about:')
+      );
+      sendResponse({tabs: filteredTabs});
+    } catch (error) {
+      sendResponse({success: false, error: error.message});
+    }
+    return true; // 表示异步响应
+  }
+  
+  if (message.action === "closeTab") {
+    const tabId = message.tabId;
+    if (tabId) {
+      try {
+        await chrome.tabs.remove(tabId);
+        sendResponse({success: true});
+      } catch (error) {
+        sendResponse({success: false, error: error.message});
+      }
+    } else {
+      sendResponse({success: false, error: "无效的标签页ID"});
+    }
+    return true; // 表示异步响应
+  }
+  
+  if (message.action === "showTabSearchPopup") {
+    // 获取当前活动标签页并在该标签页中注入弹窗
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: "showTabSearchPopup"});
+        sendResponse({success: true});
+      } else {
+        sendResponse({success: false, error: "未找到活动标签页"});
+      }
+    });
+    return true; // 表示异步响应
+  }
+
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
@@ -460,6 +505,36 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(async () => {
   console.log('[TabSearch] Extension started');
   await initializeState();
+});
+
+// 监听扩展图标点击事件
+chrome.action.onClicked.addListener((tab) => {
+  // 检查当前标签页是否可以注入内容脚本
+  if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('about:'))) {
+    // 对于特殊页面，打开popup.html作为替代
+    chrome.action.openPopup?.() || chrome.tabs.create({url: chrome.runtime.getURL('popup.html')});
+    return;
+  }
+  
+  // 向当前标签页发送消息，显示内容脚本弹窗
+  chrome.tabs.sendMessage(tab.id, {action: "showTabSearchPopup"}, (response) => {
+    if (chrome.runtime.lastError) {
+      // 如果内容脚本不存在，先注入它
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js']
+      }).then(() => {
+        // 稍等一下再发送消息
+        setTimeout(() => {
+          chrome.tabs.sendMessage(tab.id, {action: "showTabSearchPopup"});
+        }, 300);
+      }).catch(error => {
+        console.error('Error injecting content script:', error);
+        // 如果注入失败，打开标准popup作为备选方案
+        chrome.action.openPopup?.() || chrome.tabs.create({url: chrome.runtime.getURL('popup.html')});
+      });
+    }
+  });
 });
 
 // 立即初始化（处理扩展已经在运行的情况）

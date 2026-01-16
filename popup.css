@@ -1,49 +1,122 @@
 body {
-  width: 350px;
+  width: 380px;
   min-height: 300px;
-  padding: 0;
+  padding: 20px;
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  border-radius: 20px;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 10px 30px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+  color: #333333;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 在角落添加视觉干扰元素来弱化直角感觉 */
+body::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-radius: 30px; /* 更大的圆角 */
+  background: transparent;
+  z-index: -1;
+  box-shadow: inset 0 0 20px 15px rgba(245, 247, 250, 0.8);
+}
+
+/* 创建一个装饰性的背景元素 */
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(90deg, #4285f4, #546bc9);
+  border-radius: 20px 20px 0 0;
+  z-index: 1;
 }
 
 .search-container {
-  display: flex; /* 启用Flexbox布局 */
-  align-items: center; /* 垂直居中对齐 */
-  justify-content: space-between; /* 子元素之间的间隔平均分布 */
-  padding: 5px;
-  margin: 10px 0 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  margin: 10px 0 15px 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .search-container > *:last-child {
-  margin-right: 0; /* 最后一个元素不设置右侧边距 */
+  margin-right: 0;
 }
 
 #magnifying-glass {
-  width: 22px;
-  height: 22px;
-  padding: 0 5px;
+  width: 24px;
+  height: 24px;
+  padding: 0 8px;
   vertical-align: middle;
   justify-content: center;
-
+  opacity: 0.7;
 }
 
 #search-input {
-  flex-grow: 1; /* 让输入框占据剩余空间 */
-  margin: 0 10px; /* 添加左右边距 */
-  padding: 5px;
+  flex-grow: 1;
+  margin: 0 12px;
+  padding: 10px 15px;
   vertical-align: middle;
-  justify-content: center;
+  border: none;
+  border-radius: 12px;
+  outline: none;
+  background-color: transparent;
+  font-size: 14px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #tab-count {
-  font-weight: bold;
+  font-weight: 600;
+  color: #4285f4;
+  font-size: 14px;
+  min-width: 80px;
+  text-align: right;
 }
 
 #tab-list {
   list-style: none;
   padding: 0;
   margin: 0 0;
+  max-height: 350px;
   overflow-y: auto;
+  border-radius: 12px;
+  padding: 5px;
+  margin: 0 -5px; /* 确保与容器边缘对齐 */
+}
+
+/* 自定义滚动条样式，确保不破坏圆角 */
+#tab-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+#tab-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+#tab-list::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.4);
+  border-radius: 4px;
+}
+
+#tab-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 136, 136, 0.6);
 }
 
 #tab-list li {
@@ -51,47 +124,85 @@ body {
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  padding: 10px;
-  margin: 0;
-  background-color: #fff;
-  transition: background-color 0.3s;
+  padding: 14px 16px;
+  margin: 8px 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+  border-radius: 14px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 #tab-list li > .close-btn {
   float: right;
   vertical-align: middle;
   justify-content: center;
-  padding: 5px;
+  padding: 6px;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f1f3f4;
+  color: #666;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 #tab-list li > .close-btn:hover {
-  background-color: #b7b7b7;
+  background-color: #ff4757;
+  color: white;
+  transform: scale(1.1);
 }
 
 #tab-list li:hover {
-  background-color: #e0e0e0;
+  background-color: rgba(248, 250, 252, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
 }
 
 #tab-list li.selected {
-  background-color: #D3E3FD;
+  background: linear-gradient(90deg, #e8f0fe, #d2e3fc);
+  border: 1px solid #a0c3ff;
+  box-shadow: 0 4px 10px rgba(66, 133, 244, 0.2);
 }
 
 .li-icon {
   margin-left: 0;
+  border-radius: 6px;
+  width: 20px;
+  height: 20px;
 }
 
 .tab-title {
-  font-weight: bold;
-  max-width: 285px;
+  font-weight: 600;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: #202124;
 }
 
 .tab-url-hostname {
-  color: #666;
-  font-size: 0.9em;
-  margin-top: 2px;
+  color: #5f6368;
+  font-size: 12px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
 }
 
 .li-item {
   width: 90%;
-  padding: 0 0 0 10px;
+  padding: 0 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
