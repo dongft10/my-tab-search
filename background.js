@@ -9,8 +9,6 @@ let curWindowId = null;
 let tabHistory = []; // 存储历史 tabId，最新的在前面
 const MAX_HISTORY_SIZE = 20; // 最大历史记录数量
 
-// console.log('[TabSearch] Variables initialized:', {curTabId, preTabId, curWindowId});
-
 // 方法：保存状态到 storage
 async function saveStateToStorage() {
   try {
@@ -20,7 +18,7 @@ async function saveStateToStorage() {
       curWindowId: curWindowId,
       tabHistory: tabHistory
     });
-    console.log('[Storage] 状态已保存:', {curTabId, preTabId, curWindowId, tabHistory});
+    // console.log('[Storage] 状态已保存:', {curTabId, preTabId, curWindowId, tabHistory});
   } catch (error) {
     console.error('[Storage] 保存状态失败:', error);
   }
@@ -29,9 +27,7 @@ async function saveStateToStorage() {
 // 方法：从 storage 读取状态
 async function loadStateFromStorage() {
   try {
-    const data = await chrome.storage.local.get(['curTabId', 'preTabId', 'curWindowId', 'tabHistory']);
-    console.log('[Storage] 从 storage 读取状态:', data);
-    return data;
+    return await chrome.storage.local.get(['curTabId', 'preTabId', 'curWindowId', 'tabHistory']);
   } catch (error) {
     console.error('[Storage] 读取状态失败:', error);
     return {};
@@ -57,7 +53,7 @@ async function initializeState() {
   try {
     // 首先检查内存中的变量是否有值
     if (curTabId || preTabId || curWindowId) {
-      console.log('[initializeState] 内存中已有状态，无需初始化:', {curTabId, preTabId, curWindowId});
+      // console.log('[initializeState] 内存中已有状态，无需初始化:', {curTabId, preTabId, curWindowId});
       // 如果内存中有值，说明 service worker 还在活跃状态，不需要从 storage 恢复
       return;
     }
@@ -71,7 +67,7 @@ async function initializeState() {
 
     // 如果 storage 中有数据，尝试恢复
     if (savedState.curTabId || savedState.preTabId || savedState.curWindowId) {
-      console.log('[initializeState] 从 storage 恢复状态');
+      // console.log('[initializeState] 从 storage 恢复状态');
 
       // 验证保存的数据是否仍然有效
       let isValid = true;
@@ -84,7 +80,7 @@ async function initializeState() {
           if (tab.windowId === currentFocusedWindow.id) {
             curTabId = tab.id;
           } else {
-            console.log('[initializeState] 保存的标签页不在当前窗口，跳过恢复');
+            // console.log('[initializeState] 保存的标签页不在当前窗口，跳过恢复');
             isValid = false;
           }
         } catch (e) {
@@ -121,7 +117,7 @@ async function initializeState() {
       curWindowId = currentFocusedWindow.id;
 
       if (isValid) {
-        console.log('[initializeState] 状态恢复成功:', {curTabId, preTabId, curWindowId, tabHistory});
+        // console.log('[initializeState] 状态恢复成功:', {curTabId, preTabId, curWindowId, tabHistory});
         // 保存恢复后的状态
         await saveStateToStorage();
         return;
@@ -129,7 +125,7 @@ async function initializeState() {
     }
 
     // 如果内存中没有值且 storage 中也没有有效数据或数据无效，进行正常初始化
-    console.log('[initializeState] 执行正常初始化');
+    // console.log('[initializeState] 执行正常初始化');
 
     // 使用当前焦点窗口
     curWindowId = currentFocusedWindow.id;
@@ -140,7 +136,7 @@ async function initializeState() {
       curTabId = tab.id;
       preTabId = null;
       tabHistory = [tab.id]; // 初始化历史记录
-      console.log('[TabSearch] State initialized:', {curTabId, preTabId, curWindowId, tabHistory});
+      // console.log('[TabSearch] State initialized:', {curTabId, preTabId, curWindowId, tabHistory});
     }
 
     // 保存初始状态
@@ -228,12 +224,12 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
         await updateTabHistory(tabId);
       }
 
-      console.log("[标签页激活] windowId:" + windowId +
-        " tabId:" + tabId +
-        ' curWindowId:' + curWindowId +
-        " curTabId:" + curTabId +
-        ' preTabId:' + preTabId +
-        ' history:' + tabHistory);
+      // console.log("[标签页激活] windowId:" + windowId +
+      //   " tabId:" + tabId +
+      //   ' curWindowId:' + curWindowId +
+      //   " curTabId:" + curTabId +
+      //   ' preTabId:' + preTabId +
+      //   ' history:' + tabHistory);
     } catch (error) {
       console.error('Error handling tab activation:', error);
       // 处理可能的标签页拖拽错误
@@ -286,12 +282,12 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
         // 更新历史记录
         await updateTabHistory(tab.id);
       }
-      console.log(`[窗口变化] windowId:${windowId}` +
-        ' tabId:' + tab.id +
-        ' curWindowId:' + curWindowId +
-        ' curTabId:' + curTabId +
-        ' preTabId:' + preTabId +
-        ' history:' + tabHistory);
+      // console.log(`[窗口变化] windowId:${windowId}` +
+      //   ' tabId:' + tab.id +
+      //   ' curWindowId:' + curWindowId +
+      //   ' curTabId:' + curTabId +
+      //   ' preTabId:' + preTabId +
+      //   ' history:' + tabHistory);
     }
   } catch (error) {
     console.error('处理窗口焦点变更时出错:', error.message);
@@ -314,7 +310,7 @@ chrome.commands.onCommand.addListener(async (command) => {
         // 先检查标签页是否存在
         const tab = await chrome.tabs.get(targetTabId).catch(() => null);
         if (!tab) {
-          console.log('[快捷键] Previous tab no longer exists, clearing preTabId');
+          // console.log('[快捷键] Previous tab no longer exists, clearing preTabId');
           // 清空 preTabId，不自动找替代
           preTabId = null;
           // 从历史记录中移除无效的标签页
@@ -335,11 +331,11 @@ chrome.commands.onCommand.addListener(async (command) => {
           await updateTabHistory(targetTabId);
         }
 
-        console.log("[快捷键] 切换成功 - windowId:" + tab.windowId +
-          " tabId:" + targetTabId +
-          ' curWindowId:' + curWindowId +
-          " preTabId:" + preTabId +
-          ' history:' + tabHistory);
+        // console.log("[快捷键] 切换成功 - windowId:" + tab.windowId +
+        //   " tabId:" + targetTabId +
+        //   ' curWindowId:' + curWindowId +
+        //   " preTabId:" + preTabId +
+        //   ' history:' + tabHistory);
       } catch (e) {
         console.log('[快捷键] Could not switch to the previous tab:', e);
         if ((e.message && e.message.includes('Tabs cannot be edited right now'))) {
@@ -357,7 +353,7 @@ chrome.commands.onCommand.addListener(async (command) => {
         }
       }
     } else {
-      console.log('[快捷键] No previous tab available - preTabId:', preTabId, 'tabHistory:', tabHistory);
+      // console.log('[快捷键] No previous tab available - preTabId:', preTabId, 'tabHistory:', tabHistory);
       // showNotification('提示', '没有可切换的上一个标签页');
     }
   }
@@ -365,7 +361,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 // 监听标签页关闭，清理无效 ID
 chrome.tabs.onRemoved.addListener(async (tabId) => {
-  console.log('[标签页关闭] tabId:', tabId);
+  // console.log('[标签页关闭] tabId:', tabId);
 
   // 如果关闭的标签页是 preTabId，清空 preTabId
   if (preTabId === tabId) {
@@ -384,7 +380,6 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
       } else {
         curTabId = null;
         preTabId = null;
-        // showNotification('preTabId更新', '[onRemoved]-2 preTabId=' + preTabId);
       }
     } catch (e) {
       console.error('Error updating curTabId after tab closure:', e);
@@ -393,12 +388,9 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
     await updateTabHistory(curTabId);
   }
 
-  console.log('[标签页关闭后] curTabId:' + curTabId +
-    ' preTabId:' + preTabId +
-    ' history:' + tabHistory);
-
-  // 保存到 storage
-  // await saveStateToStorage();
+  // console.log('[标签页关闭后] curTabId:' + curTabId +
+  //   ' preTabId:' + preTabId +
+  //   ' history:' + tabHistory);
 });
 
 // 接收来自其它js的message
@@ -438,12 +430,12 @@ async function handleSwitchToTab(targetTabId, windowId) {
       await updateTabHistory(targetTabId);
     }
 
-    console.log("[消息发送] windowId:" + windowId +
-      " tabId:" + targetTabId +
-      ' curWindowId:' + curWindowId +
-      " curTabId:" + curTabId +
-      ' preTabId:' + preTabId +
-      ' history:' + tabHistory);
+    // console.log("[消息发送] windowId:" + windowId +
+    //   " tabId:" + targetTabId +
+    //   ' curWindowId:' + curWindowId +
+    //   " curTabId:" + curTabId +
+    //   ' preTabId:' + preTabId +
+    //   ' history:' + tabHistory);
   } catch (e) {
     console.log('Could not switch to the target tab:', e);
     throw e;
@@ -452,13 +444,13 @@ async function handleSwitchToTab(targetTabId, windowId) {
 
 // 扩展安装或更新时初始化状态
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[TabSearch] Extension installed/updated');
+  // console.log('[TabSearch] Extension installed/updated');
   await initializeState();
 });
 
 // 扩展启动时初始化状态
 chrome.runtime.onStartup.addListener(async () => {
-  console.log('[TabSearch] Extension started');
+  // console.log('[TabSearch] Extension started');
   await initializeState();
 });
 
