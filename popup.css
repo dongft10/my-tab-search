@@ -1,21 +1,42 @@
 body {
   width: 350px;
-  min-height: 300px;
+  min-height: 600px;
+  /*height: auto; !* 让高度自适应内容，但在限制范围内 *!*/
   padding: 0;
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 10px 30px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+  color: #333333;
+  position: relative;
+  overflow-x: hidden; /* 隐藏水平方向溢出 */
+  overflow-y: auto; /* 垂直方向可滚动 */
+  display: flex;
+  flex-direction: column;
+  resize: none; /* 确保不能调整大小 */
+  -webkit-app-region: no-drag; /* 确保整个窗口不可拖动调整大小 */
+  box-sizing: border-box; /* 确保padding和border包含在宽高中 */
 }
 
 .search-container {
-  display: flex; /* 启用Flexbox布局 */
-  align-items: center; /* 垂直居中对齐 */
-  justify-content: space-between; /* 子元素之间的间隔平均分布 */
-  padding: 5px;
-  margin: 10px 0 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 10px 5px;
+  /*margin: 10px 0 10px 0;*/
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0; /* 固定高度，不随内容变化 */
+  z-index: 2; /* 确保搜索框始终在最上层 */
 }
 
 .search-container > *:last-child {
-  margin-right: 0; /* 最后一个元素不设置右侧边距 */
+  margin-right: 0;
 }
 
 #magnifying-glass {
@@ -24,26 +45,72 @@ body {
   padding: 0 5px;
   vertical-align: middle;
   justify-content: center;
-
+  opacity: 0.7;
 }
 
 #search-input {
-  flex-grow: 1; /* 让输入框占据剩余空间 */
-  margin: 0 10px; /* 添加左右边距 */
+  flex-grow: 1;
+  margin: 0 10px;
   padding: 5px;
   vertical-align: middle;
   justify-content: center;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  font-size: 14px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #tab-count {
+  margin-right: 10px;
   font-weight: bold;
+  color: #4285f4;
+  font-size: 14px;
+  text-align: right;
+}
+
+/* 新增：标签列表容器，用于实现独立滚动 */
+.tab-list-container {
+  flex: 1; /* 占据剩余空间 */
+  overflow: hidden; /* 隐藏溢出内容 */
+  display: flex;
+  flex-direction: column;
+  /*border-radius: 12px;*/
+  margin-top: -5px; /* 与上面元素衔接 */
+  max-height: calc(675px - 120px); /* 最大高度减去搜索框和其他元素的高度 */
+  /*min-height: 0; !* 允许容器收缩 *!*/
+  width: 100%; /* 确保不超出父容器宽度 */
+  box-sizing: border-box; /* 确保padding和border包含在宽度内 */
 }
 
 #tab-list {
   list-style: none;
   padding: 0;
-  margin: 0 0;
-  overflow-y: auto;
+  margin: 0;
+  overflow-y: auto; /* 垂直滚动 */
+  flex: 1; /* 占据容器全部空间 */
+  /*border-radius: 12px;*/
+  background-color: rgba(255, 255, 255, 0.3);
+  width: 100%; /* 确保不超出父容器宽度 */
+  box-sizing: border-box; /* 确保padding和border包含在宽度内 */
+}
+
+#tab-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+#tab-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+#tab-list::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.4);
+  border-radius: 4px;
+}
+
+#tab-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 136, 136, 0.6);
 }
 
 #tab-list li {
@@ -51,29 +118,54 @@ body {
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  padding: 10px;
-  margin: 0;
-  background-color: #fff;
-  transition: background-color 0.3s;
+  padding: 10px 5px 10px 10px;
+  margin: 3px 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(223, 228, 232, 0.3);
+  width: 100%; /* 确保不超出父容器宽度 */
+  box-sizing: border-box; /* 确保padding和border包含在宽度内 */
+  max-width: 100%; /* 防止内容溢出 */
 }
 
 #tab-list li > .close-btn {
-  float: right;
   vertical-align: middle;
   justify-content: center;
   padding: 5px;
+  border-radius: 50%;
+  width: 10px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  color: #666;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  flex-shrink: 0; /* 防止按钮缩小 */
+  margin-left: 2px; /* 添加左边距，而不是使用float */
 }
 
 #tab-list li > .close-btn:hover {
-  background-color: #b7b7b7;
+  background-color: #E81123;
+  color: white;
+  transform: scale(1.1);
 }
 
 #tab-list li:hover {
-  background-color: #e0e0e0;
+  border: 1px solid #D3E3FD;
+  background-color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
 }
 
 #tab-list li.selected {
   background-color: #D3E3FD;
+  /*background: linear-gradient(90deg, #e8f0fe, #d2e3fc);*/
+  /*border: 1px solid #a0c3ff;*/
+  /*box-shadow: 0 4px 10px rgba(66, 133, 244, 0.2);*/
 }
 
 .li-icon {
