@@ -180,13 +180,13 @@ body {
   color: #5f6368;
   font-size: 12px;
   margin-top: 3px;
-  white-space: normal; /* 允许文本换行 */
+  white-space: nowrap; /* 不换行 */
+  overflow: hidden; /* 隐藏溢出内容 */
+  text-overflow: ellipsis; /* 显示省略号 */
   max-width: 100%;
   width: auto;
   flex: 1; /* 占据可用空间，但不超过容器 */
   min-width: 0; /* 允许flex项目收缩到内容的固有大小以下 */
-  word-wrap: break-word; /* 允许长单词换行 */
-  overflow-wrap: break-word; /* 允许长内容换行 */
 }
 
 .li-item {

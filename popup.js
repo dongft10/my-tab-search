@@ -54,6 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (lastElement.length > 0) {
             urlHostNameDiv.textContent = urlHostNameDiv.textContent + "/.../" + lastElement;
           }
+          urlHostNameDiv.title = tab.url;
 
 
           listItemDiv.appendChild(titleDiv);
