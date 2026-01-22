@@ -50,6 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
           const urlHostNameDiv = document.createElement("div");
           urlHostNameDiv.classList.add("tab-url-hostname");
           urlHostNameDiv.textContent = new URL(tab.url).hostname;
+          const lastElement = tab.url.substring(tab.url.lastIndexOf('/') + 1);
+          if (lastElement.length > 0) {
+            urlHostNameDiv.textContent = urlHostNameDiv.textContent + "/.../" + lastElement;
+          }
+
 
           listItemDiv.appendChild(titleDiv);
           listItemDiv.appendChild(urlHostNameDiv);
