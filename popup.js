@@ -4,9 +4,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabList = document.getElementById("tab-list");
   let tabsCount = document.getElementById("tab-count");
 
-  // 搜索框所在行高度
-  const headLineHeight = 59;
-
   // 当前选中的tab item
   let selectedIndex = -1;
   // 标签列表
@@ -53,6 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
           const urlHostNameDiv = document.createElement("div");
           urlHostNameDiv.classList.add("tab-url-hostname");
           urlHostNameDiv.textContent = new URL(tab.url).hostname;
+          const lastElement = tab.url.substring(tab.url.lastIndexOf('/') + 1);
+          if (lastElement.length > 0) {
+            urlHostNameDiv.textContent = urlHostNameDiv.textContent + "/.../" + lastElement;
+          }
+
 
           listItemDiv.appendChild(titleDiv);
           listItemDiv.appendChild(urlHostNameDiv);
@@ -200,41 +202,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (lis.length === 0) {
       return;
     }
-    let eventKey = event.key;
-    let itemRect = lis[selectedIndex].getBoundingClientRect();
-
-    let offset;
-    if (eventKey === 'ArrowDown') {
-      // 如果selectedItem在window下方
-      if (itemRect.bottom > window.innerHeight) {
-        offset = itemRect.bottom - window.innerHeight + window.scrollY;
-      }
-      // 如果selectedItem在window上方
-      if (itemRect.top < 0 && window.scrollY > 0) {
-        // itemRect.top 此时是负数
-        offset = itemRect.top + window.scrollY;
-      }
-    } else if (eventKey === 'ArrowUp' || eventKey === 'Delete') {
-      // 如果selectedItem在window下方
-      if (itemRect.bottom > window.innerHeight + headLineHeight) {
-        // 计算拖动柄要补偿移动的距离
-        offset = itemRect.bottom - window.innerHeight + window.scrollY;
-      }
-      // 如果selectedItem在window上方
-      if (itemRect.top < 0 && window.scrollY > 0) {
-        offset = window.scrollY + itemRect.top;
-      }
+    const selectedItem = lis[selectedIndex];
+    
+    if (!selectedItem) {
+      return;
     }
-    if (offset <= headLineHeight) {
-      offset = 0;
-    }
-    if (offset !== undefined) {
-      window.scrollTo({
-        top: offset,
-        left: 0,
-        behavior: behavior === undefined ? 'smooth' : behavior
-      });
-    }
+    
+    // behavior参数控制是否平滑滚动
+    const scrollBehavior = behavior === undefined ? 'smooth' : behavior;
+    
+    // 使用Element.scrollIntoView()方法，这是一个更可靠的方法。确保元素滚动到可视区域
+    selectedItem.scrollIntoView({
+      block: 'nearest',  // 只在必要时滚动，尽量保持元素在视图内
+      behavior: scrollBehavior
+    });
   }
 
   window.addEventListener("keydown", function (event) {
