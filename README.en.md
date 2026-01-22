@@ -3,8 +3,7 @@
 ![sample screenshot](images/image.png)
 
 ## Description
-Chrome browser tab management extension tools, supporting quick search for keywords and switch to the corresponding tab. Supporting to switch the selected tab entries by using the up and down arrow keys, and confirm to jump to the target page by pressing the enter key.
-
+A Chrome browser tab management extension that supports quick search by keywords and switching to the corresponding tabs. Supports using up/down arrow keys to switch selected tab entries, and pressing Enter to confirm navigation to the target page.
 
 ## Features
 
@@ -30,7 +29,12 @@ Chrome browser tab management extension tools, supporting quick search for keywo
 
 ## Keyboard Shortcut
 
-The default keyboard shortcut to toggle the extension is `Ctrl+Shift+A`.
+1. The shortcut key to invoke the tab list is `Ctrl+Shift+A`
+2. The shortcut key to quickly switch to the previous opened tab is Ctrl+Shift+S (since 1.6.0)
+3. If you find the default shortcuts not working, there might be key conflicts. You can adjust them at 【chrome://extensions/shortcuts】.
+4. For smoother usage, it's recommended to pin the extension directly to the browser panel after installation.
+
+![fix-icon](images/fix-icon.png)
 
 ## License
 
