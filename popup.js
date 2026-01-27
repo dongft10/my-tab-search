@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const closeBtn = document.createElement("div");
           closeBtn.classList.add("close-btn");
+          closeBtn.title = chrome.i18n.getMessage('closeTab') || 'Close tab';
           closeBtn.textContent = "";
           closeBtn.addEventListener("click", function (e) {
             e.stopPropagation();
@@ -84,7 +85,8 @@ document.addEventListener("DOMContentLoaded", () => {
           li.addEventListener("click", function () {
             chrome.tabs.get(tab.id, (tab) => {
               if (chrome.runtime.lastError) {
-                console.warn('获取标签页信息失败:', chrome.runtime.lastError.message);
+                const errorMessage = chrome.i18n.getMessage('errorGetTabInfo', chrome.runtime.lastError.message);
+                console.warn(errorMessage || `Failed to get tab information: ${chrome.runtime.lastError.message}`);
                 window.close();
                 return;
               }
@@ -125,10 +127,12 @@ document.addEventListener("DOMContentLoaded", () => {
       // 已打开标签总数展示控制
       if (query.length === 0) {
         chrome.tabs.query({windowType: 'normal'}, function (tabs) {
-          tabsCount.textContent = `${tabs.length} Tabs`;
+          const message = chrome.i18n.getMessage('tabsCount', tabs.length.toString());
+          tabsCount.textContent = message ? message.replace('$COUNT$', tabs.length) : `${tabs.length} Tabs`;
         });
       } else {
-        tabsCount.textContent = `${filteredTabs.length} Tabs`;
+        const message = chrome.i18n.getMessage('tabsCount', filteredTabs.length.toString());
+        tabsCount.textContent = message ? message.replace('$COUNT$', filteredTabs.length) : `${filteredTabs.length} Tabs`;
       }
     });
   }
@@ -145,7 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (tabId !== undefined) {
       chrome.tabs.remove(tabId, () => {
         if (chrome.runtime.lastError) {
-          console.warn('关闭标签页失败:', chrome.runtime.lastError.message);
+          const errorMessage = chrome.i18n.getMessage('closeTabFailed', chrome.runtime.lastError.message);
+          console.warn(errorMessage || `Failed to close tab: ${chrome.runtime.lastError.message}`);
           return;
         }
         let nextTabId;
@@ -244,9 +249,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // event listener for search input changes
-  searchInput.addEventListener("input", updateTabs);
+  // Set up i18n for UI elements
+  function setupI18n() {
+    // Set placeholder and aria-label for search input
+    searchInput.placeholder = chrome.i18n.getMessage('searchPlaceholder') || '搜索已打开的标签页...';
+    searchInput.setAttribute('aria-label', chrome.i18n.getMessage('ariaLabelSearch') || '搜索已打开的标签页');
+  }
 
+  // Set initial loading text with i18n
+  tabsCount.textContent = chrome.i18n.getMessage('loadingText') || 'Loading...';
+  
   // initial tab update
   updateTabs();
+  
+  // Set up i18n after DOM is loaded
+  setupI18n();
+  
+  // event listener for search input changes
+  searchInput.addEventListener("input", updateTabs);
 });

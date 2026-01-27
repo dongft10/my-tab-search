@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - My Tab Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #4285f4;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .setting-group {
+      margin: 25px 0;
+    }
+    .setting-item {
+      margin: 15px 0;
+      padding: 15px;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      background-color: #fafafa;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #333;
+    }
+    select, input[type="range"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .range-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .range-container input {
+      flex: 1;
+    }
+    .range-value {
+      min-width: 40px;
+      text-align: center;
+      font-weight: bold;
+      color: #4285f4;
+    }
+    .save-btn {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    .save-btn:hover {
+      background-color: #3367d6;
+    }
+    .save-btn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .status-message {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+    .status-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .language-selector {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .language-selector select {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Extension Settings</h1>
+    
+    <div class="setting-group">
+      <h3>Language Settings</h3>
+      <div class="setting-item">
+        <label for="language-select">Select Language:</label>
+        <div class="language-selector">
+          <select id="language-select">
+            <option value="en" id="en-option">English</option>
+            <option value="zh_CN" id="zh-cn-option">中文</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <h3>Display Settings</h3>
+      <div class="setting-item">
+        <label for="max-results">Maximum Results to Display:</label>
+        <div class="range-container">
+          <input type="range" id="max-results" min="5" max="50" value="20">
+          <span class="range-value" id="max-results-value">20</span>
+        </div>
+      </div>
+      
+      <div class="setting-item">
+        <label for="theme-select">Theme:</label>
+        <select id="theme-select">
+          <option value="light">Light Theme</option>
+          <option value="dark">Dark Theme</option>
+          <option value="system">System Default</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <h3>Behavior Settings</h3>
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="auto-close-popup"> Auto-close popup after tab switch
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="show-favicons"> Show favicons in search results
+        </label>
+      </div>
+    </div>
+    
+    <button id="save-settings" class="save-btn">Save Settings</button>
+    <div id="status-message" class="status-message"></div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>
