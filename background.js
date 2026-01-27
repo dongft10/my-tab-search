@@ -182,18 +182,18 @@ async function removeFromHistory(tabId) {
 }
 
 // 方法：显示通知
-function showNotification(title, message) {
+function showNotification(message) {
   chrome.notifications.create({
     type: 'basic',
     iconUrl: 'images/icon-48.png',
-    title: title,
+    title: chrome.i18n.getMessage('notificationTitle') || 'Tab Search',
     message: message,
     priority: 1
   }, (notificationId) => {
     if (chrome.runtime.lastError) {
       console.error('Failed to show notification:', chrome.runtime.lastError.message);
     } else {
-      console.log('[通知]', title, '-', message);
+      console.log('[通知]', chrome.i18n.getMessage('notificationTitle') || 'Tab Search', '-', message);
       // 使用 alarms API 来延迟关闭通知（service worker 兼容）
       chrome.alarms.create(`notification-${notificationId}`, {
         delayInMinutes: 0.05 // 3秒 = 0.05分钟
@@ -301,7 +301,8 @@ chrome.commands.onCommand.addListener(async (command) => {
 
     // 如果 preTabId 无效，则弹窗提示
     if (!targetTabId && tabHistory.length > 1) {
-      showNotification('搜索标签页', '未找到前一个标签页，可能已被关闭。');
+      const message = chrome.i18n.getMessage('noPrevTab') || '未找到前一个标签页，可能已被关闭。';
+      showNotification(message);
       return;
     }
 
@@ -406,7 +407,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         sendResponse({success: false, error: error.message});
       }
     } else {
-      sendResponse({success: false, error: "无效的标签页ID"});
+      const errorMsg = chrome.i18n.getMessage('invalidTabId') || "无效的标签页ID";
+      sendResponse({success: false, error: errorMsg});
     }
     return true; // 表示异步响应
   }

@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "My Tab Search Extension",
-  "version": "1.7.0",
-  "description": "Search through opened tabs",
+  "name": "__MSG_extName__",
+  "version": "1.8.0",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "icons": {
     "16": "images/icon-16.png",
     "32": "images/icon-32.png",
@@ -24,7 +25,12 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "_favicon/*"
+        "_favicon/*",
+        "manifest.json",
+        "about.html",
+        "settings.html",
+        "about.js",
+        "settings.js"
       ],
       "matches": [
         "<all_urls>"
@@ -49,7 +55,7 @@
         "default": "Ctrl+Shift+S",
         "mac": "Command+Shift+S"
       },
-      "description": "切换到前一个已激活的标签页"
+      "description": "__MSG_prevTabDesc__"
     }
   }
 }

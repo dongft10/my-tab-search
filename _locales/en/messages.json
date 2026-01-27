@@ -1,0 +1,176 @@
+{
+  "extName": {
+    "message": "My Tab Search Extension",
+    "description": "The display name for the extension"
+  },
+  "extDescription": {
+    "message": "Search through opened tabs",
+    "description": "The description for the extension"
+  },
+  "prevTabDesc": {
+    "message": "Switch to the previous activated tab",
+    "description": "Description for the previous tab command"
+  },
+  "searchPlaceholder": {
+    "message": "Search opened tabs...",
+    "description": "Placeholder text for the search input"
+  },
+  "ariaLabelSearch": {
+    "message": "Search opened tabs",
+    "description": "ARIA label for the search input"
+  },
+  "loadingText": {
+    "message": "Loading...",
+    "description": "Text shown while loading tabs"
+  },
+  "tabsCount": {
+    "message": "$COUNT$ Tabs",
+    "description": "Text showing the number of tabs, $COUNT$ will be replaced with the actual number",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "25"
+      }
+    }
+  },
+  "closeTab": {
+    "message": "Close tab",
+    "description": "Tooltip for the close tab button"
+  },
+  "errorGetTabInfo": {
+    "message": "Failed to get tab information: $ERROR$",
+    "description": "Error message when failing to get tab info, $ERROR$ will be replaced with the error message",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "Tab not found"
+      }
+    }
+  },
+  "closeTabFailed": {
+    "message": "Failed to close tab: $ERROR$",
+    "description": "Error message when failing to close a tab, $ERROR$ will be replaced with the error message",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "notificationTitle": {
+    "message": "Tab Search",
+    "description": "Title for notifications"
+  },
+  "noPrevTab": {
+    "message": "No previous tab available",
+    "description": "Message shown when there's no previous tab to switch to"
+  },
+  "invalidTabId": {
+    "message": "Invalid tab ID",
+    "description": "Message shown when tab ID is invalid"
+  },
+  "aboutTitle": {
+    "message": "About My Tab Search",
+    "description": "Title for the about page"
+  },
+  "settingsTitle": {
+    "message": "Settings",
+    "description": "Title for the settings page"
+  },
+  "languageLabel": {
+    "message": "Select Language:",
+    "description": "Label for the language selection dropdown"
+  },
+  "englishOption": {
+    "message": "English",
+    "description": "Option for English in language dropdown"
+  },
+  "chineseOption": {
+    "message": "Chinese",
+    "description": "Option for Chinese in language dropdown"
+  },
+  "simplifiedChineseOption": {
+    "message": "Simplified Chinese",
+    "description": "Option for Simplified Chinese in language dropdown"
+  },
+  "errorSavingSettings": {
+    "message": "Error saving settings: ",
+    "description": "Prefix for error message when saving settings fails"
+  },
+  "settingsSaved": {
+    "message": "Settings saved successfully!",
+    "description": "Confirmation message when settings are saved successfully"
+  },
+  "versionLabel": {
+    "message": "Version:",
+    "description": "Label for version information"
+  },
+  "aboutDescription": {
+    "message": "My Tab Search is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.",
+    "description": "Description text for the about page"
+  },
+  "featuresHeading": {
+    "message": "Features:",
+    "description": "Heading for the features section on the about page"
+  },
+  "featureSearchTabs": {
+    "message": "Quickly search through all open tabs",
+    "description": "Description of the search tabs feature"
+  },
+  "featureKeyboardNav": {
+    "message": "Keyboard navigation support",
+    "description": "Description of the keyboard navigation feature"
+  },
+  "featureFuzzySearch": {
+    "message": "Fuzzy search algorithm for better results",
+    "description": "Description of the fuzzy search feature"
+  },
+  "featureOneClickSwitch": {
+    "message": "One-click tab switching",
+    "description": "Description of the one-click switching feature"
+  },
+  "featureCloseFromResults": {
+    "message": "Close tabs directly from the search results",
+    "description": "Description of the close from results feature"
+  },
+  "featureSwitchPrevious": {
+    "message": "Support for switching to the previous tab",
+    "description": "Description of the previous tab switching feature"
+  },
+  "featureRememberState": {
+    "message": "Remember last active tab state",
+    "description": "Description of the state remembering feature"
+  },
+  "shortcutsHeading": {
+    "message": "Shortcuts:",
+    "description": "Heading for the shortcuts section on the about page"
+  },
+  "openPopupText": {
+    "message": "Open the tab search popup",
+    "description": "Description for the popup opening shortcut"
+  },
+  "switchPrevText": {
+    "message": "Switch to the previous tab",
+    "description": "Description for the previous tab switching shortcut"
+  },
+  "navResultsText": {
+    "message": "Navigate through search results",
+    "description": "Description for the navigation shortcut"
+  },
+  "switchSelectedText": {
+    "message": "Switch to the selected tab",
+    "description": "Description for the selection switching shortcut"
+  },
+  "closeTabText": {
+    "message": "Close the selected tab",
+    "description": "Description for the tab closing shortcut"
+  },
+  "madeWithLove": {
+    "message": "Made with ❤️ for better browsing experience",
+    "description": "Text in the footer of the about page"
+  },
+  "copyrightText": {
+    "message": "© 2025 My Tab Search Extension. All rights reserved.",
+    "description": "Copyright text for the about page"
+  }
+}
