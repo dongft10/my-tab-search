@@ -12,17 +12,25 @@ const i18n = {
   // Initialize i18n
   async initialize() {
     try {
+      console.log('[i18n] Initializing i18n system');
+      
       const result = await chrome.storage.sync.get('language');
       if (result.language) {
         this.language = result.language;
+        console.log(`[i18n] Loaded language preference: ${this.language}`);
       } else {
         const browserLang = chrome.i18n.getUILanguage();
         this.language = browserLang.startsWith('zh') ? 'zh_CN' : 'en';
+        console.log(`[i18n] Using browser language: ${browserLang}, set to: ${this.language}`);
       }
 
       await this.loadMessages(this.language);
+      console.log('[i18n] Initialization complete');
     } catch (error) {
-      console.error('Failed to initialize i18n in background:', error);
+      console.error('[i18n] Failed to initialize i18n in background:', error);
+      // Set default values even if initialization fails
+      this.language = 'en';
+      this.messages['en'] = {};
     }
   },
 
@@ -30,21 +38,36 @@ const i18n = {
   async loadMessages(lang) {
     try {
       if (this.loadedLanguages.has(lang)) {
+        console.log(`[i18n] Language ${lang} already loaded, skipping`);
         return;
       }
 
+      console.log(`[i18n] Loading messages for language: ${lang}`);
+      
       const response = await fetch(`/_locales/${lang}/messages.json`);
       if (!response.ok) {
-        throw new Error(`Failed to load messages for ${lang}`);
+        throw new Error(`HTTP ${response.status}: Failed to load messages for ${lang}`);
       }
 
       const messages = await response.json();
+      
+      if (!messages || typeof messages !== 'object') {
+        throw new Error(`Invalid messages format for ${lang}`);
+      }
+
       this.messages[lang] = messages;
       this.loadedLanguages.add(lang);
+      console.log(`[i18n] Successfully loaded messages for ${lang}`);
     } catch (error) {
-      console.error(`Failed to load messages for ${lang}:`, error);
+      console.error(`[i18n] Failed to load messages for ${lang}:`, error);
+      
+      // Fallback to English if the requested language is not English
       if (lang !== 'en') {
+        console.log(`[i18n] Falling back to English`);
         await this.loadMessages('en');
+      } else {
+        // If even English fails, we have a serious problem
+        console.error('[i18n] Critical error: Failed to load English messages');
       }
     }
   },
@@ -560,22 +583,29 @@ async function handleSwitchToTab(targetTabId, windowId) {
 // 扩展安装或更新时初始化状态
 chrome.runtime.onInstalled.addListener(async () => {
   // console.log('[TabSearch] Extension installed/updated');
-  await initializeState();
+  await initializeAll();
 });
 
 // 扩展启动时初始化状态
 chrome.runtime.onStartup.addListener(async () => {
   // console.log('[TabSearch] Extension started');
-  await initializeState();
+  await initializeAll();
 });
 
 // 立即初始化（处理扩展已经在运行的情况）
 async function initializeAll() {
-  await i18n.initialize();
-  await initializeState();
+  try {
+    await i18n.initialize();
+    await initializeState();
+  } catch (error) {
+    console.error('[Background] Failed to initialize:', error);
+  }
 }
 
-initializeAll();
+// 延迟初始化，确保 Service Worker 完全准备好
+setTimeout(() => {
+  initializeAll();
+}, 100);
 
 // 监听 alarms 事件，用于关闭通知
 chrome.alarms.onAlarm.addListener((alarm) => {
