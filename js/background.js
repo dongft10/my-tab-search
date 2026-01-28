@@ -1,5 +1,98 @@
 // background.js
 
+// Note: Service workers cannot use ES6 imports directly
+// We'll use a different approach for i18n in background.js
+
+// i18n helper functions for background.js
+const i18n = {
+  language: 'en',
+  messages: {},
+  loadedLanguages: new Set(),
+
+  // Initialize i18n
+  async initialize() {
+    try {
+      const result = await chrome.storage.sync.get('language');
+      if (result.language) {
+        this.language = result.language;
+      } else {
+        const browserLang = chrome.i18n.getUILanguage();
+        this.language = browserLang.startsWith('zh') ? 'zh_CN' : 'en';
+      }
+
+      await this.loadMessages(this.language);
+    } catch (error) {
+      console.error('Failed to initialize i18n in background:', error);
+    }
+  },
+
+  // Load messages for a specific language
+  async loadMessages(lang) {
+    try {
+      if (this.loadedLanguages.has(lang)) {
+        return;
+      }
+
+      const response = await fetch(`/_locales/${lang}/messages.json`);
+      if (!response.ok) {
+        throw new Error(`Failed to load messages for ${lang}`);
+      }
+
+      const messages = await response.json();
+      this.messages[lang] = messages;
+      this.loadedLanguages.add(lang);
+    } catch (error) {
+      console.error(`Failed to load messages for ${lang}:`, error);
+      if (lang !== 'en') {
+        await this.loadMessages('en');
+      }
+    }
+  },
+
+  // Get message for a key
+  getMessage(key, replacements = null) {
+    let message = this._getMessageFromLang(key, this.language);
+    
+    if (!message) {
+      message = this._getMessageFromLang(key, 'en');
+    }
+
+    if (!message) {
+      return key;
+    }
+
+    if (replacements) {
+      if (Array.isArray(replacements)) {
+        replacements.forEach((replacement, index) => {
+          message = message.replace(`$${index + 1}`, replacement);
+        });
+      } else if (typeof replacements === 'string') {
+        message = message.replace('$1', replacements);
+      }
+    }
+
+    return message;
+  },
+
+  // Get message from specific language
+  _getMessageFromLang(key, lang) {
+    if (this.messages[lang] && this.messages[lang][key]) {
+      return this.messages[lang][key].message;
+    }
+    return null;
+  },
+
+  // Set language
+  async setLanguage(lang) {
+    if (this.language === lang) {
+      return;
+    }
+
+    this.language = lang;
+    await this.loadMessages(lang);
+  }
+};
+
 // 初始化变量
 let curTabId = null;
 let preTabId = null;
@@ -186,14 +279,14 @@ function showNotification(message) {
   chrome.notifications.create({
     type: 'basic',
     iconUrl: 'images/icon-48.png',
-    title: chrome.i18n.getMessage('notificationTitle') || 'Tab Search',
+    title: i18n.getMessage('notificationTitle') || 'Tab Search',
     message: message,
     priority: 1
   }, (notificationId) => {
     if (chrome.runtime.lastError) {
       console.error('Failed to show notification:', chrome.runtime.lastError.message);
     } else {
-      console.log('[通知]', chrome.i18n.getMessage('notificationTitle') || 'Tab Search', '-', message);
+      console.log('[通知]', i18n.getMessage('notificationTitle') || 'Tab Search', '-', message);
       // 使用 alarms API 来延迟关闭通知（service worker 兼容）
       chrome.alarms.create(`notification-${notificationId}`, {
         delayInMinutes: 0.05 // 3秒 = 0.05分钟
@@ -301,10 +394,10 @@ chrome.commands.onCommand.addListener(async (command) => {
 
     // 如果 preTabId 无效，则弹窗提示
     if (!targetTabId && tabHistory.length > 1) {
-      const message = chrome.i18n.getMessage('noPrevTab') || '未找到前一个标签页，可能已被关闭。';
-      showNotification(message);
-      return;
-    }
+        const message = i18n.getMessage('noPrevTab') || '未找到前一个标签页，可能已被关闭。';
+        showNotification(message);
+        return;
+      }
 
     if (targetTabId) {
       try {
@@ -414,6 +507,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
   
   if (message.action === 'languageChanged') {
+    // Update background i18n language
+    await i18n.setLanguage(message.language);
+    
     // 广播语言更改消息给所有标签页
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach(tab => {
@@ -474,7 +570,12 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 // 立即初始化（处理扩展已经在运行的情况）
-initializeState();
+async function initializeAll() {
+  await i18n.initialize();
+  await initializeState();
+}
+
+initializeAll();
 
 // 监听 alarms 事件，用于关闭通知
 chrome.alarms.onAlarm.addListener((alarm) => {

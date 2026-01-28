@@ -120,45 +120,10 @@
       </div>
     </div>
     
-    <div class="setting-group">
-      <h3>Display Settings</h3>
-      <div class="setting-item">
-        <label for="max-results">Maximum Results to Display:</label>
-        <div class="range-container">
-          <input type="range" id="max-results" min="5" max="50" value="20">
-          <span class="range-value" id="max-results-value">20</span>
-        </div>
-      </div>
-      
-      <div class="setting-item">
-        <label for="theme-select">Theme:</label>
-        <select id="theme-select">
-          <option value="light">Light Theme</option>
-          <option value="dark">Dark Theme</option>
-          <option value="system">System Default</option>
-        </select>
-      </div>
-    </div>
-    
-    <div class="setting-group">
-      <h3>Behavior Settings</h3>
-      <div class="setting-item">
-        <label>
-          <input type="checkbox" id="auto-close-popup"> Auto-close popup after tab switch
-        </label>
-      </div>
-      
-      <div class="setting-item">
-        <label>
-          <input type="checkbox" id="show-favicons"> Show favicons in search results
-        </label>
-      </div>
-    </div>
-    
     <button id="save-settings" class="save-btn">Save Settings</button>
     <div id="status-message" class="status-message"></div>
   </div>
 
-  <script src="settings.js"></script>
+  <script type="module" src="../js/settings.js"></script>
 </body>
 </html>

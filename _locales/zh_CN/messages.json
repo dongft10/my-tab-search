@@ -24,7 +24,7 @@
     "description": "Text shown while loading tabs"
   },
   "tabsCount": {
-    "message": "$COUNT$ 个标签页",
+    "message": "$COUNT$ 网页",
     "description": "Text showing the number of tabs, $COUNT$ will be replaced with the actual number",
     "placeholders": {
       "count": {
@@ -170,7 +170,7 @@
     "description": "Text in the footer of the about page"
   },
   "copyrightText": {
-    "message": "© 2025 我的标签页搜索扩展。保留所有权利。",
+    "message": "© 2026 我的标签页搜索扩展。保留所有权利。",
     "description": "Copyright text for the about page"
   }
 }

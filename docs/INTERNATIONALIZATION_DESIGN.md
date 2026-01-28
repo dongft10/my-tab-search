@@ -83,7 +83,7 @@ The following message keys were defined for internationalization:
 | `searchPlaceholder` | "Search opened tabs..." | "搜索已打开的标签页..." | popup.js |
 | `ariaLabelSearch` | "Search opened tabs" | "搜索已打开的标签页" | popup.js |
 | `loadingText` | "Loading..." | "加载中..." | popup.js |
-| `tabsCount` | "$COUNT$ Tabs" | "$COUNT$ 个标签页" | popup.js |
+| `tabsCount` | "$COUNT$ Tabs" | "$COUNT$ 网页" | popup.js |
 | `closeTab` | "Close tab" | "关闭标签页" | popup.js |
 | `errorGetTabInfo` | "Failed to get tab information: $ERROR$" | "获取标签页信息失败: $ERROR$" | popup.js |
 | `closeTabFailed` | "Failed to close tab: $ERROR$" | "关闭标签页失败: $ERROR$" | popup.js |

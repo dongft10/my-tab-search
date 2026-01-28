@@ -11,7 +11,7 @@
     "128": "images/icon-128.png"
   },
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "html/popup.html",
     "default_icon": "images/icon-48.png"
   },
   "permissions": [
@@ -27,10 +27,11 @@
       "resources": [
         "_favicon/*",
         "manifest.json",
-        "about.html",
-        "settings.html",
-        "about.js",
-        "settings.js"
+        "html/about.html",
+        "html/settings.html",
+        "js/about.js",
+        "js/settings.js",
+        "js/i18n.js"
       ],
       "matches": [
         "<all_urls>"
@@ -40,8 +41,11 @@
       ]
     }
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "js/background.js"
   },
   "commands": {
     "_execute_action": {

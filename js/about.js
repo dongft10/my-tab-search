@@ -1,5 +1,11 @@
+// Import i18n manager
+import i18n from './i18n.js';
+
 // Apply internationalization and dynamically load the extension version
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize i18n
+  await i18n.initialize();
+  
   // Apply i18n to UI elements
   applyI18n();
   
@@ -13,42 +19,48 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error loading manifest:', error);
       });
  
- // Listen for language change messages
+  // Add language change listener
+  i18n.addListener(applyI18n);
+ 
+ // Listen for language change messages from other parts
  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
    if (message.action === 'languageChanged') {
-     // Reapply i18n when language changes
-     applyI18n();
+     // Update i18n language
+     i18n.setLanguage(message.language).then(() => {
+       // Reapply i18n after language change
+       applyI18n();
+     });
    }
  });
 });
 
 function applyI18n() {
   // Update page title
-  document.title = chrome.i18n.getMessage('aboutTitle') || 'About - My Tab Search';
+  document.title = i18n.getMessage('aboutTitle') || 'About - My Tab Search';
   
   // Update main title
   const titleElement = document.getElementById('about-title');
   if (titleElement) {
-    titleElement.textContent = chrome.i18n.getMessage('extName') || 'My Tab Search';
+    titleElement.textContent = i18n.getMessage('extName') || 'My Tab Search';
   }
   
   // Update version label
   const versionLabel = document.getElementById('version-label');
   if (versionLabel) {
-    versionLabel.textContent = chrome.i18n.getMessage('versionLabel') || 'Version:';
+    versionLabel.textContent = i18n.getMessage('versionLabel') || 'Version:';
   }
   
   // Update description
   const descElement = document.getElementById('about-description');
   if (descElement) {
-    descElement.textContent = chrome.i18n.getMessage('aboutDescription') || 
+    descElement.textContent = i18n.getMessage('aboutDescription') || 
       'My Tab Search is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.';
   }
   
   // Update features section
   const featuresHeading = document.getElementById('features-heading');
   if (featuresHeading) {
-    featuresHeading.textContent = chrome.i18n.getMessage('featuresHeading') || 'Features:';
+    featuresHeading.textContent = i18n.getMessage('featuresHeading') || 'Features:';
   }
   
   // Update features list items
@@ -65,7 +77,7 @@ function applyI18n() {
   
   featureItems.forEach((item, index) => {
     if (featureMessages[index]) {
-      const message = chrome.i18n.getMessage(featureMessages[index]);
+      const message = i18n.getMessage(featureMessages[index]);
       if (message) {
         item.textContent = message;
       }
@@ -75,43 +87,43 @@ function applyI18n() {
   // Update shortcuts section
   const shortcutsHeading = document.getElementById('shortcuts-heading');
   if (shortcutsHeading) {
-    shortcutsHeading.textContent = chrome.i18n.getMessage('shortcutsHeading') || 'Shortcuts:';
+    shortcutsHeading.textContent = i18n.getMessage('shortcutsHeading') || 'Shortcuts:';
   }
   
   // Update shortcut descriptions
   const openPopupText = document.getElementById('open-popup-text');
   if (openPopupText) {
-    openPopupText.textContent = chrome.i18n.getMessage('openPopupText') || 'Open the tab search popup';
+    openPopupText.textContent = i18n.getMessage('openPopupText') || 'Open the tab search popup';
   }
   
   const switchPrevText = document.getElementById('switch-prev-text');
   if (switchPrevText) {
-    switchPrevText.textContent = chrome.i18n.getMessage('switchPrevText') || 'Switch to the previous tab';
+    switchPrevText.textContent = i18n.getMessage('switchPrevText') || 'Switch to the previous tab';
   }
   
   const navResultsText = document.getElementById('nav-results-text');
   if (navResultsText) {
-    navResultsText.textContent = chrome.i18n.getMessage('navResultsText') || 'Navigate through search results';
+    navResultsText.textContent = i18n.getMessage('navResultsText') || 'Navigate through search results';
   }
   
   const switchSelectedText = document.getElementById('switch-selected-text');
   if (switchSelectedText) {
-    switchSelectedText.textContent = chrome.i18n.getMessage('switchSelectedText') || 'Switch to the selected tab';
+    switchSelectedText.textContent = i18n.getMessage('switchSelectedText') || 'Switch to the selected tab';
   }
   
   const closeTabText = document.getElementById('close-tab-text');
   if (closeTabText) {
-    closeTabText.textContent = chrome.i18n.getMessage('closeTabText') || 'Close the selected tab';
+    closeTabText.textContent = i18n.getMessage('closeTabText') || 'Close the selected tab';
   }
   
   // Update footer
   const madeWithLove = document.getElementById('made-with-love');
   if (madeWithLove) {
-    madeWithLove.textContent = chrome.i18n.getMessage('madeWithLove') || 'Made with ❤️ for better browsing experience';
+    madeWithLove.textContent = i18n.getMessage('madeWithLove') || 'Made with ❤️ for better browsing experience';
   }
   
   const copyrightText = document.getElementById('copyright-text');
   if (copyrightText) {
-    copyrightText.textContent = chrome.i18n.getMessage('copyrightText') || `© 2025 ${chrome.i18n.getMessage('extName') || 'My Tab Search Extension'}. All rights reserved.`;
+    copyrightText.textContent = i18n.getMessage('copyrightText') || `© 2025 ${i18n.getMessage('extName') || 'My Tab Search Extension'}. All rights reserved.`;
   }
 }
