@@ -6,14 +6,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (aboutBtn) {
     aboutBtn.addEventListener('click', () => {
       // Open about page in a new tab
-      chrome.tabs.create({ url: chrome.runtime.getURL('about.html') });
+      chrome.tabs.create({ url: chrome.runtime.getURL('html/about.html') });
     });
   }
 
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
       // Open settings page in a new tab
-      chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
+      chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
     });
   }
 });
