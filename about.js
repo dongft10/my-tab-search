@@ -7,14 +7,25 @@ document.addEventListener('DOMContentLoaded', () => {
   fetch(chrome.runtime.getURL('manifest.json'))
     .then(response => response.json())
     .then(manifest => {
-      document.getElementById('version').textContent = manifest.version;
-    })
-    .catch(error => {
-      console.error('Error loading manifest:', error);
-    });
+        document.getElementById('version').textContent = manifest.version;
+      })
+      .catch(error => {
+        console.error('Error loading manifest:', error);
+      });
+ 
+ // Listen for language change messages
+ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+   if (message.action === 'languageChanged') {
+     // Reapply i18n when language changes
+     applyI18n();
+   }
+ });
 });
 
 function applyI18n() {
+  // Update page title
+  document.title = chrome.i18n.getMessage('aboutTitle') || 'About - My Tab Search';
+  
   // Update main title
   const titleElement = document.getElementById('about-title');
   if (titleElement) {

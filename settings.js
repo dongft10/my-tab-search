@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function applyI18n() {
+  // Update page title
+  document.title = chrome.i18n.getMessage('settingsTitle') || 'Settings - My Tab Search';
+  
   // Update language options with localized text
   const enOption = document.getElementById('en-option');
   const zhCnOption = document.getElementById('zh-cn-option');
@@ -121,3 +124,11 @@ function showMessage(message, type) {
     statusEl.style.display = 'none';
   }, 3000);
 }
+
+// Listen for language change messages from other parts of the extension
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'languageChanged') {
+    // Reapply i18n when language changes from elsewhere
+    applyI18n();
+  }
+});

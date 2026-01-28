@@ -267,4 +267,14 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // event listener for search input changes
   searchInput.addEventListener("input", updateTabs);
+  
+  // Listen for language change messages
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'languageChanged') {
+      // Reapply i18n when language changes
+      setupI18n();
+      // Refresh the tab list to update any text
+      updateTabs();
+    }
+  });
 });

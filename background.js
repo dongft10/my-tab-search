@@ -412,6 +412,23 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     return true; // 表示异步响应
   }
+  
+  if (message.action === 'languageChanged') {
+    // 广播语言更改消息给所有标签页
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'languageChanged',
+          language: message.language
+        }).catch(() => {
+          // 忽略发送失败的错误（例如，某些系统页面无法接收消息）
+        });
+      });
+    });
+    
+    sendResponse({success: true});
+    return true;
+  }
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
