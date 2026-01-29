@@ -1,0 +1,29 @@
+{
+  "name": "my-tab-search",
+  "version": "1.0.0",
+  "description": "A Chrome extension for searching and managing open tabs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node pack/scripts/build.js",
+    "build": "node pack/scripts/build.js",
+    "build-dev": "node pack/scripts/build.js --skip-compress",
+    "compress": "node pack/scripts/compress.js",
+    "package": "node pack/scripts/package.js",
+    "package-dev": "node pack/scripts/package.js . ./pack/out --skip-compression",
+    "clean": "node pack/scripts/clean.js",
+    "setup": "npm install",
+    "install-crx": "npm install -g crx",
+    "install-crx3": "npm install -g crx3"
+  },  "devDependencies": {
+    "archiver": "^5.3.1",
+    "terser": "^5.14.2",
+    "clean-css": "^5.3.0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "tab-manager",
+    "search"
+  ],
+  "author": "",
+  "license": "ISC"
+}

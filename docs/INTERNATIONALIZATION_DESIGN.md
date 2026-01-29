@@ -49,10 +49,6 @@ A new about page was created with the following features:
 ### 3.2 Settings Page (`settings.html`)
 A new settings page was created with the following configurable options:
 - Language selection (English/Chinese)
-- Maximum results to display (slider 5-50)
-- Theme selection (Light/Dark/System)
-- Auto-close popup after tab switch (toggle)
-- Show favicons in search results (toggle)
 
 ### 3.3 Popup Enhancement
 Added a button bar to the bottom of the popup with:
