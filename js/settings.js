@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function applyI18n() {
   // Update page title
-  document.title = i18n.getMessage('settingsTitle') || 'Settings - My Tab Search';
+  document.title = i18n.getMessage('settingsTitle') || 'Settings - MyTabSearch';
 
   // Update language options with localized text
   const enOption = document.getElementById('en-option');

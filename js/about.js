@@ -36,12 +36,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function applyI18n() {
   // Update page title
-  document.title = i18n.getMessage('aboutTitle') || 'About - My Tab Search';
+  document.title = i18n.getMessage('aboutTitle') || 'About - MyTabSearch';
   
   // Update main title
   const titleElement = document.getElementById('about-title');
   if (titleElement) {
-    titleElement.textContent = i18n.getMessage('extName') || 'My Tab Search';
+    titleElement.textContent = i18n.getMessage('extName') || 'MyTabSearch';
   }
   
   // Update version label
@@ -54,7 +54,7 @@ function applyI18n() {
   const descElement = document.getElementById('about-description');
   if (descElement) {
     descElement.textContent = i18n.getMessage('aboutDescription') || 
-      'My Tab Search is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.';
+      'MyTabSearch is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.';
   }
   
   // Update features section
@@ -124,6 +124,6 @@ function applyI18n() {
   
   const copyrightText = document.getElementById('copyright-text');
   if (copyrightText) {
-    copyrightText.textContent = i18n.getMessage('copyrightText') || `© 2025 ${i18n.getMessage('extName') || 'My Tab Search Extension'}. All rights reserved.`;
+    copyrightText.textContent = i18n.getMessage('copyrightText') || `© 2025 ${i18n.getMessage('extName') || 'MyTabSearch Extension'}. All rights reserved.`;
   }
 }

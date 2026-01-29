@@ -1,8 +1,8 @@
-# My Tab Search Extension - Internationalization and Feature Enhancement Design Document
+# MyTabSearch Extension - Internationalization and Feature Enhancement Design Document
 
 ## 1. Overview
 
-This document outlines the internationalization (i18n) implementation and new feature additions to the My Tab Search Chrome extension. The primary goals are to:
+This document outlines the internationalization (i18n) implementation and new feature additions to the MyTabSearch Chrome extension. The primary goals are to:
 - Support Chinese and English languages
 - Add About and Settings pages accessible from the popup
 - Enhance user experience with localized content
@@ -32,7 +32,7 @@ The following user-facing text elements were identified for internationalization
 - Error messages: "Invalid tab ID"
 
 #### Manifest (`manifest.json`)
-- Extension name: "My Tab Search Extension"
+- Extension name: "MyTabSearch Extension"
 - Description: "Search through opened tabs"
 - Command descriptions: "Switch to the previous activated tab"
 
@@ -77,7 +77,7 @@ The following message keys were defined for internationalization:
 
 | Key | English Value | Chinese Value | Used In |
 |-----|---------------|---------------|---------|
-| `extName` | "My Tab Search Extension" | "我的标签页搜索扩展" | manifest.json |
+| `extName` | "MyTabSearch Extension" | "MyTabSearch" | manifest.json |
 | `extDescription` | "Search through opened tabs" | "搜索已打开的标签页" | manifest.json |
 | `prevTabDesc` | "Switch to the previous activated tab" | "切换到前一个已激活的标签页" | manifest.json |
 | `searchPlaceholder` | "Search opened tabs..." | "搜索已打开的标签页..." | popup.js |

@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "我的标签页搜索扩展",
+    "message": "MyTabSearch Extension",
     "description": "The display name for the extension"
   },
   "extDescription": {
@@ -24,7 +24,7 @@
     "description": "Text shown while loading tabs"
   },
   "tabsCount": {
-    "message": "$COUNT$ 网页",
+    "message": "$COUNT$ Tabs",
     "description": "Text showing the number of tabs, $COUNT$ will be replaced with the actual number",
     "placeholders": {
       "count": {
@@ -70,11 +70,11 @@
     "description": "Message shown when tab ID is invalid"
   },
   "aboutTitle": {
-    "message": "关于我的标签页搜索",
+    "message": "MyTabSearch - 关于",
     "description": "Title for the about page"
   },
   "settingsTitle": {
-    "message": "设置",
+    "message": "MyTabSearch - 设置",
     "description": "Title for the settings page"
   },
   "languageLabel": {
@@ -170,7 +170,7 @@
     "description": "Text in the footer of the about page"
   },
   "copyrightText": {
-    "message": "© 2026 我的标签页搜索扩展。保留所有权利。",
+    "message": "© 2026 MyTabSearch。保留所有权利。",
     "description": "Copyright text for the about page"
   }
 }

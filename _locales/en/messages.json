@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "My Tab Search Extension",
+    "message": "MyTabSearch Extension",
     "description": "The display name for the extension"
   },
   "extDescription": {
@@ -70,11 +70,11 @@
     "description": "Message shown when tab ID is invalid"
   },
   "aboutTitle": {
-    "message": "About My Tab Search",
+    "message": "MyTabSearch - About",
     "description": "Title for the about page"
   },
   "settingsTitle": {
-    "message": "Settings",
+    "message": "MyTabSearch - Settings",
     "description": "Title for the settings page"
   },
   "languageLabel": {
@@ -106,7 +106,7 @@
     "description": "Label for version information"
   },
   "aboutDescription": {
-    "message": "My Tab Search is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.",
+    "message": "MyTabSearch is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.",
     "description": "Description text for the about page"
   },
   "featuresHeading": {
@@ -170,7 +170,7 @@
     "description": "Text in the footer of the about page"
   },
   "copyrightText": {
-    "message": "© 2026 My Tab Search Extension. All rights reserved.",
+    "message": "© 2026 MyTabSearch Extension. All rights reserved.",
     "description": "Copyright text for the about page"
   }
 }
