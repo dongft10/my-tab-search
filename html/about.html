@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - MyTabSearch</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #4285f4;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo img {
+      width: 64px;
+      height: 64px;
+    }
+    .info-section {
+      margin: 20px 0;
+    }
+    .version-info {
+      background-color: #f9f9f9;
+      padding: 10px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .description {
+      line-height: 1.6;
+    }
+    .features {
+      margin: 20px 0;
+    }
+    .features ul {
+      padding-left: 20px;
+    }
+    .features li {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      color: #666;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <img src="../images/icon-128.png" alt="MyTabSearch Logo">
+    </div>
+    <h1 id="about-title">MyTabSearch</h1>
+    
+    <div class="info-section">
+      <div class="version-info">
+        <span id="version-label">Version:</span> <span id="version">1.8.0</span>
+      </div>
+      
+      <div class="description">
+        <p id="about-description">MyTabSearch is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.</p>
+      </div>
+    </div>
+    
+    <div class="info-section features">
+      <h3 id="features-heading">Features:</h3>
+      <ul id="features-list">
+        <li class="feature-item">Quickly search through all open tabs</li>
+        <li class="feature-item">Keyboard navigation support</li>
+        <li class="feature-item">Fuzzy search algorithm for better results</li>
+        <li class="feature-item">One-click tab switching</li>
+        <li class="feature-item">Close tabs directly from the search results</li>
+        <li class="feature-item">Support for switching to the previous tab</li>
+        <li class="feature-item">Remember last active tab state</li>
+      </ul>
+    </div>
+    
+    <div class="info-section shortcuts">
+      <h3 id="shortcuts-heading">Shortcuts:</h3>
+      <ul id="shortcuts-list">
+        <li class="shortcut-item"><strong>Ctrl+Shift+A</strong> (Cmd+Shift+A on Mac): <span id="open-popup-text">Open the tab search popup</span></li>
+        <li class="shortcut-item"><strong>Ctrl+Shift+S</strong> (Cmd+Shift+S on Mac): <span id="switch-prev-text">Switch to the previous tab</span></li>
+        <li class="shortcut-item"><strong>Arrow Up/Down</strong>: <span id="nav-results-text">Navigate through search results</span></li>
+        <li class="shortcut-item"><strong>Enter</strong>: <span id="switch-selected-text">Switch to the selected tab</span></li>
+        <li class="shortcut-item"><strong>Delete</strong>: <span id="close-tab-text">Close the selected tab</span></li>
+      </ul>
+    </div>
+    
+    <div class="footer">
+      <p id="made-with-love">Made with ❤️ for better browsing experience</p>
+      <p id="copyright-text">© 2025 MyTabSearch Extension. All rights reserved.</p>
+    </div>
+  </div>
+
+  <script type="module" src="../js/about.js"></script>
+</body>
+</html>

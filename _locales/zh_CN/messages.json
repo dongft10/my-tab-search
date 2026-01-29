@@ -1,0 +1,176 @@
+{
+  "extName": {
+    "message": "MyTabSearch Extension",
+    "description": "The display name for the extension"
+  },
+  "extDescription": {
+    "message": "搜索已打开的标签页",
+    "description": "The description for the extension"
+  },
+  "prevTabDesc": {
+    "message": "切换到前一个已激活的标签页",
+    "description": "Description for the previous tab command"
+  },
+  "searchPlaceholder": {
+    "message": "搜索已打开的标签页...",
+    "description": "Placeholder text for the search input"
+  },
+  "ariaLabelSearch": {
+    "message": "搜索已打开的标签页",
+    "description": "ARIA label for the search input"
+  },
+  "loadingText": {
+    "message": "加载中...",
+    "description": "Text shown while loading tabs"
+  },
+  "tabsCount": {
+    "message": "$COUNT$ Tabs",
+    "description": "Text showing the number of tabs, $COUNT$ will be replaced with the actual number",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "25"
+      }
+    }
+  },
+  "closeTab": {
+    "message": "关闭标签页",
+    "description": "Tooltip for the close tab button"
+  },
+  "errorGetTabInfo": {
+    "message": "获取标签页信息失败: $ERROR$",
+    "description": "Error message when failing to get tab info, $ERROR$ will be replaced with the error message",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "标签页未找到"
+      }
+    }
+  },
+  "closeTabFailed": {
+    "message": "关闭标签页失败: $ERROR$",
+    "description": "Error message when failing to close a tab, $ERROR$ will be replaced with the error message",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "权限不足"
+      }
+    }
+  },
+  "notificationTitle": {
+    "message": "标签页搜索",
+    "description": "Title for notifications"
+  },
+  "noPrevTab": {
+    "message": "没有可切换的上一个标签页",
+    "description": "Message shown when there's no previous tab to switch to"
+  },
+  "invalidTabId": {
+    "message": "无效的标签页ID",
+    "description": "Message shown when tab ID is invalid"
+  },
+  "aboutTitle": {
+    "message": "MyTabSearch - 关于",
+    "description": "Title for the about page"
+  },
+  "settingsTitle": {
+    "message": "MyTabSearch - 设置",
+    "description": "Title for the settings page"
+  },
+  "languageLabel": {
+    "message": "选择语言:",
+    "description": "Label for the language selection dropdown"
+  },
+  "englishOption": {
+    "message": "英语",
+    "description": "Option for English in language dropdown"
+  },
+  "chineseOption": {
+    "message": "中文",
+    "description": "Option for Chinese in language dropdown"
+  },
+  "simplifiedChineseOption": {
+    "message": "简体中文",
+    "description": "Option for Simplified Chinese in language dropdown"
+  },
+  "errorSavingSettings": {
+    "message": "保存设置时出错: ",
+    "description": "Prefix for error message when saving settings fails"
+  },
+  "settingsSaved": {
+    "message": "设置保存成功！",
+    "description": "Confirmation message when settings are saved successfully"
+  },
+  "versionLabel": {
+    "message": "版本:",
+    "description": "Label for version information"
+  },
+  "aboutDescription": {
+    "message": "MyTabSearch是一个Chrome扩展，帮助您快速搜索和切换打开的标签页。通过简单的键盘快捷键，您可以访问所有打开的标签页并在几秒钟内找到所需的标签页。",
+    "description": "Description text for the about page"
+  },
+  "featuresHeading": {
+    "message": "功能特性:",
+    "description": "Heading for the features section on the about page"
+  },
+  "featureSearchTabs": {
+    "message": "快速搜索所有打开的标签页",
+    "description": "Description of the search tabs feature"
+  },
+  "featureKeyboardNav": {
+    "message": "支持键盘导航",
+    "description": "Description of the keyboard navigation feature"
+  },
+  "featureFuzzySearch": {
+    "message": "模糊搜索算法提供更好的结果",
+    "description": "Description of the fuzzy search feature"
+  },
+  "featureOneClickSwitch": {
+    "message": "一键标签页切换",
+    "description": "Description of the one-click switching feature"
+  },
+  "featureCloseFromResults": {
+    "message": "直接从搜索结果关闭标签页",
+    "description": "Description of the close from results feature"
+  },
+  "featureSwitchPrevious": {
+    "message": "支持切换到上一个标签页",
+    "description": "Description of the previous tab switching feature"
+  },
+  "featureRememberState": {
+    "message": "记住最后活动标签页状态",
+    "description": "Description of the state remembering feature"
+  },
+  "shortcutsHeading": {
+    "message": "快捷键:",
+    "description": "Heading for the shortcuts section on the about page"
+  },
+  "openPopupText": {
+    "message": "打开标签页搜索弹出窗口",
+    "description": "Description for the popup opening shortcut"
+  },
+  "switchPrevText": {
+    "message": "切换到上一个标签页",
+    "description": "Description for the previous tab switching shortcut"
+  },
+  "navResultsText": {
+    "message": "在搜索结果中导航",
+    "description": "Description for the navigation shortcut"
+  },
+  "switchSelectedText": {
+    "message": "切换到选定的标签页",
+    "description": "Description for the selection switching shortcut"
+  },
+  "closeTabText": {
+    "message": "关闭选定的标签页",
+    "description": "Description for the tab closing shortcut"
+  },
+  "madeWithLove": {
+    "message": "用心制作，带来更好的浏览体验",
+    "description": "Text in the footer of the about page"
+  },
+  "copyrightText": {
+    "message": "© 2026 MyTabSearch。保留所有权利。",
+    "description": "Copyright text for the about page"
+  }
+}
