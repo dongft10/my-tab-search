@@ -125,7 +125,7 @@ async function main() {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     const version = manifest.version;
 
-    // 检查 crx 是否已安装（优先使用 crx，因为 crx3 在新版 Node.js 中有问题）
+    // 检查 crx 是否已安装，如果没有则自动安装
     let crxAvailable = false;
     try {
       const helpResult = execSync('crx --help', { stdio: ['pipe', 'pipe', 'pipe'], shell: true });
@@ -133,33 +133,44 @@ async function main() {
         crxAvailable = true;
       }
     } catch (error) {
-      // 如果命令失败，说明 crx 不可用
-      crxAvailable = false;
+      // 如果命令失败，说明 crx 不可用，尝试安装
+      console.log('CRX tool not found. Installing crx...');
+      try {
+        execSync('npm install -g crx', { stdio: 'inherit', shell: true });
+        console.log('CRX tool installed successfully!');
+        crxAvailable = true;
+      } catch (installError) {
+        console.error('Failed to install crx tool:', installError.message);
+        crxAvailable = false;
+      }
     }
 
-    if (crxAvailable) {
-      // 如果 crx 可用，则创建带版本号的 CRX 文件
-      const crxPath = path.join(outputDir, `my-tab-search-v${version}.crx`);
+    // 创建带版本号的 CRX 文件
+    const crxPath = path.join(outputDir, `my-tab-search-v${version}.crx`);
 
+    if (crxAvailable) {
       // 使用 crx 工具来创建 CRX 文件，使用现有的 PEM 密钥文件
-      execSync(`crx pack "${buildDir}" -o "${crxPath}" --private-key="${path.join(__dirname, '..', '..', 'pack', 'my-tab-search.pem')}"`, { stdio: 'inherit', shell: true });
+      const pemPath = path.join(__dirname, '..', '..', 'pack', 'my-tab-search.pem');
+      
+      if (!fs.existsSync(pemPath)) {
+        console.log('PEM key file not found. Generating new PEM key...');
+        try {
+          execSync(`crx keygen "${outputDir}" -o my-tab-search.pem`, { stdio: 'inherit', shell: true });
+          console.log('PEM key generated successfully!');
+        } catch (keygenError) {
+          console.error('Failed to generate PEM key:', keygenError.message);
+          throw new Error('Cannot proceed without PEM key file');
+        }
+      }
+      
+      execSync(`crx pack "${buildDir}" -o "${crxPath}" --private-key="${pemPath}"`, { stdio: 'inherit', shell: true });
       console.log(`CRX file created: ${crxPath}`);
 
       console.log('\nPackaging completed successfully!');
       console.log(`Build directory: ${buildDir}`);
       console.log(`CRX file: ${crxPath}`);
     } else {
-      console.log('CRX tool not found. Creating ZIP package as fallback...');
-
-      // 如果 crx 不可用，则创建带版本号的 ZIP 包作为备选
-      const zipPath = path.join(outputDir, `my-tab-search-v${version}.zip`);
-      console.log('Creating ZIP package...');
-      await createZip(buildDir, zipPath);
-
-      console.log('\nPackaging completed successfully!');
-      console.log(`Build directory: ${buildDir}`);
-      console.log(`Package file: ${zipPath}`);
-      console.log('To generate CRX file, install crx with: npm install -g crx');
+      throw new Error('CRX tool is not available. Please install it manually with: npm install -g crx');
     }
   } catch (error) {
     console.error('Error during packaging process:', error);

@@ -106,7 +106,7 @@
     "description": "Label for version information"
   },
   "aboutDescription": {
-    "message": "我的标签页搜索是一个Chrome扩展，帮助您快速搜索和切换打开的标签页。通过简单的键盘快捷键，您可以访问所有打开的标签页并在几秒钟内找到所需的标签页。",
+    "message": "MyTabSearch是一个Chrome扩展，帮助您快速搜索和切换打开的标签页。通过简单的键盘快捷键，您可以访问所有打开的标签页并在几秒钟内找到所需的标签页。",
     "description": "Description text for the about page"
   },
   "featuresHeading": {
