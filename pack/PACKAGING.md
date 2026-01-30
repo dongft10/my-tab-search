@@ -58,12 +58,16 @@ npm install -g crx3
 
 2. 生成私钥（仅首次）：
 ```bash
-openssl genrsa -out pack/my-tab-search.pem 2048
+# 推荐：生成到项目根目录
+openssl genrsa -out ../my-tab-search.pem 2048
 ```
+
+注意：私钥文件(my-tab-search.pem)属于敏感文件，不应随代码提交到版本控制系统。建议将其添加到.gitignore文件中。
 
 3. 打包扩展：
 ```bash
-crx pack ../ --private-key pack/my-tab-search.pem -o pack/out/my-tab-search.crx
+# 修改后的打包脚本会自动从项目根目录或pack目录查找pem文件
+crx pack ../ --private-key ../my-tab-search.pem -o pack/out/my-tab-search.crx
 ```
 
 ## 目录结构
@@ -76,11 +80,11 @@ crx pack ../ --private-key pack/my-tab-search.pem -o pack/out/my-tab-search.crx
     - `package.js` - 打包脚本
   - `PACKAGING.md` - 本文档
   - `README.md` - 快速使用说明
-  - `my-tab-search.pem` - 私钥文件
   - `out/` - 输出目录
     - `build/` - 构建结果
     - `my-tab-search.crx` - 打包的扩展文件（当安装了 crx 工具时生成）
     - `my-tab-search.zip` - 扩展的 ZIP 包，用于发布到 Chrome Web Store（当未安装 crx 工具时作为备选方案生成）
+- `my-tab-search.pem` - 私钥文件（推荐放在项目根目录）
 
 ## 输出文件说明
 
@@ -135,5 +139,5 @@ npm run clean
 3. 启用 "开发者模式"
 4. 点击 "打包扩展程序"
 5. 输入扩展目录路径（这里是项目根目录）
-6. （可选）输入私钥路径（pack/my-tab-search.pem）
+6. （可选）输入私钥路径（项目根目录的../my-tab-search.pem）
 7. 点击 "打包扩展程序" 按钮
