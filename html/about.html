@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,11 +46,18 @@
     .features {
       margin: 20px 0;
     }
-    .features ul {
+    .features ul, .shortcuts ul {
       padding-left: 20px;
     }
-    .features li {
+    .features li, .shortcuts li {
       margin: 8px 0;
+      line-height: 1.5;
+    }
+    .usage-tips ul {
+      padding-left: 20px;
+    }
+    .usage-tips li {
+      margin: 12px 0;
       line-height: 1.5;
     }
     .footer {
@@ -99,6 +106,15 @@
         <li class="shortcut-item"><strong>Arrow Up/Down</strong>: <span id="nav-results-text">Navigate through search results</span></li>
         <li class="shortcut-item"><strong>Enter</strong>: <span id="switch-selected-text">Switch to the selected tab</span></li>
         <li class="shortcut-item"><strong>Delete</strong>: <span id="close-tab-text">Close the selected tab</span></li>
+      </ul>
+    </div>
+    
+    <div class="info-section usage-tips">
+      <h3 id="usage-tips-heading">Usage Tips:</h3>
+      <ul id="usage-tips-list">
+        <li class="usage-tip-item"><span id="tip-prev-tab-shortcut">The shortcut key to quickly switch to the previously opened tab is Ctrl+Shift+S (since v1.6.0).</span></li>
+        <li class="usage-tip-item"><span id="tip-shortcut-conflict">If the default shortcut keys fail to work, a key conflict may be the cause. You can adjust them manually in chrome://extensions/shortcuts.</span></li>
+        <li class="usage-tip-item"><span id="tip-pin-extension">For a smoother user experience, it is recommended to pin the extension to the browser toolbar directly after installation.</span></li>
       </ul>
     </div>
     

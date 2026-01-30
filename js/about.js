@@ -116,6 +116,27 @@ function applyI18n() {
     closeTabText.textContent = i18n.getMessage('closeTabText') || 'Close the selected tab';
   }
   
+  // Update usage tips section
+  const usageTipsHeading = document.getElementById('usage-tips-heading');
+  if (usageTipsHeading) {
+    usageTipsHeading.textContent = i18n.getMessage('usageTipsHeading') || 'Usage Tips:';
+  }
+  
+  const tipPrevTabShortcut = document.getElementById('tip-prev-tab-shortcut');
+  if (tipPrevTabShortcut) {
+    tipPrevTabShortcut.textContent = i18n.getMessage('tipPrevTabShortcut') || 'The shortcut key to quickly switch to the previously opened tab is Ctrl+Shift+S (since v1.6.0).';
+  }
+  
+  const tipShortcutConflict = document.getElementById('tip-shortcut-conflict');
+  if (tipShortcutConflict) {
+    tipShortcutConflict.textContent = i18n.getMessage('tipShortcutConflict') || 'If the default shortcut keys fail to work, a key conflict may be the cause. You can adjust them manually in chrome://extensions/shortcuts.';
+  }
+  
+  const tipPinExtension = document.getElementById('tip-pin-extension');
+  if (tipPinExtension) {
+    tipPinExtension.textContent = i18n.getMessage('tipPinExtension') || 'For a smoother user experience, it is recommended to pin the extension to the browser toolbar directly after installation.';
+  }
+  
   // Update footer
   const madeWithLove = document.getElementById('made-with-love');
   if (madeWithLove) {
