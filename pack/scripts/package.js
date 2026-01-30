@@ -1,6 +1,33 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const archiver = require('archiver');
+
+/**
+ * 创建 ZIP 文件
+ */
+function createZipFile(sourceDir, outputPath) {
+  return new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(outputPath);
+    const archive = archiver('zip', {
+      zlib: { level: 9 }
+    });
+
+    output.on('close', () => {
+      console.log(`ZIP file created: ${outputPath}`);
+      console.log(`Total bytes: ${archive.pointer()}`);
+      resolve();
+    });
+
+    archive.on('error', (err) => {
+      reject(err);
+    });
+
+    archive.pipe(output);
+    archive.directory(sourceDir, false);
+    archive.finalize();
+  });
+}
 
 /**
  * 复制源文件到构建目录，排除不需要的文件和目录
@@ -120,6 +147,8 @@ async function main() {
 
     // 创建带版本号的 CRX 文件
     const crxPath = path.join(outputDir, `my-tab-search-v${version}.crx`);
+    // 创建带版本号的 ZIP 文件
+    const zipPath = path.join(outputDir, `my-tab-search-v${version}.zip`);
 
     if (crxAvailable) {
       // 使用 crx 工具来创建 CRX 文件，使用现有的 PEM 密钥文件
@@ -149,9 +178,14 @@ async function main() {
       execSync(`crx pack "${buildDir}" -o "${crxPath}" --private-key="${pemPath}"`, { stdio: 'inherit', shell: true });
       console.log(`CRX file created: ${crxPath}`);
 
+      // 创建 ZIP 文件（用于 Chrome Web Store 发布）
+      console.log('Creating ZIP file for Chrome Web Store...');
+      await createZipFile(buildDir, zipPath);
+
       console.log('\nPackaging completed successfully!');
       console.log(`Build directory: ${buildDir}`);
       console.log(`CRX file: ${crxPath}`);
+      console.log(`ZIP file: ${zipPath}`);
     } else {
       throw new Error('CRX tool is not available. Please install it manually with: npm install -g crx');
     }
