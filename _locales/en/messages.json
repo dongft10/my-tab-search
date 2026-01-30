@@ -165,6 +165,26 @@
     "message": "Close the selected tab",
     "description": "Description for the tab closing shortcut"
   },
+  "usageTipsHeading": {
+    "message": "Usage Tips:",
+    "description": "Heading for the usage tips section on the about page"
+  },
+  "tipShortcutKey": {
+    "message": "The shortcut key to bring up the tab list is Ctrl+Shift+A.",
+    "description": "Tip about the main shortcut key"
+  },
+  "tipPrevTabShortcut": {
+    "message": "The shortcut key to quickly switch to the previously opened tab is Ctrl+Shift+S (since v1.6.0).",
+    "description": "Tip about the previous tab shortcut key"
+  },
+  "tipShortcutConflict": {
+    "message": "If the default shortcut keys fail to work, a key conflict may be the cause. You can adjust them manually in chrome://extensions/shortcuts.",
+    "description": "Tip about shortcut conflicts"
+  },
+  "tipPinExtension": {
+    "message": "For a smoother user experience, it is recommended to pin the extension to the browser toolbar directly after installation.",
+    "description": "Tip about pinning the extension"
+  },
   "madeWithLove": {
     "message": "Made with ❤️ for better browsing experience",
     "description": "Text in the footer of the about page"

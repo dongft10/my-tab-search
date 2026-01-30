@@ -165,6 +165,26 @@
     "message": "关闭选定的标签页",
     "description": "Description for the tab closing shortcut"
   },
+  "usageTipsHeading": {
+    "message": "使用技巧:",
+    "description": "Heading for the usage tips section on the about page"
+  },
+  "tipShortcutKey": {
+    "message": "调出标签页列表的快捷键是 Ctrl+Shift+A。",
+    "description": "Tip about the main shortcut key"
+  },
+  "tipPrevTabShortcut": {
+    "message": "快速切换到之前打开标签页的快捷键是 Ctrl+Shift+S (自v1.6.0起)。",
+    "description": "Tip about the previous tab shortcut key"
+  },
+  "tipShortcutConflict": {
+    "message": "如果默认快捷键无法正常工作，可能是按键冲突导致的。您可以在 chrome://extensions/shortcuts 中手动调整。",
+    "description": "Tip about shortcut conflicts"
+  },
+  "tipPinExtension": {
+    "message": "为获得更流畅的用户体验，建议在安装后直接将扩展固定到浏览器工具栏。",
+    "description": "Tip about pinning the extension"
+  },
   "madeWithLove": {
     "message": "用心制作，带来更好的浏览体验",
     "description": "Text in the footer of the about page"
