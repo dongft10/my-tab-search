@@ -1,5 +1,121 @@
 // background.js
 
+// Note: Service workers cannot use ES6 imports directly
+// We'll use a different approach for i18n in background.js
+
+// i18n helper functions for background.js
+const i18n = {
+  language: 'en',
+  messages: {},
+  loadedLanguages: new Set(),
+
+  // Initialize i18n
+  async initialize() {
+    try {
+      // console.log('[i18n] Initializing i18n system');
+      
+      const result = await chrome.storage.sync.get('language');
+      if (result.language) {
+        this.language = result.language;
+        // console.log(`[i18n] Loaded language preference: ${this.language}`);
+      } else {
+        const browserLang = chrome.i18n.getUILanguage();
+        this.language = browserLang.startsWith('zh') ? 'zh_CN' : 'en';
+        // console.log(`[i18n] Using browser language: ${browserLang}, set to: ${this.language}`);
+      }
+
+      await this.loadMessages(this.language);
+      // console.log('[i18n] Initialization complete');
+    } catch (error) {
+      console.error('[i18n] Failed to initialize i18n in background:', error);
+      // Set default values even if initialization fails
+      this.language = 'en';
+      this.messages['en'] = {};
+    }
+  },
+
+  // Load messages for a specific language
+  async loadMessages(lang) {
+    try {
+      if (this.loadedLanguages.has(lang)) {
+        // console.log(`[i18n] Language ${lang} already loaded, skipping`);
+        return;
+      }
+
+      // console.log(`[i18n] Loading messages for language: ${lang}`);
+      
+      const response = await fetch(`/_locales/${lang}/messages.json`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to load messages for ${lang}`);
+      }
+
+      const messages = await response.json();
+      
+      if (!messages || typeof messages !== 'object') {
+        throw new Error(`Invalid messages format for ${lang}`);
+      }
+
+      this.messages[lang] = messages;
+      this.loadedLanguages.add(lang);
+      // console.log(`[i18n] Successfully loaded messages for ${lang}`);
+    } catch (error) {
+      console.error(`[i18n] Failed to load messages for ${lang}:`, error);
+      
+      // Fallback to English if the requested language is not English
+      if (lang !== 'en') {
+        // console.log(`[i18n] Falling back to English`);
+        await this.loadMessages('en');
+      } else {
+        // If even English fails, we have a serious problem
+        console.error('[i18n] Critical error: Failed to load English messages');
+      }
+    }
+  },
+
+  // Get message for a key
+  getMessage(key, replacements = null) {
+    let message = this._getMessageFromLang(key, this.language);
+    
+    if (!message) {
+      message = this._getMessageFromLang(key, 'en');
+    }
+
+    if (!message) {
+      return key;
+    }
+
+    if (replacements) {
+      if (Array.isArray(replacements)) {
+        replacements.forEach((replacement, index) => {
+          message = message.replace(`$${index + 1}`, replacement);
+        });
+      } else if (typeof replacements === 'string') {
+        message = message.replace('$1', replacements);
+      }
+    }
+
+    return message;
+  },
+
+  // Get message from specific language
+  _getMessageFromLang(key, lang) {
+    if (this.messages[lang] && this.messages[lang][key]) {
+      return this.messages[lang][key].message;
+    }
+    return null;
+  },
+
+  // Set language
+  async setLanguage(lang) {
+    if (this.language === lang) {
+      return;
+    }
+
+    this.language = lang;
+    await this.loadMessages(lang);
+  }
+};
+
 // 初始化变量
 let curTabId = null;
 let preTabId = null;
@@ -182,18 +298,18 @@ async function removeFromHistory(tabId) {
 }
 
 // 方法：显示通知
-function showNotification(title, message) {
+function showNotification(message) {
   chrome.notifications.create({
     type: 'basic',
     iconUrl: 'images/icon-48.png',
-    title: title,
+    title: i18n.getMessage('notificationTitle') || 'Tab Search',
     message: message,
     priority: 1
   }, (notificationId) => {
     if (chrome.runtime.lastError) {
       console.error('Failed to show notification:', chrome.runtime.lastError.message);
     } else {
-      console.log('[通知]', title, '-', message);
+      console.log('[通知]', i18n.getMessage('notificationTitle') || 'Tab Search', '-', message);
       // 使用 alarms API 来延迟关闭通知（service worker 兼容）
       chrome.alarms.create(`notification-${notificationId}`, {
         delayInMinutes: 0.05 // 3秒 = 0.05分钟
@@ -301,9 +417,10 @@ chrome.commands.onCommand.addListener(async (command) => {
 
     // 如果 preTabId 无效，则弹窗提示
     if (!targetTabId && tabHistory.length > 1) {
-      showNotification('搜索标签页', '未找到前一个标签页，可能已被关闭。');
-      return;
-    }
+        const message = i18n.getMessage('noPrevTab') || '未找到前一个标签页，可能已被关闭。';
+        showNotification(message);
+        return;
+      }
 
     if (targetTabId) {
       try {
@@ -406,9 +523,30 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
         sendResponse({success: false, error: error.message});
       }
     } else {
-      sendResponse({success: false, error: "无效的标签页ID"});
+      const errorMsg = chrome.i18n.getMessage('invalidTabId') || "无效的标签页ID";
+      sendResponse({success: false, error: errorMsg});
     }
     return true; // 表示异步响应
+  }
+  
+  if (message.action === 'languageChanged') {
+    // Update background i18n language
+    await i18n.setLanguage(message.language);
+    
+    // 广播语言更改消息给所有标签页
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'languageChanged',
+          language: message.language
+        }).catch(() => {
+          // 忽略发送失败的错误（例如，某些系统页面无法接收消息）
+        });
+      });
+    });
+    
+    sendResponse({success: true});
+    return true;
   }
 });
 
@@ -445,17 +583,29 @@ async function handleSwitchToTab(targetTabId, windowId) {
 // 扩展安装或更新时初始化状态
 chrome.runtime.onInstalled.addListener(async () => {
   // console.log('[TabSearch] Extension installed/updated');
-  await initializeState();
+  await initializeAll();
 });
 
 // 扩展启动时初始化状态
 chrome.runtime.onStartup.addListener(async () => {
   // console.log('[TabSearch] Extension started');
-  await initializeState();
+  await initializeAll();
 });
 
 // 立即初始化（处理扩展已经在运行的情况）
-initializeState();
+async function initializeAll() {
+  try {
+    await i18n.initialize();
+    await initializeState();
+  } catch (error) {
+    console.error('[Background] Failed to initialize:', error);
+  }
+}
+
+// 延迟初始化，确保 Service Worker 完全准备好
+setTimeout(() => {
+  initializeAll();
+}, 100);
 
 // 监听 alarms 事件，用于关闭通知
 chrome.alarms.onAlarm.addListener((alarm) => {

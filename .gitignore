@@ -1,2 +1,4 @@
 *.zip
 /.idea/
+/node_modules/
+/pack/out/
