@@ -1,4 +1,4 @@
-name: Sync from Gitee
+name: "Sync from Gitee"
 on:
   schedule:
     # 每隔 30 分钟执行一次 (你可以根据需要调整)
