@@ -6,6 +6,10 @@
 
 MyTabSearch is an efficient Chrome browser tab management extension designed to help users quickly search, switch, and manage browser tabs, improving productivity in multi-tab browsing environments.
 
+## Online Demo
+
+Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for detailed introduction and feature demonstration.
+
 ## Features
 
 - 🔍 **Quick Search**: Search and filter tabs by title
