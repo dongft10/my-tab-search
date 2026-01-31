@@ -4,6 +4,32 @@ const archiver = require('archiver');
 const { execSync } = require('child_process');
 
 /**
+ * 创建 ZIP 文件
+ */
+function createZipFile(sourceDir, outputPath) {
+  return new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(outputPath);
+    const archive = archiver('zip', {
+      zlib: { level: 9 }
+    });
+
+    output.on('close', () => {
+      console.log(`ZIP file created: ${outputPath}`);
+      console.log(`Total bytes: ${archive.pointer()}`);
+      resolve();
+    });
+
+    archive.on('error', (err) => {
+      reject(err);
+    });
+
+    archive.pipe(output);
+    archive.directory(sourceDir, false);
+    archive.finalize();
+  });
+}
+
+/**
  * 复制源文件到构建目录，排除不需要的文件和目录
  */
 function copySourceFiles(srcDir, destDir) {
@@ -49,31 +75,6 @@ function copySourceFiles(srcDir, destDir) {
       }
     }
   }
-}
-
-/**
- * 创建 ZIP 格式的扩展包
- */
-function createZip(sourceDir, outputPath) {
-  return new Promise((resolve, reject) => {
-    const output = fs.createWriteStream(outputPath);
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // 设置最大压缩级别
-    });
-
-    output.on('close', () => {
-      console.log(`ZIP created: ${archive.pointer()} total bytes`);
-      resolve();
-    });
-
-    archive.on('error', (err) => {
-      reject(err);
-    });
-
-    archive.pipe(output);
-    archive.directory(sourceDir, false);
-    archive.finalize();
-  });
 }
 
 /**
@@ -147,16 +148,29 @@ async function main() {
 
     // 创建带版本号的 CRX 文件
     const crxPath = path.join(outputDir, `my-tab-search-v${version}.crx`);
+    // 创建带版本号的 ZIP 文件
+    const zipPath = path.join(outputDir, `my-tab-search-v${version}.zip`);
 
     if (crxAvailable) {
       // 使用 crx 工具来创建 CRX 文件，使用现有的 PEM 密钥文件
-      const pemPath = path.join(__dirname, '..', '..', 'pack', 'my-tab-search.pem');
+      // 优先从项目根目录查找 PEM 文件，然后回退到 pack 目录
+      const rootPemPath = path.join(__dirname, '..', '..', 'my-tab-search.pem'); // 项目根目录
+      const packPemPath = path.join(__dirname, '..', 'my-tab-search.pem'); // pack 目录
       
-      if (!fs.existsSync(pemPath)) {
-        console.log('PEM key file not found. Generating new PEM key...');
+      let pemPath = '';
+      if (fs.existsSync(rootPemPath)) {
+        pemPath = rootPemPath;
+        console.log('Using PEM key from project root directory.');
+      } else if (fs.existsSync(packPemPath)) {
+        pemPath = packPemPath;
+        console.log('Using PEM key from pack directory.');
+      } else {
+        console.log('PEM key file not found. Generating new PEM key in pack directory...');
         try {
-          execSync(`crx keygen "${outputDir}" -o my-tab-search.pem`, { stdio: 'inherit', shell: true });
-          console.log('PEM key generated successfully!');
+          const packDir = path.join(__dirname, '..');
+          execSync(`crx keygen "${packDir}"`, { stdio: 'inherit', shell: true });
+          console.log('PEM key generated successfully in pack directory!');
+          pemPath = packPemPath;
         } catch (keygenError) {
           console.error('Failed to generate PEM key:', keygenError.message);
           throw new Error('Cannot proceed without PEM key file');
@@ -166,9 +180,14 @@ async function main() {
       execSync(`crx pack "${buildDir}" -o "${crxPath}" --private-key="${pemPath}"`, { stdio: 'inherit', shell: true });
       console.log(`CRX file created: ${crxPath}`);
 
+      // 创建 ZIP 文件（用于 Chrome Web Store 发布）
+      console.log('Creating ZIP file for Chrome Web Store...');
+      await createZipFile(buildDir, zipPath);
+
       console.log('\nPackaging completed successfully!');
       console.log(`Build directory: ${buildDir}`);
       console.log(`CRX file: ${crxPath}`);
+      console.log(`ZIP file: ${zipPath}`);
     } else {
       throw new Error('CRX tool is not available. Please install it manually with: npm install -g crx');
     }
