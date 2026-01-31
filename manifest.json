@@ -18,9 +18,7 @@
     "tabs",
     "favicon",
     "storage",
-    "activeTab",
-    "notifications",
-    "alarms"
+    "activeTab"
   ],
   "web_accessible_resources": [
     {
