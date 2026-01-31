@@ -1,0 +1,24 @@
+name: Deploy Pages
+on:
+  push:
+    branches: ["main"] # 当同步脚本把代码推送到 main 时触发
+  workflow_run:
+    workflows: ["Sync from Gitee"] # 关联你之前的同步脚本名称
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.' # 如果你的 index.html 在根目录就填 '.'，如果在 dist 目录就填 './dist'
+      - uses: actions/deploy-pages@v4
