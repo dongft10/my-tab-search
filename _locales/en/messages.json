@@ -121,10 +121,6 @@
     "message": "Keyboard navigation support",
     "description": "Description of the keyboard navigation feature"
   },
-  "featureFuzzySearch": {
-    "message": "Fuzzy search algorithm for better results",
-    "description": "Description of the fuzzy search feature"
-  },
   "featureOneClickSwitch": {
     "message": "One-click tab switching",
     "description": "Description of the one-click switching feature"

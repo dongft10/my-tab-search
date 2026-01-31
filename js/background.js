@@ -297,25 +297,9 @@ async function removeFromHistory(tabId) {
   await saveStateToStorage();
 }
 
-// 方法：显示通知
+// 方法：显示通知（已移除通知功能，改为仅打印日志）
 function showNotification(message) {
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'images/icon-48.png',
-    title: i18n.getMessage('notificationTitle') || 'Tab Search',
-    message: message,
-    priority: 1
-  }, (notificationId) => {
-    if (chrome.runtime.lastError) {
-      console.error('Failed to show notification:', chrome.runtime.lastError.message);
-    } else {
-      console.log('[通知]', i18n.getMessage('notificationTitle') || 'Tab Search', '-', message);
-      // 使用 alarms API 来延迟关闭通知（service worker 兼容）
-      chrome.alarms.create(`notification-${notificationId}`, {
-        delayInMinutes: 0.05 // 3秒 = 0.05分钟
-      });
-    }
-  });
+  console.log('[通知]', message);
 }
 
 // 监听标签页激活事件
@@ -606,11 +590,3 @@ async function initializeAll() {
 setTimeout(() => {
   initializeAll();
 }, 100);
-
-// 监听 alarms 事件，用于关闭通知
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name && alarm.name.startsWith('notification-')) {
-    const notificationId = alarm.name.replace('notification-', '');
-    chrome.notifications.clear(notificationId);
-  }
-});
