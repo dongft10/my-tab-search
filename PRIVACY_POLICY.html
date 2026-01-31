@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - MyTabSearch</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #4285f4;
+      border-bottom: 3px solid #4285f4;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      color: #333;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+    }
+
+    h3 {
+      color: #555;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+
+    p {
+      margin-bottom: 15px;
+      color: #555;
+    }
+
+    ul {
+      margin-bottom: 15px;
+      padding-left: 25px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      color: #555;
+    }
+
+    strong {
+      color: #333;
+    }
+
+    .highlight {
+      background-color: #e8f0fe;
+      padding: 15px;
+      border-left: 4px solid #4285f4;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .last-updated {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      color: #888;
+      font-size: 0.9em;
+    }
+
+    .contact {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 1.8em;
+      }
+      
+      h2 {
+        font-size: 1.3em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy - MyTabSearch</h1>
+
+    <div class="highlight">
+      <p><strong>MyTabSearch 扩展不会收集、存储或传输任何个人数据到外部服务器。</strong></p>
+      <p>本扩展仅在用户本地浏览器中运行，所有数据处理均在用户设备上完成。</p>
+    </div>
+
+    <div class="section">
+      <h2>1. Data Collection</h2>
+      <p>MyTabSearch extension does not collect, store, or transmit any personal data to external servers.</p>
+      <p>This extension runs entirely in user's local browser, and all data processing is completed on user's device. We do not collect:</p>
+      <ul>
+        <li>Browsing history</li>
+        <li>Search query content</li>
+        <li>User identity information</li>
+        <li>Device information</li>
+        <li>Location information</li>
+        <li>Any other personal data</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>2. Data Usage</h2>
+      <p>This extension uses the following permissions only to implement core functionality:</p>
+
+      <h3>2.1 Tabs Access (tabs)</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Read and manage browser tab information</li>
+        <li><strong>Data Types:</strong> Tab title, URL, tab ID</li>
+        <li><strong>Use Cases:</strong>
+          <ul>
+            <li>Display all open tabs in the search box</li>
+            <li>Switch to the user-selected tab</li>
+            <li>Close the user-specified tab</li>
+            <li>Track tab activation and closure events to maintain history</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>2.2 Website Icons (favicon)</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Display website icons</li>
+        <li><strong>Data Types:</strong> Website icons</li>
+        <li><strong>Use Cases:</strong> Display website icons for each tab in search results to help users quickly identify them</li>
+      </ul>
+
+      <h3>2.3 Local Storage (storage)</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Save user settings and state</li>
+        <li><strong>Data Types:</strong> Language preference, previous active tab ID, tab history</li>
+        <li><strong>Use Cases:</strong>
+          <ul>
+            <li>Save user's language preference settings</li>
+            <li>Save the ID of the previously active tab for quick switching functionality</li>
+            <li>Save tab history to support "switch to previous tab" functionality</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>2.4 Active Tab (activeTab)</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Access the currently active tab</li>
+        <li><strong>Data Types:</strong> Current tab information</li>
+        <li><strong>Use Cases:</strong> Get current active tab information to work with other permissions for tab switching functionality</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>3. Data Storage</h2>
+      <p>All data is stored only in the user's local browser's <code>chrome.storage</code>:</p>
+      <ul>
+        <li>Data is stored on the user's device</li>
+        <li>Not uploaded to any server</li>
+        <li>Users can clear this data at any time</li>
+        <li>Data is not synced to other devices (unless the user has enabled browser sync functionality)</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>4. Data Sharing</h2>
+      <div class="highlight">
+        <p><strong>MyTabSearch extension does not share user data with any third parties.</strong></p>
+      </div>
+      <p>We do not:</p>
+      <ul>
+        <li>Sell user data</li>
+        <li>Provide data access to third parties</li>
+        <li>Use data for ad targeting</li>
+        <li>Use data for any purpose outside of extension functionality</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>5. Data Security</h2>
+      <p>Although this extension does not collect or transmit data, we still take the following measures to protect user privacy:</p>
+      <ul>
+        <li>All data processing is completed locally on the user's device</li>
+        <li>No network connections are established (except for necessary browser connections)</li>
+        <li>No third-party analytics or tracking services are used</li>
+        <li>Code is open source, and users can review all functionality implementations</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>6. User Rights</h2>
+      <p>Users have the following rights:</p>
+
+      <h3>6.1 Access Data</h3>
+      <p>Users can view data stored in the extension at any time:</p>
+      <ul>
+        <li>Open Chrome browser</li>
+        <li>Visit <code>chrome://extensions/</code></li>
+        <li>Find MyTabSearch extension</li>
+        <li>Click "Details"</li>
+        <li>View stored data in "Extension options"</li>
+      </ul>
+
+      <h3>6.2 Delete Data</h3>
+      <p>Users can delete all data stored by the extension at any time:</p>
+      <ul>
+        <li>Click "Clear storage data" on the <code>chrome://extensions/</code> page</li>
+        <li>Or uninstall the extension to delete all data</li>
+      </ul>
+
+      <h3>6.3 Uninstall Extension</h3>
+      <p>Users can uninstall the extension at any time:</p>
+      <ul>
+        <li>Click "Remove" on the <code>chrome://extensions/</code> page</li>
+        <li>After uninstalling, all stored data will be deleted</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>7. Children's Privacy</h2>
+      <p>This extension is not designed for children under 13 and does not intentionally collect personal information from children. If we discover that we have inadvertently collected information from children, we will delete it immediately.</p>
+    </div>
+
+    <div class="section">
+      <h2>8. International Users</h2>
+      <p>This extension supports multiple languages (English, Chinese) and respects privacy regulations in different regions:</p>
+      <ul>
+        <li><strong>EU Users:</strong> Complies with GDPR (General Data Protection Regulation)</li>
+        <li><strong>California Users:</strong> Complies with CCPA (California Consumer Privacy Act)</li>
+      </ul>
+      <p>Since this extension does not collect user data, there is no need to provide data export or deletion request processing processes.</p>
+    </div>
+
+    <div class="section">
+      <h2>9. Policy Updates</h2>
+      <p>We may update this privacy policy from time to time. For significant changes, we will notify users in the extension update notes. We recommend that users review this policy regularly.</p>
+    </div>
+
+    <div class="contact">
+      <h2>10. Contact Us</h2>
+      <p>If you have any questions or suggestions about this privacy policy, please contact us through the following methods:</p>
+      <ul>
+        <li><strong>GitHub Issues:</strong> <a href="https://github.com/dongft10-dev/my-tab-search/issues" target="_blank">https://github.com/dongft10-dev/my-tab-search/issues</a></li>
+        <li><strong>Email:</strong> <a href="mailto:dongft10@gmail.com">dongft10@gmail.com</a></li>
+      </ul>
+      <p>We will respond to your inquiries within a reasonable time.</p>
+    </div>
+
+    <div class="last-updated">
+      <p><strong>Last Updated:</strong> January 31, 2025</p>
+    </div>
+  </div>
+</body>
+</html>
