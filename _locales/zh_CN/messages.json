@@ -121,10 +121,6 @@
     "message": "支持键盘导航",
     "description": "Description of the keyboard navigation feature"
   },
-  "featureFuzzySearch": {
-    "message": "模糊搜索算法提供更好的结果",
-    "description": "Description of the fuzzy search feature"
-  },
   "featureOneClickSwitch": {
     "message": "一键标签页切换",
     "description": "Description of the one-click switching feature"
