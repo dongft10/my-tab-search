@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
 const { execSync } = require('child_process');
+const archiver = require('archiver');
 
 /**
  * 创建 ZIP 文件
@@ -154,8 +154,8 @@ async function main() {
     if (crxAvailable) {
       // 使用 crx 工具来创建 CRX 文件，使用现有的 PEM 密钥文件
       // 优先从项目根目录查找 PEM 文件，然后回退到 pack 目录
-      const rootPemPath = path.join(__dirname, '..', '..', 'my-tab-search.pem'); // 项目根目录
-      const packPemPath = path.join(__dirname, '..', 'my-tab-search.pem'); // pack 目录
+      const rootPemPath = path.join(__dirname, '..', '..', '..', 'my-tab-search.pem'); // 项目根目录
+      const packPemPath = path.join(__dirname, '..', '..', 'pack', 'my-tab-search.pem'); // pack 目录
       
       let pemPath = '';
       if (fs.existsSync(rootPemPath)) {
@@ -165,12 +165,11 @@ async function main() {
         pemPath = packPemPath;
         console.log('Using PEM key from pack directory.');
       } else {
-        console.log('PEM key file not found. Generating new PEM key in pack directory...');
+        console.log('PEM key file not found in either root or pack directory. Generating new PEM key in root directory...');
         try {
-          const packDir = path.join(__dirname, '..');
-          execSync(`crx keygen "${packDir}"`, { stdio: 'inherit', shell: true });
-          console.log('PEM key generated successfully in pack directory!');
-          pemPath = packPemPath;
+          execSync(`crx keygen "${path.dirname(rootPemPath)}" -o my-tab-search.pem`, { stdio: 'inherit', shell: true });
+          console.log('PEM key generated successfully in project root directory!');
+          pemPath = rootPemPath;
         } catch (keygenError) {
           console.error('Failed to generate PEM key:', keygenError.message);
           throw new Error('Cannot proceed without PEM key file');
