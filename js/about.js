@@ -68,7 +68,6 @@ function applyI18n() {
   const featureMessages = [
     'featureSearchTabs',
     'featureKeyboardNav',
-    'featureFuzzySearch',
     'featureOneClickSwitch',
     'featureCloseFromResults',
     'featureSwitchPrevious',
