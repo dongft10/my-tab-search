@@ -1,1 +1,1 @@
-node scripts/clean.js
+node pack/scripts/clean.js
