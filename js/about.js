@@ -144,6 +144,6 @@ function applyI18n() {
   
   const copyrightText = document.getElementById('copyright-text');
   if (copyrightText) {
-    copyrightText.textContent = i18n.getMessage('copyrightText') || `© 2025 ${i18n.getMessage('extName') || 'MyTabSearch Extension'}. All rights reserved.`;
+    copyrightText.textContent = i18n.getMessage('copyrightText') || `© 2026 ${i18n.getMessage('extName') || 'MyTabSearch Extension'}. All rights reserved.`;
   }
 }
