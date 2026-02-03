@@ -394,30 +394,64 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   }
 });
 
+// 用于防止快速连续点击的标志
+let isSwitchingToPreviousTab = false;
+
 // 注册快捷键命令
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "switch-to-previous-tab") {
-    let targetTabId = preTabId;
+    // 防止快速连续点击
+    if (isSwitchingToPreviousTab) {
+      return;
+    }
+    
+    isSwitchingToPreviousTab = true;
+    
+    try {
+      let targetTabId = preTabId;
 
-    // 如果 preTabId 无效，则弹窗提示
-    if (!targetTabId && tabHistory.length > 1) {
+      // 如果 preTabId 无效，尝试从历史记录中获取上一个有效的标签页
+      if (!targetTabId && tabHistory.length > 1) {
+        // 查找第一个仍然存在的历史标签页
+        for (let i = 1; i < tabHistory.length; i++) {
+          try {
+            const tab = await chrome.tabs.get(tabHistory[i]);
+            if (tab) {
+              targetTabId = tab.id;
+              // 更新preTabId以反映正确的状态
+              preTabId = targetTabId;
+              await saveStateToStorage();
+              break;
+            }
+          } catch (e) {
+            // 此历史记录中的标签页已不存在，继续检查下一个
+            continue;
+          }
+        }
+      }
+
+      if (!targetTabId) {
         const message = i18n.getMessage('noPrevTab') || '未找到前一个标签页，可能已被关闭。';
         showNotification(message);
         return;
       }
 
-    if (targetTabId) {
-      try {
-        // 先检查标签页是否存在
-        const tab = await chrome.tabs.get(targetTabId).catch(() => null);
-        if (!tab) {
-          // console.log('[快捷键] Previous tab no longer exists, clearing preTabId');
-          // 清空 preTabId，不自动找替代
-          preTabId = null;
-          // 从历史记录中移除无效的标签页
-          await removeFromHistory(targetTabId);
-          return;
-        }
+      if (targetTabId) {
+        try {
+          // 先检查标签页是否存在
+          const tab = await chrome.tabs.get(targetTabId).catch(() => null);
+          if (!tab) {
+            // console.log('[快捷键] Previous tab no longer exists, clearing preTabId');
+            // 从历史记录中移除无效的标签页
+            await removeFromHistory(targetTabId);
+            
+            // 没有找到任何有效的前一个标签页
+            preTabId = null;
+            await saveStateToStorage();
+            const message = i18n.getMessage('noPrevTab') || '未找到前一个标签页，可能已被关闭。';
+            showNotification(message);
+            return;
+          }
 
         await chrome.tabs.update(targetTabId, {active: true});
 
@@ -435,7 +469,8 @@ chrome.commands.onCommand.addListener(async (command) => {
         // console.log("[快捷键] 切换成功 - windowId:" + tab.windowId +
         //   " tabId:" + targetTabId +
         //   ' curWindowId:' + curWindowId +
-        //   " preTabId:" + preTabId +
+        //   " curTabId:" + curTabId +
+        //   ' preTabId:' + preTabId +
         //   ' history:' + tabHistory);
       } catch (e) {
         console.log('[快捷键] Could not switch to the previous tab:', e);
@@ -449,13 +484,35 @@ chrome.commands.onCommand.addListener(async (command) => {
           await chrome.tabs.get(targetTabId);
         } catch {
           console.log('[快捷键] Previous tab not found, removing from history');
-          preTabId = null;
+          // 从历史记录中移除无效的标签页
           await removeFromHistory(targetTabId);
+          
+          // 尝试从历史记录中找到下一个有效的标签页
+          if (tabHistory.length > 1) {
+            for (let i = 1; i < tabHistory.length; i++) {
+              try {
+                const validTab = await chrome.tabs.get(tabHistory[i]);
+                if (validTab) {
+                  preTabId = validTab.id;
+                  await saveStateToStorage();
+                  break;
+                }
+              } catch (e) {
+                continue;
+              }
+            }
+          } else {
+            preTabId = null;
+          }
         }
       }
     } else {
       // console.log('[快捷键] No previous tab available - preTabId:', preTabId, 'tabHistory:', tabHistory);
       // showNotification('提示', '没有可切换的上一个标签页');
+      }
+    } finally {
+      // 重置标志，允许下次操作
+      isSwitchingToPreviousTab = false;
     }
   }
 });
