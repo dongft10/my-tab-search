@@ -97,7 +97,16 @@ npm run clean
 
 ## 注意事项
 
-1. **私钥文件**（my-tab-search.pem）用于保持扩展的唯一标识符（ID），如果不存在会自动生成
+1. **私钥文件**（my-tab-search.pem）用于保持扩展的唯一标识符（ID），**必须手动放置到项目根目录或 pack 目录**。打包脚本不会自动生成 PEM 文件，如果文件不存在会报错并提示如何获取。
+
+   PEM 文件放置位置（按优先级）：
+   - 项目根目录：`my-tab-search.pem`（推荐）
+   - pack 目录：`pack/my-tab-search.pem`
+
+   如果没有 PEM 文件，可以通过以下方式获取：
+   - 从 Chrome Web Store 开发者后台下载已有扩展的 ZIP 包并提取
+   - 手动生成：`npx crx keygen "path/to/directory" -o my-tab-search.pem`
+   - 首次发布到 Chrome Web Store 时，Google 会自动分配
    - PEM 文件位于总工程根目录（`my-tab-search.pem`），不建议放在 chrome-extension 子工程中
    - 打包脚本会自动查找并使用该文件
 2. 如果没有私钥文件，每次打包都会生成新的扩展 ID
