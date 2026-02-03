@@ -129,7 +129,8 @@ async function main() {
     // 检查 crx 是否已安装，如果没有则自动安装
     let crxAvailable = false;
     try {
-      const helpResult = execSync('crx --help', { stdio: ['pipe', 'pipe', 'pipe'], shell: true });
+      // 使用 npx 来运行 crx，避免全局安装路径问题
+      const helpResult = execSync('npx crx --help', { stdio: ['pipe', 'pipe', 'pipe'], shell: true });
       if (helpResult && helpResult.toString().includes('pack')) {
         crxAvailable = true;
       }
@@ -165,18 +166,18 @@ async function main() {
         pemPath = packPemPath;
         console.log('Using PEM key from pack directory.');
       } else {
-        console.log('PEM key file not found in either root or pack directory. Generating new PEM key in root directory...');
-        try {
-          execSync(`crx keygen "${path.dirname(rootPemPath)}" -o my-tab-search.pem`, { stdio: 'inherit', shell: true });
-          console.log('PEM key generated successfully in project root directory!');
-          pemPath = rootPemPath;
-        } catch (keygenError) {
-          console.error('Failed to generate PEM key:', keygenError.message);
-          throw new Error('Cannot proceed without PEM key file');
-        }
+        console.error('\n[ERROR] PEM key file not found!');
+        console.error('\nPlease place your PEM key file in one of the following locations:');
+        console.error(`  1. Project root directory: ${rootPemPath}`);
+        console.error(`  2. Pack directory: ${packPemPath}`);
+        console.error('\nNote: The PEM key is required for signing the CRX file.');
+        console.error('If you don\'t have a PEM key, you can generate one manually by running:');
+        console.error('  npx crx keygen "path/to/directory" -o my-tab-search.pem');
+        console.error('\nOr download the ZIP file from Chrome Web Store Developer Dashboard and extract the key.');
+        throw new Error('PEM key file is required for packaging');
       }
       
-      execSync(`crx pack "${buildDir}" -o "${crxPath}" --private-key="${pemPath}"`, { stdio: 'inherit', shell: true });
+      execSync(`npx crx pack "${buildDir}" -o "${crxPath}" --private-key="${pemPath}"`, { stdio: 'inherit', shell: true });
       console.log(`CRX file created: ${crxPath}`);
 
       // 创建 ZIP 文件（用于 Chrome Web Store 发布）

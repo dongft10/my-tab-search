@@ -29,7 +29,7 @@ npm run build
 - `run-packaging.ps1` - 主要打包脚本，用于通过 Node.js 工具链压缩和打包扩展
 - `PACKAGING.md` - 详细的打包说明文档
 - `out/` - 打包输出目录
-- `my-tab-search.pem` - 私钥文件，用于保持扩展的唯一标识符（推荐放在项目根目录）
+- `my-tab-search.pem` - 私钥文件，用于保持扩展的唯一标识符（**必须手动放置**到项目根目录或 pack 目录，不会自动生成）
 
 ## 使用方法
 
