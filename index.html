@@ -205,6 +205,99 @@
       border-radius: 12px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
+    
+    .carousel-container {
+      text-align: center;
+      margin: 40px 0;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+    }
+    
+    .carousel {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      height: 500px; /* 固定高度以避免布局跳动 */
+    }
+    
+    .carousel-slide {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out; /* 添加过渡动画 */
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .carousel-slide.active {
+      display: block;
+      opacity: 1;
+    }
+    
+    .carousel-slide img {
+      width: 100%;
+      vertical-align: middle;
+      display: block;
+    }
+    
+    .carousel-controls {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      transform: translateY(-50%);
+      display: flex;
+      justify-content: space-between;
+      padding: 0 30px;
+      box-sizing: border-box;
+    }
+    
+    .carousel-controls button {
+      background: rgba(255, 255, 255, 0.8);
+      border: none;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s;
+      margin: 0 10px; /* 添加外边距使按钮更靠外 */
+    }
+    
+    .carousel-controls button:hover {
+      background: rgba(255, 255, 255, 0.95);
+    }
+    
+    .carousel-indicators {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+    }
+    
+    .indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .indicator.active {
+      background: white;
+    }
 
     .shortcuts {
       display: grid;
@@ -370,8 +463,28 @@
       </div>
     </section>
 
-    <div class="screenshot">
-      <img src="images/image.png" alt="MyTabSearch Screenshot">
+    <!-- 轮播图区域 -->
+    <div class="carousel-container">
+      <div class="carousel">
+        <div class="carousel-slide active">
+          <img src="images/pic-1.png" alt="MyTabSearch Screenshot 1">
+        </div>
+        <div class="carousel-slide">
+          <img src="images/pic-2.png" alt="MyTabSearch Screenshot 2">
+        </div>
+        <div class="carousel-slide">
+          <img src="images/pic-3.png" alt="MyTabSearch Screenshot 3">
+        </div>
+      </div>
+      <div class="carousel-controls">
+        <button class="prev" onclick="changeSlide(-1)">❮</button>
+        <button class="next" onclick="changeSlide(1)">❯</button>
+      </div>
+      <div class="carousel-indicators">
+        <span class="indicator active" onclick="currentSlide(1)"></span>
+        <span class="indicator" onclick="currentSlide(2)"></span>
+        <span class="indicator" onclick="currentSlide(3)"></span>
+      </div>
     </div>
 
     <section class="section" id="features">
@@ -542,6 +655,50 @@
         }
       });
     });
+    
+    // 轮播图功能
+    let slideIndex = 1;
+    showSlides(slideIndex);
+    
+    // 下一个/上一个控制
+    function changeSlide(n) {
+      showSlides(slideIndex += n);
+    }
+    
+    // 当前幻灯片控制
+    function currentSlide(n) {
+      showSlides(slideIndex = n);
+    }
+    
+    // 显示幻灯片
+    function showSlides(n) {
+      const slides = document.getElementsByClassName("carousel-slide");
+      const indicators = document.getElementsByClassName("indicator");
+      
+      if (n > slides.length) {slideIndex = 1}
+      if (n < 1) {slideIndex = slides.length}
+      
+      // 隐藏所有幻灯片
+      for (let i = 0; i < slides.length; i++) {
+        slides[i].classList.remove('active');
+      }
+      
+      // 移除所有活动指示器
+      for (let i = 0; i < indicators.length; i++) {
+        indicators[i].className = indicators[i].className.replace(" active", "");
+      }
+      
+      // 显示当前幻灯片
+      slides[slideIndex-1].classList.add('active');
+      
+      // 添加活动指示器
+      indicators[slideIndex-1].className += " active";
+    }
+    
+    // 自动播放轮播图
+    setInterval(() => {
+      changeSlide(1);
+    }, 5000); // 每5秒切换一次
   </script>
 </body>
 
