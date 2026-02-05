@@ -19,12 +19,29 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Function to update the displayed tabs based on search input
   function updateTabs(nextSelectedTabId) {
-    const query = searchInput.value.toLowerCase();
-
+    const query = searchInput.value.trim().toLowerCase();
+    
     chrome.tabs.query({}, (tabs) => {
-      const filteredTabs = tabs.filter((tab) =>
-        tab.title.toLowerCase().includes(query)
-      );
+      let filteredTabs;
+      
+      if (!query) {
+        // 如果查询为空，则返回所有标签页
+        filteredTabs = tabs;
+      } else {
+        // 按空格分割查询字符串，得到多个关键字
+        const keywords = query.split(/\s+/).filter(kw => kw.length > 0);
+        
+        if (keywords.length === 0) {
+          // 如果没有有效关键字，则返回所有标签页
+          filteredTabs = tabs;
+        } else {
+          // 过滤标签页，确保标题包含所有关键字
+          filteredTabs = tabs.filter((tab) => {
+            const lowerTitle = tab.title.toLowerCase();
+            return keywords.every(keyword => lowerTitle.includes(keyword));
+          });
+        }
+      }
 
       tabList.innerHTML = "";
       tabIdMap.clear();
