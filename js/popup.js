@@ -31,6 +31,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     return keywordIndex === keyword.length;
   }
 
+  // 高亮匹配的字符
+  function highlightMatches(text, keywords) {
+    if (!keywords || keywords.length === 0) {
+      return text;
+    }
+
+    // 创建一个标记数组，记录每个字符是否被匹配
+    const matched = new Array(text.length).fill(false);
+    const lowerText = text.toLowerCase();
+    
+    // 对每个关键字进行匹配
+    keywords.forEach(keyword => {
+      let keywordIndex = 0;
+      for (let i = 0; i < text.length && keywordIndex < keyword.length; i++) {
+        if (lowerText[i] === keyword[keywordIndex]) {
+          matched[i] = true;
+          keywordIndex++;
+        }
+      }
+    });
+
+    // 构建高亮的 HTML
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      if (matched[i]) {
+        result += `<span class="highlight">${text[i]}</span>`;
+      } else {
+        result += text[i];
+      }
+    }
+
+    return result;
+  }
+
   // 焦点默认定位到搜索输入框
   searchInput.focus();
 
@@ -41,23 +75,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     chrome.tabs.query({}, (tabs) => {
       let filteredTabs;
       
-      if (!query) {
-        // 如果查询为空，则返回所有标签页
+      // 按空格分割查询字符串，得到多个关键字
+      const keywords = query.split(/\s+/).filter(kw => kw.length > 0);
+      
+      if (!query || keywords.length === 0) {
+        // 如果查询为空或没有有效关键字，则返回所有标签页
         filteredTabs = tabs;
       } else {
-        // 按空格分割查询字符串，得到多个关键字
-        const keywords = query.split(/\s+/).filter(kw => kw.length > 0);
-        
-        if (keywords.length === 0) {
-          // 如果没有有效关键字，则返回所有标签页
-          filteredTabs = tabs;
-        } else {
-          // 过滤标签页，确保标题包含所有关键字（使用子序列匹配）
-          filteredTabs = tabs.filter((tab) => {
-            const lowerTitle = tab.title.toLowerCase();
-            return keywords.every(keyword => subsequenceMatch(keyword, lowerTitle));
-          });
-        }
+        // 过滤标签页，确保标题包含所有关键字（使用子序列匹配）
+        filteredTabs = tabs.filter((tab) => {
+          const lowerTitle = tab.title.toLowerCase();
+          return keywords.every(keyword => subsequenceMatch(keyword, lowerTitle));
+        });
       }
 
       tabList.innerHTML = "";
@@ -82,7 +111,13 @@ document.addEventListener("DOMContentLoaded", async () => {
           // create elements for tab title and URL info
           const titleDiv = document.createElement("div");
           titleDiv.classList.add("tab-title");
-          titleDiv.textContent = tab.title;
+          
+          // 高亮匹配的字符
+          if (keywords.length > 0) {
+            titleDiv.innerHTML = highlightMatches(tab.title, keywords);
+          } else {
+            titleDiv.textContent = tab.title;
+          }
 
           const urlHostNameDiv = document.createElement("div");
           urlHostNameDiv.classList.add("tab-url-hostname");

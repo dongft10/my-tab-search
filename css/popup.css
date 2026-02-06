@@ -176,6 +176,13 @@ body {
   overflow-wrap: break-word; /* 允许长内容换行 */
 }
 
+.tab-title .highlight {
+  background-color: #ffff00a8;
+  color: #000;
+  padding: 0;
+  border-radius: 2px;
+}
+
 .tab-url-hostname {
   color: #5f6368;
   font-size: 12px;
