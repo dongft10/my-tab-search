@@ -5,64 +5,64 @@ import i18n from './i18n.js';
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize i18n
   await i18n.initialize();
-  
+
   // Apply i18n to UI elements
   applyI18n();
-  
+
   // Dynamically load the extension version from manifest
   fetch(chrome.runtime.getURL('manifest.json'))
     .then(response => response.json())
     .then(manifest => {
-        document.getElementById('version').textContent = manifest.version;
-      })
-      .catch(error => {
-        console.error('Error loading manifest:', error);
-      });
- 
+      document.getElementById('version').textContent = manifest.version;
+    })
+    .catch(error => {
+      console.error('Error loading manifest:', error);
+    });
+
   // Add language change listener
   i18n.addListener(applyI18n);
- 
- // Listen for language change messages from other parts
- chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-   if (message.action === 'languageChanged') {
-     // Update i18n language
-     i18n.setLanguage(message.language).then(() => {
-       // Reapply i18n after language change
-       applyI18n();
-     });
-   }
- });
+
+  // Listen for language change messages from other parts
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'languageChanged') {
+      // Update i18n language
+      i18n.setLanguage(message.language).then(() => {
+        // Reapply i18n after language change
+        applyI18n();
+      });
+    }
+  });
 });
 
 function applyI18n() {
   // Update page title
   document.title = i18n.getMessage('aboutTitle') || 'About - MyTabSearch';
-  
+
   // Update main title
   const titleElement = document.getElementById('about-title');
   if (titleElement) {
     titleElement.textContent = i18n.getMessage('extName') || 'MyTabSearch';
   }
-  
+
   // Update version label
   const versionLabel = document.getElementById('version-label');
   if (versionLabel) {
     versionLabel.textContent = i18n.getMessage('versionLabel') || 'Version:';
   }
-  
+
   // Update description
   const descElement = document.getElementById('about-description');
   if (descElement) {
-    descElement.textContent = i18n.getMessage('aboutDescription') || 
-      'MyTabSearch is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.';
+    descElement.textContent = i18n.getMessage('aboutDescription') ||
+      'Tired of the mediocre functionality of the default tab management? Then switch to the powerful and flexible MyTabSearch extension – you will be amazed! MyTabSearch is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.';
   }
-  
+
   // Update features section
   const featuresHeading = document.getElementById('features-heading');
   if (featuresHeading) {
     featuresHeading.textContent = i18n.getMessage('featuresHeading') || 'Features:';
   }
-  
+
   // Update features list items
   const featureItems = document.querySelectorAll('.feature-item');
   const featureMessages = [
@@ -73,7 +73,7 @@ function applyI18n() {
     'featureSwitchPrevious',
     'featureRememberState'
   ];
-  
+
   featureItems.forEach((item, index) => {
     if (featureMessages[index]) {
       const message = i18n.getMessage(featureMessages[index]);
@@ -82,66 +82,66 @@ function applyI18n() {
       }
     }
   });
-  
+
   // Update shortcuts section
   const shortcutsHeading = document.getElementById('shortcuts-heading');
   if (shortcutsHeading) {
     shortcutsHeading.textContent = i18n.getMessage('shortcutsHeading') || 'Shortcuts:';
   }
-  
+
   // Update shortcut descriptions
   const openPopupText = document.getElementById('open-popup-text');
   if (openPopupText) {
     openPopupText.textContent = i18n.getMessage('openPopupText') || 'Open the tab search popup';
   }
-  
+
   const switchPrevText = document.getElementById('switch-prev-text');
   if (switchPrevText) {
     switchPrevText.textContent = i18n.getMessage('switchPrevText') || 'Switch to the previous tab';
   }
-  
+
   const navResultsText = document.getElementById('nav-results-text');
   if (navResultsText) {
     navResultsText.textContent = i18n.getMessage('navResultsText') || 'Navigate through search results';
   }
-  
+
   const switchSelectedText = document.getElementById('switch-selected-text');
   if (switchSelectedText) {
     switchSelectedText.textContent = i18n.getMessage('switchSelectedText') || 'Switch to the selected tab';
   }
-  
+
   const closeTabText = document.getElementById('close-tab-text');
   if (closeTabText) {
     closeTabText.textContent = i18n.getMessage('closeTabText') || 'Close the selected tab';
   }
-  
+
   // Update usage tips section
   const usageTipsHeading = document.getElementById('usage-tips-heading');
   if (usageTipsHeading) {
     usageTipsHeading.textContent = i18n.getMessage('usageTipsHeading') || 'Usage Tips:';
   }
-  
+
   const tipPrevTabShortcut = document.getElementById('tip-prev-tab-shortcut');
   if (tipPrevTabShortcut) {
     tipPrevTabShortcut.textContent = i18n.getMessage('tipPrevTabShortcut') || 'The shortcut key to quickly switch to the previously opened tab is Ctrl+Shift+S (since v1.6.0).';
   }
-  
+
   const tipShortcutConflict = document.getElementById('tip-shortcut-conflict');
   if (tipShortcutConflict) {
     tipShortcutConflict.textContent = i18n.getMessage('tipShortcutConflict') || 'If the default shortcut keys fail to work, a key conflict may be the cause. You can adjust them manually in chrome://extensions/shortcuts.';
   }
-  
+
   const tipPinExtension = document.getElementById('tip-pin-extension');
   if (tipPinExtension) {
     tipPinExtension.textContent = i18n.getMessage('tipPinExtension') || 'For a smoother user experience, it is recommended to pin the extension to the browser toolbar directly after installation.';
   }
-  
+
   // Update footer
   const madeWithLove = document.getElementById('made-with-love');
   if (madeWithLove) {
     madeWithLove.textContent = i18n.getMessage('madeWithLove') || 'Made with ❤️ for better browsing experience';
   }
-  
+
   const copyrightText = document.getElementById('copyright-text');
   if (copyrightText) {
     copyrightText.textContent = i18n.getMessage('copyrightText') || `© 2026 ${i18n.getMessage('extName') || 'MyTabSearch Extension'}. All rights reserved.`;
