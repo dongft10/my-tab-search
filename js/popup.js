@@ -14,6 +14,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 标签Id与列表索引id的对应关系
   let tabIdMap = new Map();
 
+  // 子序列匹配函数：检查 keyword 是否是 text 的子序列
+  // 例如："spb" 是 "spring boot" 的子序列
+  function subsequenceMatch(keyword, text) {
+    if (keyword.length === 0) return true;
+    if (text.length === 0) return false;
+    
+    let keywordIndex = 0;
+    
+    for (let i = 0; i < text.length && keywordIndex < keyword.length; i++) {
+      if (text[i] === keyword[keywordIndex]) {
+        keywordIndex++;
+      }
+    }
+    
+    return keywordIndex === keyword.length;
+  }
+
   // 焦点默认定位到搜索输入框
   searchInput.focus();
 
@@ -35,10 +52,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           // 如果没有有效关键字，则返回所有标签页
           filteredTabs = tabs;
         } else {
-          // 过滤标签页，确保标题包含所有关键字
+          // 过滤标签页，确保标题包含所有关键字（使用子序列匹配）
           filteredTabs = tabs.filter((tab) => {
             const lowerTitle = tab.title.toLowerCase();
-            return keywords.every(keyword => lowerTitle.includes(keyword));
+            return keywords.every(keyword => subsequenceMatch(keyword, lowerTitle));
           });
         }
       }
