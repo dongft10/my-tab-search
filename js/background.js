@@ -185,9 +185,6 @@ async function initializeState() {
     if (savedState.curTabId || savedState.preTabId || savedState.curWindowId || (savedState.tabHistory && savedState.tabHistory.length > 0)) {
       // console.log('[initializeState] 从 storage 恢复状态');
 
-      // 验证保存的数据是否仍然有效
-      let isValid = true;
-
       // 验证 curTabId 是否仍然存在
       if (savedState.curTabId) {
         try {
@@ -196,7 +193,6 @@ async function initializeState() {
           curTabId = tab.id;
         } catch (e) {
           console.log('[initializeState] 保存的标签页不存在，需要重新初始化');
-          isValid = false;
         }
       }
 
@@ -412,13 +408,11 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   try {
     const tab = await getActiveTabInWindow(windowId);
     if (tab) {
-      if (curWindowId !== windowId) {
-        curWindowId = windowId;
-      }
-      if (tab.id !== curTabId) {
-        // 更新历史记录
-        await updateTabHistory(tab.id);
-      }
+      // 无论标签页 ID 是否相同，都更新状态
+      // 因为窗口切换了，preTabId 应该反映新窗口的状态
+      await updateTabHistory(tab.id);
+      // 更新窗口 ID
+      curWindowId = windowId;
       // console.log(`[窗口变化] windowId:${windowId}` +
       //   ' tabId:' + tab.id +
       //   ' curWindowId:' + curWindowId +
@@ -469,7 +463,6 @@ chrome.commands.onCommand.addListener(async (command) => {
             }
           } catch (e) {
             // 此历史记录中的标签页已不存在，继续检查下一个
-            continue;
           }
         }
       }
@@ -573,7 +566,7 @@ chrome.commands.onCommand.addListener(async (command) => {
                   break;
                 }
               } catch (e) {
-                continue;
+                // 此历史记录中的标签页已不存在，继续检查下一个
               }
             }
           } else {
