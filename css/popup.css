@@ -128,27 +128,55 @@ body {
   overflow: hidden; /* 防止内容溢出 */
 }
 
-#tab-list li > .close-btn {
+/* 操作按钮容器 */
+.action-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* 操作按钮基础样式 */
+.action-btn {
   vertical-align: middle;
   justify-content: center;
   padding: 5px;
   border-radius: 50%;
-  width: 12px;
-  height: 12px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
-  color: #000;
+  color: #5f6368;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 14px;
+  font-size: 16px;
   flex-shrink: 0; /* 防止按钮缩小 */
+  background: none;
+  position: relative;
+  opacity: 0;
+  visibility: hidden;
 }
 
-#tab-list li > .close-btn:hover {
-  background-color: #ADAEAE;
-  color: black;
-  transform: scale(1.1);
+/* 悬停标签项时显示所有操作按钮 */
+#tab-list li:hover .action-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 操作按钮悬停效果 */
+.action-btn:hover {
+  background-color: #f0f0f0;
+}
+
+/* 固定按钮特殊样式 */
+.pin-btn:hover {
+  color: #188038;
+}
+
+/* 关闭按钮特殊样式 */
+.close-btn:hover {
+  color: #d93025;
 }
 
 #tab-list li:hover {
@@ -236,4 +264,47 @@ body {
 .icon-btn:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
+}
+
+/* Toast 提示样式 */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #323232;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  z-index: 10000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  animation: toast-in 0.3s ease forwards;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.toast-fade-out {
+  animation: toast-out 0.3s ease forwards;
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
 }

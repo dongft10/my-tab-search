@@ -582,6 +582,45 @@ chrome.commands.onCommand.addListener(async (command) => {
       // 重置标志，允许下次操作
       isSwitchingToPreviousTab = false;
     }
+  } else if (command === "open-pinned-tabs") {
+    // 打开固定标签页弹窗
+    try {
+      // 先关闭任何可能打开的弹窗（包括主搜索弹窗）
+      const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
+      for (const window of windows) {
+        if (window.url && (window.url.includes('popup.html') || window.url.includes('pinned-list.html'))) {
+          await chrome.windows.remove(window.id);
+        }
+      }
+      
+      // 打开固定标签页弹窗
+      await chrome.windows.create({
+        url: chrome.runtime.getURL('html/pinned-list.html'),
+        type: 'popup',
+        width: 400,
+        height: 400,
+        left: 100,
+        top: 100
+      });
+    } catch (error) {
+      console.error('Error opening pinned tabs popup:', error);
+    }
+  } else if (command === "_execute_action") {
+    // 打开主搜索弹窗
+    try {
+      // 先关闭任何可能打开的弹窗（包括固定标签页弹窗）
+      const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
+      for (const window of windows) {
+        if (window.url && (window.url.includes('popup.html') || window.url.includes('pinned-list.html'))) {
+          await chrome.windows.remove(window.id);
+        }
+      }
+      
+      // 打开主搜索弹窗（通过 chrome.action.openPopup）
+      chrome.action.openPopup();
+    } catch (error) {
+      console.error('Error opening main search popup:', error);
+    }
   }
 });
 

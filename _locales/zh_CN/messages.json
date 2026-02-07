@@ -188,5 +188,47 @@
   "copyrightText": {
     "message": "© 2026 MyTabSearch。保留所有权利。",
     "description": "Copyright text for the about page"
+  },
+  "pinnedTabsDesc": {
+    "message": "打开固定标签页列表",
+    "description": "Description for the pinned tabs command"
+  },
+  "pinnedTabsLimit": {
+    "message": "固定标签页数量已达上限（最多$COUNT$个）",
+    "description": "Message shown when trying to pin more than the limit, $COUNT$ will be replaced with the actual limit",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "pinTab": {
+    "message": "固定标签页",
+    "description": "Tooltip for the pin tab button"
+  },
+  "unpinTab": {
+    "message": "取消固定标签页",
+    "description": "Tooltip for the unpin tab button"
+  },
+  "menuLabel": {
+    "message": "菜单",
+    "description": "Tooltip for the menu button"
+  },
+  "pinToFavorites": {
+    "message": "固定到常用列表",
+    "description": "Tooltip for the pin to favorites button"
+  },
+  "pinnedTabsTitle": {
+    "message": "固定的TabList",
+    "description": "Title for the pinned tabs list"
+  },
+  "noPinnedTabs": {
+    "message": "暂无固定标签页",
+    "description": "Message shown when there are no pinned tabs"
+  },
+  "pinTabsHint": {
+    "message": "使用 Ctrl+Shift+A 打开搜索并固定标签页",
+    "description": "Hint text for how to pin tabs"
   }
 }

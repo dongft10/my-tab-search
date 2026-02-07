@@ -58,6 +58,13 @@
         "mac": "Command+Shift+S"
       },
       "description": "__MSG_prevTabDesc__"
+    },
+    "open-pinned-tabs": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+D",
+        "mac": "Command+Shift+D"
+      },
+      "description": "__MSG_pinnedTabsDesc__"
     }
   }
 }
