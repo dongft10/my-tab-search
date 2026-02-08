@@ -194,8 +194,8 @@
     "description": "Description for the pinned tabs command"
   },
   "pinnedTabsLimit": {
-    "message": "Pinned tabs limit reached ($COUNT$ tabs max)",
-    "description": "Message shown when trying to pin more than the limit, $COUNT$ will be replaced with the actual limit",
+    "message": "Pinned tabs limit reached ($count$ tabs max)",
+    "description": "Message shown when trying to pin more than the limit, $count$ will be replaced with the actual limit",
     "placeholders": {
       "count": {
         "content": "$1",

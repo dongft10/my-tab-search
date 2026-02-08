@@ -194,8 +194,8 @@
     "description": "Description for the pinned tabs command"
   },
   "pinnedTabsLimit": {
-    "message": "固定标签页数量已达上限（最多$COUNT$个）",
-    "description": "Message shown when trying to pin more than the limit, $COUNT$ will be replaced with the actual limit",
+    "message": "固定标签页数量已达上限（最多$count$个）",
+    "description": "Message shown when trying to pin more than the limit, $count$ will be replaced with the actual limit",
     "placeholders": {
       "count": {
         "content": "$1",

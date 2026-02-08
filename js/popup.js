@@ -1,5 +1,7 @@
 // Import i18n manager
 import i18n from './i18n.js';
+// Import config
+import { PINNED_TABS_CONFIG } from './config.js';
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -169,18 +171,22 @@ document.addEventListener("DOMContentLoaded", async () => {
           // 检查标签页是否已固定
           const isPinned = await isTabPinned(tab.id);
           
+          // 如果已固定，给列表项添加橙色底色
+          if (isPinned) {
+            li.classList.add("pinned-tab");
+          }
+          
           // 创建固定/取消固定按钮
           const pinBtn = document.createElement("button");
           pinBtn.classList.add("action-btn", "pin-btn");
           if (isPinned) {
-            pinBtn.innerHTML = "📌";
+            pinBtn.classList.add("pinned");
+            pinBtn.innerHTML = "🟠";
             pinBtn.title = i18n.getMessage('unpinTab') || '取消固定标签页';
           } else {
-            pinBtn.innerHTML = "📌";
+            pinBtn.innerHTML = "⚪";
             pinBtn.title = i18n.getMessage('pinToFavorites') || '固定到常用列表';
           }
-          pinBtn.style.opacity = "0";
-          pinBtn.style.visibility = "hidden";
           pinBtn.addEventListener("click", function (e) {
             e.stopPropagation();
             handlePinTab(tab);
@@ -191,20 +197,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           closeBtn.classList.add("action-btn", "close-btn");
           closeBtn.innerHTML = "✕";
           closeBtn.title = i18n.getMessage('closeTab') || 'Close tab';
-          closeBtn.style.opacity = "0";
-          closeBtn.style.visibility = "hidden";
           closeBtn.addEventListener("click", function (e) {
             e.stopPropagation();
             handleCloseBtnClicked(tab.id);
           });
           
-          // 创建三点按钮（始终可见）
+          // 创建三点按钮（默认显示）
           const menuBtn = document.createElement("button");
           menuBtn.classList.add("action-btn", "menu-btn");
-          menuBtn.innerHTML = "⋯";
+          menuBtn.innerHTML = "≡";
           menuBtn.title = i18n.getMessage('menuLabel') || '菜单';
-          menuBtn.style.opacity = "0";
-          menuBtn.style.visibility = "hidden";
           
           // 组装按钮容器
           actionContainer.appendChild(pinBtn);
@@ -214,28 +216,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           li.appendChild(icon);
           li.appendChild(listItemDiv);
           li.appendChild(actionContainer);
-
-          // 处理按钮显示/隐藏 - 悬停标签项时显示所有按钮
-          li.addEventListener("mouseenter", function () {
-            pinBtn.style.opacity = "1";
-            pinBtn.style.visibility = "visible";
-            closeBtn.style.opacity = "1";
-            closeBtn.style.visibility = "visible";
-            menuBtn.style.opacity = "1";
-            menuBtn.style.visibility = "visible";
-          });
-          
-          li.addEventListener("mouseleave", function (e) {
-            // 只有当鼠标真正离开 li 元素时才隐藏（不是移动到子元素）
-            if (!li.contains(e.relatedTarget)) {
-              pinBtn.style.opacity = "0";
-              pinBtn.style.visibility = "hidden";
-              closeBtn.style.opacity = "0";
-              closeBtn.style.visibility = "hidden";
-              menuBtn.style.opacity = "0";
-              menuBtn.style.visibility = "hidden";
-            }
-          });
 
           // add click event to switch to the selected tab
           li.addEventListener("click", function () {
@@ -274,6 +254,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (nextSelectedTabId !== 'undefined' && nextSelectedTabId >= 0) {
           selectedIndex = nextSelectedTabId;
           lis[selectedIndex].classList.add("selected");
+          // 滚动到选中的标签页
+          setTimeout(() => {
+            lis[selectedIndex].scrollIntoView({
+              block: 'center',
+              behavior: 'smooth'
+            });
+          }, 50);
         } else {
           lis[0].classList.add("selected");
           selectedIndex = 0;
@@ -299,8 +286,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     return url.toString();
   }
 
-  // 固定标签页容量限制
-  const MAX_PINNED_TABS = 5;
+  // 从配置文件获取固定标签页容量限制
+  const { MAX_PINNED_TABS } = PINNED_TABS_CONFIG;
 
   // 检查标签页是否已固定
   async function isTabPinned(tabId) {
@@ -536,4 +523,33 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
   });
+  
+  // 固定标签页按钮点击事件
+  const pinnedTabsBtn = document.getElementById('pinned-tabs-btn');
+  if (pinnedTabsBtn) {
+    pinnedTabsBtn.addEventListener('click', () => {
+      // 发送消息给 background script 打开固定标签页弹窗
+      chrome.runtime.sendMessage({ action: 'openPinnedTabs' });
+      // 关闭当前弹窗
+      window.close();
+    });
+  }
+  
+  // 设置按钮点击事件
+  const settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'openSettings' });
+      window.close();
+    });
+  }
+  
+  // 关于按钮点击事件
+  const aboutBtn = document.getElementById('about-btn');
+  if (aboutBtn) {
+    aboutBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'openAbout' });
+      window.close();
+    });
+  }
 });
