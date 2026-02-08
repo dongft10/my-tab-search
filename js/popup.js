@@ -48,15 +48,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   function subsequenceMatch(keyword, text) {
     if (keyword.length === 0) return true;
     if (text.length === 0) return false;
-    
+
     let keywordIndex = 0;
-    
+
     for (let i = 0; i < text.length && keywordIndex < keyword.length; i++) {
       if (text[i] === keyword[keywordIndex]) {
         keywordIndex++;
       }
     }
-    
+
     return keywordIndex === keyword.length;
   }
 
@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 创建一个标记数组，记录每个字符是否被匹配
     const matched = new Array(text.length).fill(false);
     const lowerText = text.toLowerCase();
-    
+
     // 对每个关键字进行匹配
     keywords.forEach(keyword => {
       let keywordIndex = 0;
@@ -98,18 +98,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   searchInput.focus();
 
   // Function to update the displayed tabs based on search input
-  async function updateTabs(nextSelectedTabId) {
+  // @param nextSelectedTabId 可选，指定下一个选中的索引
+  // @param targetTabId 可选，指定要滚动到的标签页ID
+  // @param relativeOffset 可选，指定目标标签页相对于视口顶部的偏移量
+  async function updateTabs(nextSelectedTabId, targetTabId = null, relativeOffset = null) {
     const query = searchInput.value.trim().toLowerCase();
-    
+
     // 使用 Promise 包装 chrome.tabs.query
     const tabs = await new Promise((resolve) => {
       chrome.tabs.query({}, resolve);
     });
     let filteredTabs;
-    
+
     // 按空格分割查询字符串，得到多个关键字
     const keywords = query.split(/\s+/).filter(kw => kw.length > 0);
-    
+
     if (!query || keywords.length === 0) {
       // 如果查询为空或没有有效关键字，则返回所有标签页
       filteredTabs = tabs;
@@ -124,159 +127,183 @@ document.addEventListener("DOMContentLoaded", async () => {
     tabList.innerHTML = "";
     tabIdMap.clear();
 
-    // tabList index
-    let i = 0;
-
     // populate the tab list with the filtered tabs
-    for (const tab of filteredTabs) {
-        try {
-          const li = document.createElement("li");
+    for (let i = 0; i < filteredTabs.length; i++) {
+      const tab = filteredTabs[i];
+      try {
+        const li = document.createElement("li");
 
-          // tab icon
-          const icon = document.createElement('img');
-          icon.classList.add("li-icon");
-          icon.src = faviconURL(tab.url);
+        // tab icon
+        const icon = document.createElement('img');
+        icon.classList.add("li-icon");
+        icon.src = faviconURL(tab.url);
 
-          const listItemDiv = document.createElement("div");
-          listItemDiv.classList.add("li-item");
+        const listItemDiv = document.createElement("div");
+        listItemDiv.classList.add("li-item");
 
-          // create elements for tab title and URL info
-          const titleDiv = document.createElement("div");
-          titleDiv.classList.add("tab-title");
-          
-          // 高亮匹配的字符
-          if (keywords.length > 0) {
-            titleDiv.innerHTML = highlightMatches(tab.title, keywords);
-          } else {
-            titleDiv.textContent = tab.title;
-          }
+        // create elements for tab title and URL info
+        const titleDiv = document.createElement("div");
+        titleDiv.classList.add("tab-title");
 
-          const urlHostNameDiv = document.createElement("div");
-          urlHostNameDiv.classList.add("tab-url-hostname");
-          urlHostNameDiv.textContent = new URL(tab.url).hostname;
-          const lastElement = tab.url.substring(tab.url.lastIndexOf('/') + 1);
-          if (lastElement.length > 0) {
-            urlHostNameDiv.textContent = urlHostNameDiv.textContent + "/.../" + lastElement;
-          }
-          urlHostNameDiv.title = tab.url;
+        // 高亮匹配的字符
+        if (keywords.length > 0) {
+          titleDiv.innerHTML = highlightMatches(tab.title, keywords);
+        } else {
+          titleDiv.textContent = tab.title;
+        }
+
+        const urlHostNameDiv = document.createElement("div");
+        urlHostNameDiv.classList.add("tab-url-hostname");
+        urlHostNameDiv.textContent = new URL(tab.url).hostname;
+        const lastElement = tab.url.substring(tab.url.lastIndexOf('/') + 1);
+        if (lastElement.length > 0) {
+          urlHostNameDiv.textContent = urlHostNameDiv.textContent + "/.../" + lastElement;
+        }
+        urlHostNameDiv.title = tab.url;
 
 
-          listItemDiv.appendChild(titleDiv);
-          listItemDiv.appendChild(urlHostNameDiv);
+        listItemDiv.appendChild(titleDiv);
+        listItemDiv.appendChild(urlHostNameDiv);
 
-          // 创建操作按钮容器
-          const actionContainer = document.createElement("div");
-          actionContainer.classList.add("action-container");
-          
-          // 检查标签页是否已固定
-          const isPinned = await isTabPinned(tab.id);
-          
-          // 如果已固定，给列表项添加橙色底色
-          if (isPinned) {
-            li.classList.add("pinned-tab");
-          }
-          
-          // 创建固定/取消固定按钮
-          const pinBtn = document.createElement("button");
-          pinBtn.classList.add("action-btn", "pin-btn");
-          if (isPinned) {
-            pinBtn.classList.add("pinned");
-            pinBtn.innerHTML = "🟠";
-            pinBtn.title = i18n.getMessage('unpinTab') || '取消固定标签页';
-          } else {
-            pinBtn.innerHTML = "⚪";
-            pinBtn.title = i18n.getMessage('pinToFavorites') || '固定到常用列表';
-          }
-          pinBtn.addEventListener("click", function (e) {
-            e.stopPropagation();
-            handlePinTab(tab);
-          });
-          
-          // 创建关闭按钮
-          const closeBtn = document.createElement("button");
-          closeBtn.classList.add("action-btn", "close-btn");
-          closeBtn.innerHTML = "✕";
-          closeBtn.title = i18n.getMessage('closeTab') || 'Close tab';
-          closeBtn.addEventListener("click", function (e) {
-            e.stopPropagation();
-            handleCloseBtnClicked(tab.id);
-          });
-          
-          // 创建三点按钮（默认显示）
-          const menuBtn = document.createElement("button");
-          menuBtn.classList.add("action-btn", "menu-btn");
-          menuBtn.innerHTML = "≡";
-          menuBtn.title = i18n.getMessage('menuLabel') || '菜单';
-          
-          // 组装按钮容器
-          actionContainer.appendChild(pinBtn);
-          actionContainer.appendChild(closeBtn);
-          actionContainer.appendChild(menuBtn);
+        // 创建操作按钮容器
+        const actionContainer = document.createElement("div");
+        actionContainer.classList.add("action-container");
 
-          li.appendChild(icon);
-          li.appendChild(listItemDiv);
-          li.appendChild(actionContainer);
+        // 检查标签页是否已固定
+        const isPinned = await isTabPinned(tab.id);
 
-          // add click event to switch to the selected tab
-          li.addEventListener("click", function () {
-            chrome.tabs.get(tab.id, (tab) => {
-              if (chrome.runtime.lastError) {
-                const errorMessage = i18n.getMessage('errorGetTabInfo', chrome.runtime.lastError.message);
-                console.warn(errorMessage || `Failed to get tab information: ${chrome.runtime.lastError.message}`);
-                window.close();
-                return;
-              }
+        // 如果已固定，给列表项添加橙色底色
+        if (isPinned) {
+          li.classList.add("pinned-tab");
+        }
 
-              const windowId = tab.windowId;
-              // 只发送消息给 background.js 处理
-              chrome.runtime.sendMessage({
-                action: "switchToTab",
-                data: {
-                  tabId: tab.id,
-                  windowId: windowId
-                }
-              });
+        // 创建固定/取消固定按钮
+        const pinBtn = document.createElement("button");
+        pinBtn.classList.add("action-btn", "pin-btn");
+        if (isPinned) {
+          pinBtn.classList.add("pinned");
+          pinBtn.innerHTML = "🟠";
+          pinBtn.title = i18n.getMessage('unpinTab') || '取消固定标签页';
+        } else {
+          pinBtn.innerHTML = "⚪";
+          pinBtn.title = i18n.getMessage('pinToFavorites') || '固定到常用列表';
+        }
+        pinBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          handlePinTab(tab, i);
+        });
+
+        // 创建关闭按钮
+        const closeBtn = document.createElement("button");
+        closeBtn.classList.add("action-btn", "close-btn");
+        closeBtn.innerHTML = "✕";
+        closeBtn.title = i18n.getMessage('closeTab') || 'Close tab';
+        closeBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          handleCloseBtnClicked(tab.id);
+        });
+
+        // 创建三点按钮（默认显示）
+        const menuBtn = document.createElement("button");
+        menuBtn.classList.add("action-btn", "menu-btn");
+        menuBtn.innerHTML = "≡";
+        menuBtn.title = i18n.getMessage('menuLabel') || '菜单';
+
+        // 组装按钮容器
+        actionContainer.appendChild(pinBtn);
+        actionContainer.appendChild(closeBtn);
+        actionContainer.appendChild(menuBtn);
+
+        li.appendChild(icon);
+        li.appendChild(listItemDiv);
+        li.appendChild(actionContainer);
+
+        // add click event to switch to the selected tab
+        li.addEventListener("click", function () {
+          chrome.tabs.get(tab.id, (tab) => {
+            if (chrome.runtime.lastError) {
+              const errorMessage = i18n.getMessage('errorGetTabInfo', chrome.runtime.lastError.message);
+              console.warn(errorMessage || `Failed to get tab information: ${chrome.runtime.lastError.message}`);
               window.close();
-            });
-          });
+              return;
+            }
 
-          tabList.appendChild(li);
-          tabIdMap.set(i++, tab.id);
-        } catch (error) {
-          // 如果try块中抛出错误，这里将捕获到错误
-          // console.error("An error occurred:", error.message);
+            const windowId = tab.windowId;
+            // 只发送消息给 background.js 处理
+            chrome.runtime.sendMessage({
+              action: "switchToTab",
+              data: {
+                tabId: tab.id,
+                windowId: windowId
+              }
+            });
+            window.close();
+          });
+        });
+
+        tabList.appendChild(li);
+        tabIdMap.set(i, tab.id);
+      } catch (error) {
+        // 如果try块中抛出错误，这里将捕获到错误
+        // console.error("An error occurred:", error.message);
+      }
+    }
+    lis = tabList.childNodes;
+
+    // 默认选中，方便enter直接跳转
+    if (lis.length > 0) {
+      // 确定要选中的索引：优先使用 nextSelectedTabId（如果有效），其次使用 targetTabId 查找，最后默认选中第一个
+      let targetIndex = -1;
+      
+      // 首先检查 nextSelectedTabId 是否有效
+      if (nextSelectedTabId !== 'undefined' && nextSelectedTabId >= 0 && nextSelectedTabId < lis.length) {
+        targetIndex = nextSelectedTabId;
+      } 
+      // 如果 nextSelectedTabId 无效，尝试使用 targetTabId 查找
+      else if (targetTabId !== null) {
+        for (let i = 0; i < lis.length; i++) {
+          if (tabIdMap.get(i) === targetTabId) {
+            targetIndex = i;
+            break;
+          }
         }
       }
-      lis = tabList.childNodes;
-
-      // 默认选中，方便enter直接跳转
-      if (lis.length > 0) {
-        if (nextSelectedTabId !== 'undefined' && nextSelectedTabId >= 0) {
-          selectedIndex = nextSelectedTabId;
-          lis[selectedIndex].classList.add("selected");
-          // 滚动到选中的标签页
-          setTimeout(() => {
-            lis[selectedIndex].scrollIntoView({
+      
+      // 如果找到了有效的目标索引
+      if (targetIndex >= 0) {
+        selectedIndex = targetIndex;
+        lis[selectedIndex].classList.add("selected");
+        // 滚动到目标标签页
+        setTimeout(() => {
+          const container = tabList.parentElement;
+          const targetItem = lis[selectedIndex];
+          if (relativeOffset !== null) {
+            // 使用记录的相对位置，保持目标 tab 在视野内的相同位置
+            container.scrollTop = targetItem.offsetTop - relativeOffset;
+          } else {
+            // 默认滚动到中央
+            targetItem.scrollIntoView({
               block: 'center',
               behavior: 'smooth'
             });
-          }, 50);
-        } else {
-          lis[0].classList.add("selected");
-          selectedIndex = 0;
-        }
-      }
-
-      // 已打开标签总数展示控制
-      if (query.length === 0) {
-        chrome.tabs.query({windowType: 'normal'}, function (allTabs) {
-          const message = i18n.getMessage('tabsCount', allTabs.length.toString());
-          tabsCount.textContent = message ? message.replace('$COUNT$', allTabs.length) : `${allTabs.length} Tabs`;
-        });
+          }
+        }, 50);
       } else {
-        const message = i18n.getMessage('tabsCount', filteredTabs.length.toString());
-        tabsCount.textContent = message ? message.replace('$COUNT$', filteredTabs.length) : `${filteredTabs.length} Tabs`;
+        lis[0].classList.add("selected");
+        selectedIndex = 0;
       }
+    }
+
+    // 已打开标签总数展示控制
+    if (query.length === 0) {
+      chrome.tabs.query({ windowType: 'normal' }, function (allTabs) {
+        const message = i18n.getMessage('tabsCount', allTabs.length.toString());
+        tabsCount.textContent = message ? message.replace('$COUNT$', allTabs.length) : `${allTabs.length} Tabs`;
+      });
+    } else {
+      const message = i18n.getMessage('tabsCount', filteredTabs.length.toString());
+      tabsCount.textContent = message ? message.replace('$COUNT$', filteredTabs.length) : `${filteredTabs.length} Tabs`;
+    }
   }
 
   function faviconURL(u) {
@@ -305,17 +332,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         chrome.storage.sync.get('pinnedTabs', resolve);
       });
       let pinnedTabs = result.pinnedTabs || [];
-      
+
       // 检查是否已固定
       if (pinnedTabs.some(t => t.tabId === tab.id)) {
         return { success: true, message: '已固定' };
       }
-      
+
       // 检查容量限制
       if (pinnedTabs.length >= MAX_PINNED_TABS) {
         return { success: false, message: i18n.getMessage('pinnedTabsLimit', MAX_PINNED_TABS.toString()) || `固定标签页数量超过${MAX_PINNED_TABS}个的限制` };
       }
-      
+
       // 添加到固定列表
       pinnedTabs.push({
         tabId: tab.id,
@@ -323,12 +350,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         url: tab.url,
         icon: faviconURL(tab.url)
       });
-      
+
       // 保存到存储
       await new Promise((resolve) => {
         chrome.storage.sync.set({ pinnedTabs }, resolve);
       });
-      
+
       return { success: true, message: '固定成功' };
     } catch (error) {
       console.error('Error pinning tab:', error);
@@ -343,15 +370,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         chrome.storage.sync.get('pinnedTabs', resolve);
       });
       let pinnedTabs = result.pinnedTabs || [];
-      
+
       // 过滤掉要移除的标签页
       pinnedTabs = pinnedTabs.filter(tab => tab.tabId !== tabId);
-      
+
       // 保存到存储
       await new Promise((resolve) => {
         chrome.storage.sync.set({ pinnedTabs }, resolve);
       });
-      
+
       return { success: true, message: '取消固定成功' };
     } catch (error) {
       console.error('Error unpinning tab:', error);
@@ -380,22 +407,46 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // 处理固定/取消固定事件
-  async function handlePinTab(tab) {
+  // @param tab 要固定/取消固定的标签页
+  // @param tabIndex 标签页在列表中的索引
+  async function handlePinTab(tab, tabIndex) {
     const isPinned = await isTabPinned(tab.id);
     let result;
-    
+
     if (isPinned) {
       result = await unpinTab(tab.id);
     } else {
       result = await pinTab(tab);
     }
-    
+
     // 显示提示
     if (!result.success) {
       showToast(result.message);
     } else {
-      // 操作成功，更新列表显示
-      updateTabs(selectedIndex);
+      // 操作成功，只更新当前 tab 的样式，不刷新整个列表
+      if (tabIndex >= 0 && lis.length > tabIndex) {
+        const li = lis[tabIndex];
+        const pinBtn = li.querySelector('.pin-btn');
+        
+        // 使用 isPinned 判断操作前的状态，从而确定当前操作是固定还是取消固定
+        if (isPinned) {
+          // 原来是固定的，现在取消固定：移除橙色底色，更新按钮样式
+          li.classList.remove('pinned-tab');
+          if (pinBtn) {
+            pinBtn.classList.remove('pinned');
+            pinBtn.innerHTML = '⚪';
+            pinBtn.title = i18n.getMessage('pinToFavorites') || '固定到常用列表';
+          }
+        } else {
+          // 原来未固定，现在固定成功：添加橙色底色，更新按钮样式
+          li.classList.add('pinned-tab');
+          if (pinBtn) {
+            pinBtn.classList.add('pinned');
+            pinBtn.innerHTML = '🟠';
+            pinBtn.title = i18n.getMessage('unpinTab') || '取消固定标签页';
+          }
+        }
+      }
     }
   }
 
@@ -444,14 +495,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     const selectedItem = lis[selectedIndex];
-    
+
     if (!selectedItem) {
       return;
     }
-    
+
     // behavior参数控制是否平滑滚动
     const scrollBehavior = behavior === undefined ? 'smooth' : behavior;
-    
+
     // 使用Element.scrollIntoView()方法，这是一个更可靠的方法。确保元素滚动到可视区域
     selectedItem.scrollIntoView({
       block: 'nearest',  // 只在必要时滚动，尽量保持元素在视图内
@@ -493,25 +544,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initialize i18n
   await i18n.initialize();
-  
+
   // Set initial loading text with i18n
   tabsCount.textContent = i18n.getMessage('loadingText') || 'Loading...';
-  
+
   // initial tab update
   updateTabs();
-  
+
   // Set up i18n after DOM is loaded
   setupI18n();
-  
+
   // event listener for search input changes
   searchInput.addEventListener("input", updateTabs);
-  
+
   // Add language change listener
   i18n.addListener(() => {
     setupI18n();
     updateTabs();
   });
-  
+
   // Listen for language change messages from other parts
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'languageChanged') {
@@ -523,7 +574,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
   });
-  
+
   // 固定标签页按钮点击事件
   const pinnedTabsBtn = document.getElementById('pinned-tabs-btn');
   if (pinnedTabsBtn) {
@@ -534,7 +585,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.close();
     });
   }
-  
+
   // 设置按钮点击事件
   const settingsBtn = document.getElementById('settings-btn');
   if (settingsBtn) {
@@ -543,7 +594,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.close();
     });
   }
-  
+
   // 关于按钮点击事件
   const aboutBtn = document.getElementById('about-btn');
   if (aboutBtn) {
