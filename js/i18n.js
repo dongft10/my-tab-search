@@ -74,7 +74,8 @@ class I18nManager {
           message = message.replace(`$${index + 1}`, replacement);
         });
       } else if (typeof replacements === 'string') {
-        message = message.replace('$1', replacements);
+        // 替换 $count$ 格式的占位符
+        message = message.replace(/\$\w+\$/g, replacements);
       }
     }
 

@@ -1,6 +1,5 @@
 body {
   width: 400px;
-  /*min-height: 600px;*/
   height: auto; /* 让高度自适应内容，但在限制范围内 */
   padding: 0;
   margin: 0;
@@ -20,52 +19,22 @@ body {
   box-sizing: border-box; /* 确保padding和border包含在宽高中 */
 }
 
-.search-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0 10px 5px;
-  /*margin: 10px 0 10px 0;*/
+.pinned-header {
   background-color: white;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 15px;
+  text-align: center;
   flex-shrink: 0; /* 固定高度，不随内容变化 */
-  z-index: 2; /* 确保搜索框始终在最上层 */
+  z-index: 2; /* 确保标题栏始终在最上层 */
 }
 
-.search-container > *:last-child {
-  margin-right: 0;
-}
-
-#magnifying-glass {
-  width: 22px;
-  height: 22px;
-  padding: 0 5px;
-  vertical-align: middle;
-  justify-content: center;
-  opacity: 0.7;
-}
-
-#search-input {
-  flex-grow: 1;
-  margin: 0 10px;
-  padding: 5px;
-  vertical-align: middle;
-  justify-content: center;
-  border: none;
-  outline: none;
-  background-color: transparent;
-  font-size: 14px;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-#tab-count {
-  margin-right: 10px;
-  font-weight: bold;
+.pinned-header h2 {
+  margin: 0;
+  font-size: 1.2em;
   color: #4285f4;
-  font-size: 14px;
-  text-align: right;
+  font-weight: 600;
 }
 
 /* 新增：标签列表容器，用于实现独立滚动 */
@@ -74,45 +43,42 @@ body {
   overflow: hidden; /* 隐藏溢出内容 */
   display: flex;
   flex-direction: column;
-  /*border-radius: 12px;*/
   margin-top: -5px; /* 与上面元素衔接 */
   max-height: calc(710px - 200px); /* 最大高度减去搜索框和其他元素的高度 */
-  /*min-height: 0; !* 允许容器收缩 *!*/
   width: 100%; /* 确保不超出父容器宽度 */
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
 }
 
-#tab-list {
+#pinned-tab-list {
   list-style: none;
   padding: 0;
   margin: 0;
   overflow-y: auto; /* 垂直滚动 */
   flex: 1; /* 占据容器全部空间 */
-  /*border-radius: 12px;*/
   background-color: white;
   width: 100%; /* 确保不超出父容器宽度 */
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
 }
 
-#tab-list::-webkit-scrollbar {
+#pinned-tab-list::-webkit-scrollbar {
   width: 8px;
 }
 
-#tab-list::-webkit-scrollbar-track {
+#pinned-tab-list::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 4px;
 }
 
-#tab-list::-webkit-scrollbar-thumb {
+#pinned-tab-list::-webkit-scrollbar-thumb {
   background: rgba(136, 136, 136, 0.4);
   border-radius: 4px;
 }
 
-#tab-list::-webkit-scrollbar-thumb:hover {
+#pinned-tab-list::-webkit-scrollbar-thumb:hover {
   background: rgba(136, 136, 136, 0.6);
 }
 
-#tab-list li {
+#pinned-tab-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -126,10 +92,19 @@ body {
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
   max-width: 100%; /* 防止内容溢出 */
   overflow: hidden; /* 防止内容溢出 */
+  position: relative;
+}
+
+#pinned-tab-list li:hover {
+  background-color: #E6E6E6;
+}
+
+#pinned-tab-list li.selected {
+  background-color: #D3E3FD;
 }
 
 /* 操作按钮容器 */
-.action-container {
+#pinned-tab-list .action-container {
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -139,7 +114,7 @@ body {
 }
 
 /* 操作按钮基础样式 */
-.action-btn {
+#pinned-tab-list .action-btn {
   vertical-align: middle;
   justify-content: center;
   padding: 5px;
@@ -161,90 +136,61 @@ body {
 }
 
 /* 三点按钮位置（默认位置） */
-.action-btn.menu-btn {
+#pinned-tab-list .action-btn.menu-btn {
   right: 0;
 }
 
 /* 关闭按钮位置（与三点按钮相同位置） */
-.action-btn.close-btn {
+#pinned-tab-list .action-btn.close-btn {
   right: 0;
 }
 
 /* 固定按钮位置（向左展开，可遮盖标题） */
-.action-btn.pin-btn {
+#pinned-tab-list .action-btn.pin-btn {
   right: 28px; /* 关闭按钮位置 + 间距 */
   z-index: 10; /* 置顶展示 */
 }
 
 /* 悬停标签项时显示三点按钮 */
-#tab-list li:hover .action-btn.menu-btn {
+#pinned-tab-list li:hover .action-btn.menu-btn {
   opacity: 1;
   visibility: visible;
 }
 
 /* 悬停三点按钮时，显示固定和关闭按钮，隐藏三点按钮 */
-#tab-list li:hover .action-container:hover .action-btn.menu-btn {
+#pinned-tab-list li:hover .action-container:hover .action-btn.menu-btn {
   opacity: 0;
   visibility: hidden;
 }
 
-#tab-list li:hover .action-container:hover .action-btn.pin-btn,
-#tab-list li:hover .action-container:hover .action-btn.close-btn {
+#pinned-tab-list li:hover .action-container:hover .action-btn.pin-btn,
+#pinned-tab-list li:hover .action-container:hover .action-btn.close-btn {
   opacity: 1;
   visibility: visible;
 }
 
 /* 操作按钮悬停效果 */
-.action-btn:hover {
+#pinned-tab-list .action-btn:hover {
   background-color: #f0f0f0;
 }
 
 /* 固定按钮特殊样式 */
-.action-btn.pin-btn {
-  color: #9aa0a6; /* 未固定状态：灰色 */
+#pinned-tab-list .action-btn.pin-btn {
+  color: #d93025; /* 固定列表中始终是红色，因为都是已固定的 */
 }
 
-.action-btn.pin-btn:hover {
-  color: #188038; /* 悬停时：绿色 */
-}
-
-/* 已固定状态的固定按钮 */
-.action-btn.pin-btn.pinned {
-  color: #d93025; /* 已固定状态：红色 */
-}
-
-.action-btn.pin-btn.pinned:hover {
+#pinned-tab-list .action-btn.pin-btn:hover {
   color: #d93025; /* 悬停时保持红色 */
 }
 
 /* 关闭按钮特殊样式 */
-.action-btn.close-btn:hover {
+#pinned-tab-list .action-btn.close-btn:hover {
   color: #d93025;
-}
-
-#tab-list li:hover {
-  background-color: #E6E6E6;
-}
-
-#tab-list li.selected {
-  background-color: #D3E3FD;
-}
-
-/* 已固定的标签页条目样式 - 淡淡的橙色底色 */
-#tab-list li.pinned-tab {
-  background-color: rgba(255, 165, 0, 0.15); /* 淡橙色背景 */
-}
-
-#tab-list li.pinned-tab:hover {
-  background-color: rgba(255, 165, 0, 0.25); /* 悬停时稍微深一点的橙色 */
-}
-
-#tab-list li.pinned-tab.selected {
-  background-color: rgba(255, 165, 0, 0.35); /* 选中时的橙色 */
 }
 
 .li-icon {
   margin-left: 0;
+  flex-shrink: 0;
 }
 
 .tab-title {
@@ -261,9 +207,9 @@ body {
 }
 
 .tab-title .highlight {
-  background-color: #ffff00a8;
+  background-color: #FFFF00;
   color: #000;
-  padding: 0;
+  padding: 0 1px;
   border-radius: 2px;
 }
 
@@ -320,6 +266,29 @@ body {
 .icon-btn:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.empty-state-subtext {
+  font-size: 12px;
+  opacity: 0.8;
 }
 
 /* Toast 提示样式 */
