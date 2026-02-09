@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return keywordIndex === keyword.length;
   }
 
-  // 高亮匹配的字符
+  // 高亮匹配的字符 - 高亮关键字中每个字符的所有出现位置
   function highlightMatches(text, keywords) {
     if (!keywords || keywords.length === 0) {
       return text;
@@ -70,13 +70,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const matched = new Array(text.length).fill(false);
     const lowerText = text.toLowerCase();
 
-    // 对每个关键字进行匹配
+    // 对每个关键字进行匹配，高亮关键字中每个字符的所有出现位置
     keywords.forEach(keyword => {
-      let keywordIndex = 0;
-      for (let i = 0; i < text.length && keywordIndex < keyword.length; i++) {
-        if (lowerText[i] === keyword[keywordIndex]) {
-          matched[i] = true;
-          keywordIndex++;
+      // 对于关键字中的每个字符，在文本中找到所有出现位置
+      for (let k = 0; k < keyword.length; k++) {
+        const char = keyword[k];
+        for (let i = 0; i < text.length; i++) {
+          if (lowerText[i] === char) {
+            matched[i] = true;
+          }
         }
       }
     });
@@ -92,6 +94,69 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     return result;
+  }
+
+  // 计算匹配度分数
+  // 考虑因素：完整单词匹配、连续字符匹配、匹配数量、匹配位置
+  function calculateMatchScore(text, keywords) {
+    if (!keywords || keywords.length === 0) {
+      return 0;
+    }
+
+    const lowerText = text.toLowerCase();
+    let totalScore = 0;
+
+    keywords.forEach(keyword => {
+      let keywordScore = 0;
+
+      // 1. 检查完整单词匹配（最高优先级）
+      const wordRegex = new RegExp(`\\b${keyword}\\b`, 'i');
+      if (wordRegex.test(lowerText)) {
+        keywordScore += 1000;
+      }
+
+      // 2. 检查连续字符串匹配
+      const exactMatchIndex = lowerText.indexOf(keyword);
+      if (exactMatchIndex !== -1) {
+        keywordScore += 500;
+        // 开头位置匹配加分
+        if (exactMatchIndex === 0) {
+          keywordScore += 200;
+        }
+      }
+
+      // 3. 计算子序列匹配的连续性
+      let maxConsecutive = 0;
+      let currentConsecutive = 0;
+      let matchedCount = 0;
+      let keywordIndex = 0;
+
+      for (let i = 0; i < lowerText.length && keywordIndex < keyword.length; i++) {
+        if (lowerText[i] === keyword[keywordIndex]) {
+          currentConsecutive++;
+          matchedCount++;
+          if (currentConsecutive > maxConsecutive) {
+            maxConsecutive = currentConsecutive;
+          }
+          keywordIndex++;
+        } else {
+          currentConsecutive = 0;
+        }
+      }
+
+      // 4. 根据匹配的连续性给分
+      keywordScore += maxConsecutive * 50;
+
+      // 5. 根据匹配到的字符数量给分
+      keywordScore += matchedCount * 10;
+
+      // 6. 根据关键字长度给分（越长的关键字匹配越重要）
+      keywordScore += keyword.length * 5;
+
+      totalScore += keywordScore;
+    });
+
+    return totalScore;
   }
 
   // 焦点默认定位到搜索输入框
@@ -121,6 +186,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       filteredTabs = tabs.filter((tab) => {
         const lowerTitle = tab.title.toLowerCase();
         return keywords.every(keyword => subsequenceMatch(keyword, lowerTitle));
+      });
+
+      // 根据匹配度对过滤后的标签页进行排序（匹配度高的排在前面）
+      filteredTabs.sort((a, b) => {
+        const scoreA = calculateMatchScore(a.title, keywords);
+        const scoreB = calculateMatchScore(b.title, keywords);
+        return scoreB - scoreA;
       });
     }
 
