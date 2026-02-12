@@ -48,9 +48,13 @@ class FingerprintUtil {
     components.push(navigator.vendor || '');
 
     // 2. 屏幕信息
-    components.push(screen.width.toString());
-    components.push(screen.height.toString());
-    components.push(screen.colorDepth.toString());
+    if (typeof screen !== 'undefined') {
+      components.push(screen.width?.toString() || '0');
+      components.push(screen.height?.toString() || '0');
+      components.push(screen.colorDepth?.toString() || '0');
+    } else {
+      components.push('0', '0', '0');
+    }
 
     // 3. 硬件信息
     components.push(navigator.hardwareConcurrency.toString());
@@ -83,17 +87,23 @@ class FingerprintUtil {
   }
 
   /**
-   * Canvas 指纹
-   * @returns {Promise} - 返回 Canvas 指纹
-   */
+    * Canvas 指纹
+    * @returns {Promise} - 返回 Canvas 指纹
+    */
   async getCanvasFingerprint() {
     return new Promise((resolve) => {
       try {
+        // Service Worker 中不支持 document
+        if (typeof document === 'undefined') {
+          resolve('canvas-not-available');
+          return;
+        }
+
         const canvas = document.createElement('canvas');
         canvas.width = 200;
         canvas.height = 200;
         const ctx = canvas.getContext('2d');
-        
+
         if (ctx) {
           ctx.fillStyle = '#f5f5f5';
           ctx.fillRect(0, 0, 200, 200);
@@ -103,7 +113,7 @@ class FingerprintUtil {
           ctx.beginPath();
           ctx.arc(100, 100, 50, 0, Math.PI * 2);
           ctx.stroke();
-          
+
           const data = canvas.toDataURL('image/png');
           resolve(this.hash(data));
         } else {
@@ -122,9 +132,15 @@ class FingerprintUtil {
   async getWebGLFingerprint() {
     return new Promise((resolve) => {
       try {
+        // Service Worker 中不支持 document
+        if (typeof document === 'undefined') {
+          resolve('webgl-not-available');
+          return;
+        }
+
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        
+
         if (gl) {
           const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
           const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unknown';

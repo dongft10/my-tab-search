@@ -1012,19 +1012,23 @@ class FingerprintUtil {
     components.push(navigator.vendor || '');
 
     // 2. 屏幕信息
-    components.push(screen.width.toString());
-    components.push(screen.height.toString());
-    components.push(screen.colorDepth.toString());
+    if (typeof screen !== 'undefined') {
+      components.push(screen.width?.toString() || '0');
+      components.push(screen.height?.toString() || '0');
+      components.push(screen.colorDepth?.toString() || '0');
+    } else {
+      components.push('0', '0', '0');
+    }
 
     // 3. 硬件信息
-    components.push(navigator.hardwareConcurrency.toString());
+    components.push(navigator.hardwareConcurrency?.toString() || '0');
     components.push(navigator.deviceMemory?.toString() || '0');
 
     // 4. 时区信息
     components.push(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
     // 5. Cookie 启用状态
-    components.push(navigator.cookieEnabled.toString());
+    components.push(navigator.cookieEnabled?.toString() || 'false');
 
     // 6. 插件信息（仅用于指纹，不收集具体插件）
     const pluginCount = navigator.plugins?.length || 0;
@@ -1095,7 +1099,7 @@ class FingerprintUtil {
  */
 class ApiClient {
   constructor() {
-    this.baseUrl = 'http://localhost:8080';
+    this.baseUrl = 'http://localhost:3000';
     this.maxRetries = 3;
     this.retryDelay = 1000;
   }
