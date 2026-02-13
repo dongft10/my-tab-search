@@ -188,5 +188,47 @@
   "copyrightText": {
     "message": "© 2026 MyTabSearch Extension. All rights reserved.",
     "description": "Copyright text for the about page"
+  },
+  "pinnedTabsDesc": {
+    "message": "Open pinned tabs list",
+    "description": "Description for the pinned tabs command"
+  },
+  "pinnedTabsLimit": {
+    "message": "Pinned tabs limit reached ($count$ tabs max)",
+    "description": "Message shown when trying to pin more than the limit, $count$ will be replaced with the actual limit",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "pinTab": {
+    "message": "Pin tab",
+    "description": "Tooltip for the pin tab button"
+  },
+  "unpinTab": {
+    "message": "Unpin tab",
+    "description": "Tooltip for the unpin tab button"
+  },
+  "menuLabel": {
+    "message": "Menu",
+    "description": "Tooltip for the menu button"
+  },
+  "pinToFavorites": {
+    "message": "Pin to favorites",
+    "description": "Tooltip for the pin to favorites button"
+  },
+  "pinnedTabsTitle": {
+    "message": "Fixed Tab List",
+    "description": "Title for the pinned tabs list"
+  },
+  "noPinnedTabs": {
+    "message": "No fixed tabs",
+    "description": "Message shown when there are no pinned tabs"
+  },
+  "pinTabsHint": {
+    "message": "Use Ctrl+Shift+A to open search and pin tabs",
+    "description": "Hint text for how to pin tabs"
   }
 }
