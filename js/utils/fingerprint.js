@@ -14,18 +14,9 @@ class FingerprintUtil {
    */
   async generate() {
     try {
-      // 尝试从存储中获取
-      const storedFingerprint = await this.getStoredFingerprint();
-      if (storedFingerprint) {
-        return storedFingerprint;
-      }
-
-      // 生成新的指纹
+      // 直接基于硬件/浏览器特征计算指纹
+      // 不依赖 localStorage 存储，确保同一设备总是得到相同指纹
       const fingerprint = await this.calculateFingerprint();
-      
-      // 存储指纹
-      await this.storeFingerprint(fingerprint);
-      
       return fingerprint;
     } catch (error) {
       console.error('Failed to generate fingerprint:', error);

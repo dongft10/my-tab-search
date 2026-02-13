@@ -979,18 +979,9 @@ class FingerprintUtil {
    */
   async generate() {
     try {
-      // 尝试从存储中获取
-      const storedFingerprint = await this.getStoredFingerprint();
-      if (storedFingerprint) {
-        return storedFingerprint;
-      }
-
-      // 生成新的指纹
+      // 直接基于硬件/浏览器特征计算指纹
+      // 不依赖 localStorage 存储，确保同一设备总是得到相同指纹
       const fingerprint = await this.calculateFingerprint();
-      
-      // 存储指纹
-      await this.storeFingerprint(fingerprint);
-      
       return fingerprint;
     } catch (error) {
       console.error('Failed to generate fingerprint:', error);
@@ -1300,6 +1291,38 @@ class AuthService {
         resolve();
       });
     });
+  }
+
+  /**
+   * 获取访问令牌
+   * @returns {Promise} - 返回令牌
+   */
+  async getAccessToken() {
+    try {
+      const userInfo = await this.getUserInfo();
+      if (!userInfo || !userInfo[STORAGE_KEYS.userId] || !userInfo[STORAGE_KEYS.deviceId]) {
+        throw new Error('User not registered');
+      }
+
+      const response = await this.apiClient.post('/api/v1/auth/token', {
+        userId: userInfo[STORAGE_KEYS.userId],
+        deviceId: userInfo[STORAGE_KEYS.deviceId]
+      });
+
+      const accessToken = response.data.accessToken;
+      const expiresAt = response.data.expiresAt;
+
+      // 存储访问令牌和过期时间
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.accessToken]: accessToken,
+        [STORAGE_KEYS.tokenExpiresAt]: expiresAt
+      });
+
+      return accessToken;
+    } catch (error) {
+      console.error('Failed to get access token:', error);
+      throw error;
+    }
   }
 
   /**
