@@ -963,6 +963,7 @@ const STORAGE_KEYS = {
   userId: 'mytabsearch_user_id',
   deviceId: 'mytabsearch_device_id',
   accessToken: 'mytabsearch_access_token',
+  tokenExpiresAt: 'mytabsearch_token_expires_at',
   registeredAt: 'mytabsearch_registered_at',
   deviceFingerprint: 'mytabsearch_device_fingerprint'
 };
@@ -1340,6 +1341,69 @@ class AuthService {
 const authService = new AuthService();
 
 /**
+ * 检查 Token 是否需要刷新
+ * Token 在过期前 1 天需要刷新
+ * @returns {Promise<boolean>}
+ */
+async function shouldRefreshToken() {
+  try {
+    const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
+      STORAGE_KEYS.accessToken,
+      STORAGE_KEYS.tokenExpiresAt
+    ]);
+
+    if (!accessToken || !tokenExpiresAt) {
+      return true;
+    }
+
+    const expiresAt = new Date(tokenExpiresAt).getTime();
+    const now = Date.now();
+    const refreshThreshold = 5 * 24 * 60 * 60 * 1000; // 5天，单位毫秒
+
+    return expiresAt - now < refreshThreshold;
+  } catch (error) {
+    console.error('Error checking token expiration:', error);
+    return true;
+  }
+}
+
+/**
+ * 刷新访问令牌
+ * @returns {Promise<boolean>} - 是否刷新成功
+ */
+async function refreshAccessToken() {
+  try {
+    const { accessToken } = await chrome.storage.local.get(STORAGE_KEYS.accessToken);
+    if (!accessToken) {
+      console.log('No token to refresh');
+      return false;
+    }
+
+    const response = await apiClient.post('/api/v1/auth/refresh', {
+      accessToken
+    });
+
+    if (response.data && response.data.accessToken) {
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.accessToken]: response.data.accessToken,
+        [STORAGE_KEYS.tokenExpiresAt]: response.data.expiresAt
+      });
+      console.log('Token refreshed successfully');
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to refresh token:', error);
+    // 刷新失败时清除存储，下次重新获取
+    await chrome.storage.local.remove([
+      STORAGE_KEYS.accessToken,
+      STORAGE_KEYS.tokenExpiresAt
+    ]);
+    return false;
+  }
+}
+
+/**
  * 执行静默注册
  * @returns {Promise} - 返回注册结果
  */
@@ -1358,12 +1422,34 @@ async function performSilentRegistration() {
   }
 }
 
+/**
+ * 定期检查和刷新 Token
+ */
+async function periodicTokenRefresh() {
+  try {
+    const needsRefresh = await shouldRefreshToken();
+    if (needsRefresh) {
+      console.log('Token needs refresh, refreshing...');
+      const refreshed = await refreshAccessToken();
+      if (!refreshed) {
+        // 刷新失败，尝试重新获取 Token
+        console.log('Token refresh failed, trying to get new token...');
+        await authService.getAccessToken();
+      }
+    }
+  } catch (error) {
+    console.error('Error in periodic token refresh:', error);
+  }
+}
+
 // 立即初始化（处理扩展已经在运行的情况）
 async function initializeAll() {
   try {
     await i18n.initialize();
     await initializeState();
     await performSilentRegistration();
+    // 初始化时检查一次 Token 状态
+    await periodicTokenRefresh();
   } catch (error) {
     console.error('[Background] Failed to initialize:', error);
   }
@@ -1373,3 +1459,11 @@ async function initializeAll() {
 setTimeout(() => {
   initializeAll();
 }, 100);
+
+// 设置定期 Token 刷新（每12小时检查一次）
+chrome.alarms.create('tokenRefresh', { periodInMinutes: 720 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'tokenRefresh') {
+    periodicTokenRefresh();
+  }
+});

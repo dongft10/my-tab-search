@@ -12,8 +12,11 @@ class AuthService {
       userId: 'mytabsearch_user_id',
       deviceId: 'mytabsearch_device_id',
       accessToken: 'mytabsearch_access_token',
+      tokenExpiresAt: 'mytabsearch_token_expires_at',
       registeredAt: 'mytabsearch_registered_at'
     };
+    // Token 刷新提前时间（过期前 5 天）
+    this.refreshThreshold = 5 * 24 * 60 * 60 * 1000; // 5天，单位毫秒
   }
 
   /**
@@ -74,10 +77,12 @@ class AuthService {
 
       const response = await authApi.getToken(userInfo.userId, userInfo.deviceId);
       const accessToken = response.data.accessToken;
+      const expiresAt = response.data.expiresAt;
 
-      // 存储访问令牌
+      // 存储访问令牌和过期时间
       await chrome.storage.local.set({
-        [this.storageKey.accessToken]: accessToken
+        [this.storageKey.accessToken]: accessToken,
+        [this.storageKey.tokenExpiresAt]: expiresAt
       });
 
       return accessToken;
@@ -224,6 +229,81 @@ class AuthService {
       return {};
     }
     return { 'Authorization': `Bearer ${accessToken}` };
+  }
+
+  /**
+   * 检查 Token 是否需要刷新
+   * @returns {Promise<boolean>} - 是否需要刷新
+   */
+  async shouldRefreshToken() {
+    const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
+      this.storageKey.accessToken,
+      this.storageKey.tokenExpiresAt
+    ]);
+
+    if (!accessToken || !tokenExpiresAt) {
+      return true;
+    }
+
+    const expiresAt = new Date(tokenExpiresAt).getTime();
+    const now = Date.now();
+    
+    // 如果 Token 将在 x 天内过期，需要刷新
+    return expiresAt - now < this.refreshThreshold;
+  }
+
+  /**
+   * 刷新访问令牌
+   * @returns {Promise<string|null>} - 返回新的令牌
+   */
+  async refreshAccessToken() {
+    try {
+      const { accessToken } = await chrome.storage.local.get(this.storageKey.accessToken);
+      if (!accessToken) {
+        throw new Error('No token to refresh');
+      }
+
+      const response = await authApi.refreshToken(accessToken);
+      const newToken = response.data.accessToken;
+      const newExpiresAt = response.data.expiresAt;
+
+      // 存储新令牌
+      await chrome.storage.local.set({
+        [this.storageKey.accessToken]: newToken,
+        [this.storageKey.tokenExpiresAt]: newExpiresAt
+      });
+
+      console.log('Token refreshed successfully');
+      return newToken;
+    } catch (error) {
+      console.error('Failed to refresh token:', error);
+      // 刷新失败时清除存储，下次重新获取
+      await chrome.storage.local.remove([
+        this.storageKey.accessToken,
+        this.storageKey.tokenExpiresAt
+      ]);
+      return null;
+    }
+  }
+
+  /**
+   * 获取有效的访问令牌（自动刷新）
+   * @returns {Promise<string|null>} - 返回有效的令牌
+   */
+  async getValidAccessToken() {
+    const needsRefresh = await this.shouldRefreshToken();
+    
+    if (needsRefresh) {
+      const refreshed = await this.refreshAccessToken();
+      if (refreshed) {
+        return refreshed;
+      }
+      // 刷新失败，尝试重新获取
+      return await this.getAccessToken();
+    }
+
+    const { accessToken } = await chrome.storage.local.get(this.storageKey.accessToken);
+    return accessToken;
   }
 }
 

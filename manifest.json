@@ -18,7 +18,8 @@
     "tabs",
     "favicon",
     "storage",
-    "activeTab"
+    "activeTab",
+    "alarms"
   ],
   "host_permissions": [
     "http://localhost:3000/*",
