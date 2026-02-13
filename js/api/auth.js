@@ -49,6 +49,17 @@ class AuthApi {
       'Authorization': `Bearer ${accessToken}`
     });
   }
+
+  /**
+   * 刷新访问令牌
+   * @param {string} accessToken - 当前访问令牌
+   * @returns {Promise} - 返回新的令牌
+   */
+  async refreshToken(accessToken) {
+    return apiClient.post('/api/v1/auth/refresh', {
+      accessToken
+    });
+  }
 }
 
 // 导出单例实例
