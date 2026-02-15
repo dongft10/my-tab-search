@@ -252,11 +252,11 @@
     "description": "Tooltip for the pin to favorites button"
   },
   "pinnedTabsTitle": {
-    "message": "Fixed Tab List",
+    "message": "Pinned Tab List",
     "description": "Title for the pinned tabs list"
   },
   "noPinnedTabs": {
-    "message": "No fixed tabs",
+    "message": "No pinned tabs",
     "description": "Message shown when there are no pinned tabs"
   },
   "pinTabsHint": {

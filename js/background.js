@@ -801,7 +801,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === 'openMainPopup') {
     console.log('[background] Opening main popup from message');
     try {
-      // 先关闭所有 popup 窗口（包括 fixedTabList 弹窗）
+      // 先关闭所有 popup 窗口（包括 pinnedTabList 弹窗）
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
       console.log('[openMainPopup] Closing all popup windows:', windows.map(w => ({ id: w.id, url: w.url })));
 

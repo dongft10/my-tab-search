@@ -69,7 +69,7 @@ function updateI18nText() {
   // 更新标题
   const titleElement = document.querySelector('[data-i18n="pinnedTabsTitle"]');
   if (titleElement) {
-    titleElement.textContent = i18n.getMessage('pinnedTabsTitle') || 'Fixed Tab List';
+    titleElement.textContent = i18n.getMessage('pinnedTabsTitle') || 'Pinned Tab List';
   }
   
   // 更新按钮提示
@@ -395,7 +395,7 @@ function renderEmptyState() {
   
   const text = document.createElement('div');
   text.classList.add('empty-state-text');
-  text.textContent = i18n.getMessage('noPinnedTabs') || 'No fixed tabs';
+  text.textContent = i18n.getMessage('noPinnedTabs') || 'No pinned tabs';
   
   const subtext = document.createElement('div');
   subtext.classList.add('empty-state-subtext');
