@@ -1,0 +1,380 @@
+/* 设置页面样式 */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.settings-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.settings-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.settings-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+/* 账户信息 */
+.account-card {
+  padding: 0;
+}
+
+.account-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.account-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.account-details {
+  flex: 1;
+}
+
+.account-email {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.account-status {
+  font-size: 14px;
+  color: #666;
+}
+
+/* VIP 徽章 */
+.vip-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+/* VIP 状态 */
+.vip-status {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+.vip-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.vip-info:last-child {
+  margin-bottom: 0;
+}
+
+.vip-label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.vip-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 体验期状态 */
+.trial-status {
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.trial-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.trial-info:last-child {
+  margin-bottom: 0;
+}
+
+.trial-label {
+  font-size: 14px;
+  color: #d46b08;
+}
+
+.trial-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #d46b08;
+}
+
+.btn-trial-extend {
+  width: 100%;
+  padding: 10px;
+  margin-top: 12px;
+  background: #fa8c16;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-trial-extend:hover {
+  background: #faad14;
+}
+
+.btn-trial-extend:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* 账户操作 */
+.account-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-logout {
+  flex: 1;
+  padding: 10px 16px;
+  background: #fff;
+  color: #ff4d4f;
+  border: 1px solid #ff4d4f;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+/* 设备列表 */
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.device-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.device-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6f7ff;
+  border-radius: 8px;
+  font-size: 20px;
+}
+
+.device-info {
+  flex: 1;
+}
+
+.device-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.device-meta {
+  font-size: 12px;
+  color: #999;
+}
+
+.device-meta span {
+  margin-right: 8px;
+}
+
+.current-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #52c41a;
+  color: white;
+  border-radius: 4px;
+  font-size: 10px;
+  margin-left: 8px;
+}
+
+.btn-remove-device {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-remove-device:hover {
+  background: #ff4d4f;
+  color: white;
+}
+
+.empty-text {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+}
+
+.error-text {
+  text-align: center;
+  color: #ff4d4f;
+  padding: 20px;
+}
+
+.loading-text {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+}
+
+/* 语言设置 */
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setting-item label {
+  font-size: 14px;
+  color: #333;
+}
+
+.setting-item select {
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 120px;
+  cursor: pointer;
+}
+
+.setting-item select:focus {
+  outline: none;
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+/* 关于 */
+.about-info {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.about-info p {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.about-desc {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 状态消息 */
+.status-message {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  display: none;
+  z-index: 1000;
+  animation: slideUp 0.3s ease;
+}
+
+.status-message.show {
+  display: block;
+}
+
+.status-message.success {
+  background: #52c41a;
+  color: #fff;
+}
+
+.status-message.error {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.status-message.info {
+  background: #1890ff;
+  color: #fff;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
