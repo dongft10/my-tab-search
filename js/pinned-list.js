@@ -1,6 +1,7 @@
 // Import i18n manager
 import i18n from './i18n.js';
-// Import config
+// Import feature limit service
+import featureLimitService from './services/feature-limit.service.js';
 
 // DOM elements
 let pinnedTabList;
@@ -9,6 +10,8 @@ let pinnedTabList;
 let selectedIndex = -1;
 // 标签列表
 let lis;
+// 是否有长期固定权限
+let hasLongTermPinnedAccess = false;
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -43,6 +46,9 @@ async function initialize() {
   
   // 初始化 DOM 元素
   pinnedTabList = document.getElementById('pinned-tab-list');
+  
+  // 检查长期固定权限
+  hasLongTermPinnedAccess = await featureLimitService.hasFeatureAccess('longTermPinned');
   
   // 更新国际化文本
   updateI18nText();
@@ -253,9 +259,25 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null) {
       const actionContainer = document.createElement('div');
       actionContainer.classList.add('action-container');
       
-      // 创建取消固定按钮
+      // 创建展开按钮区域（悬停菜单按钮时展开）
+      const expandActions = document.createElement('div');
+      expandActions.classList.add('expand-actions');
+      
+      // 展开区域布局：从左到右 [长期固定] [取消固定] [关闭]
+      
+      // 创建关闭按钮（展开时显示）
+      const closeBtn = document.createElement('button');
+      closeBtn.classList.add('action-btn', 'close-btn');
+      closeBtn.innerHTML = "✕";
+      closeBtn.title = i18n.getMessage('closeTab') || '关闭标签页';
+      closeBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        closeTabAndRemoveFromPinnedList(tab.tabId);
+      });
+      
+      // 创建取消固定按钮（展开时显示）
       const unpinBtn = document.createElement('button');
-      unpinBtn.classList.add('action-btn', 'pin-btn');
+      unpinBtn.classList.add('action-btn', 'unpin-btn');
       unpinBtn.innerHTML = "🟠";
       unpinBtn.title = i18n.getMessage('unpinTab') || '取消固定标签页';
       unpinBtn.addEventListener('click', function (e) {
@@ -263,25 +285,68 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null) {
         removeFromPinnedList(tab.tabId);
       });
       
-      // 创建关闭按钮
-      const closeBtn = document.createElement('button');
-      closeBtn.classList.add('action-btn', 'close-btn');
-      closeBtn.innerHTML = "✕";
-      closeBtn.title = i18n.getMessage('closeTab') || 'Close tab';
-      closeBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        closeTabAndRemoveFromPinnedList(tab.tabId);
-      });
+      // 创建长期固定按钮（展开时显示，有权限时才添加）
+      let longTermBtn = null;
+      if (hasLongTermPinnedAccess) {
+        longTermBtn = document.createElement('button');
+        longTermBtn.classList.add('action-btn', 'longterm-btn');
+        // 根据是否已长期固定显示不同图标
+        if (tab.isLongTermPinned) {
+          longTermBtn.innerHTML = "📌";
+          longTermBtn.title = i18n.getMessage('cancelLongTermPinned') || '取消长期固定';
+          longTermBtn.classList.add('active');
+        } else {
+          longTermBtn.innerHTML = "📍";
+          longTermBtn.title = i18n.getMessage('setLongTermPinned') || '设为长期固定';
+        }
+        longTermBtn.addEventListener('click', async function (e) {
+          e.stopPropagation();
+          if (tab.isLongTermPinned) {
+            await cancelLongTermPinned(tab.tabId);
+          } else {
+            await setLongTermPinned(tab.tabId);
+          }
+        });
+      }
       
-      // 创建三点按钮（默认显示）
+      // 组装展开区域（从左到右：长期固定 → 取消固定 → 关闭）
+      if (longTermBtn) {
+        expandActions.appendChild(longTermBtn);
+      }
+      expandActions.appendChild(unpinBtn);
+      expandActions.appendChild(closeBtn);
+      
+      // 创建三横菜单按钮（默认显示）
       const menuBtn = document.createElement('button');
       menuBtn.classList.add('action-btn', 'menu-btn');
-      menuBtn.innerHTML = "⋯";
+      menuBtn.innerHTML = "≡";
       menuBtn.title = i18n.getMessage('menuLabel') || '菜单';
       
-      // 组装按钮容器
-      actionContainer.appendChild(unpinBtn);
-      actionContainer.appendChild(closeBtn);
+      // 悬停菜单按钮时，菜单按钮变成关闭按钮，并展开操作按钮
+      menuBtn.addEventListener('mouseenter', function() {
+        menuBtn.classList.add('menu-hover');
+        expandActions.classList.add('expanded');
+      });
+      
+      // 菜单按钮离开时恢复
+      menuBtn.addEventListener('mouseleave', function() {
+        menuBtn.classList.remove('menu-hover');
+        expandActions.classList.remove('expanded');
+      });
+      
+      // 展开区域也需要处理鼠标离开事件
+      expandActions.addEventListener('mouseenter', function() {
+        menuBtn.classList.add('menu-hover');
+        expandActions.classList.add('expanded');
+      });
+      
+      expandActions.addEventListener('mouseleave', function() {
+        menuBtn.classList.remove('menu-hover');
+        expandActions.classList.remove('expanded');
+      });
+      
+      // 添加到容器
+      actionContainer.appendChild(expandActions);
       actionContainer.appendChild(menuBtn);
       
       li.appendChild(icon);
@@ -460,6 +525,64 @@ function getHostName(url) {
     return urlObj.hostname;
   } catch (error) {
     return url;
+  }
+}
+
+// 设置长期固定Tab
+async function setLongTermPinned(tabId) {
+  try {
+    const result = await chrome.storage.sync.get('pinnedTabs');
+    const tabs = result.pinnedTabs || [];
+    
+    const updatedTabs = tabs.map(t => {
+      if (t.tabId === tabId) {
+        return {
+          ...t,
+          isLongTermPinned: true,
+          longTermPinnedAt: new Date().toISOString()
+        };
+      }
+      return t;
+    });
+    
+    await chrome.storage.sync.set({ pinnedTabs: updatedTabs });
+    
+    showToast(i18n.getMessage('longTermPinnedSuccess') || '已设为长期固定');
+    
+    // 重新加载列表
+    await loadPinnedTabs();
+  } catch (error) {
+    console.error('Set long term pinned error:', error);
+    showToast(i18n.getMessage('longTermPinnedFailed') || '设置长期固定失败');
+  }
+}
+
+// 取消长期固定Tab
+async function cancelLongTermPinned(tabId) {
+  try {
+    const result = await chrome.storage.sync.get('pinnedTabs');
+    const tabs = result.pinnedTabs || [];
+    
+    const updatedTabs = tabs.map(t => {
+      if (t.tabId === tabId) {
+        return {
+          ...t,
+          isLongTermPinned: false,
+          longTermPinnedAt: null
+        };
+      }
+      return t;
+    });
+    
+    await chrome.storage.sync.set({ pinnedTabs: updatedTabs });
+    
+    showToast(i18n.getMessage('cancelLongTermSuccess') || '已取消长期固定');
+    
+    // 重新加载列表
+    await loadPinnedTabs();
+  } catch (error) {
+    console.error('Cancel long term pinned error:', error);
+    showToast(i18n.getMessage('cancelLongTermFailed') || '取消长期固定失败');
   }
 }
 

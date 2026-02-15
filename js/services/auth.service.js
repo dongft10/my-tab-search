@@ -291,19 +291,30 @@ class AuthService {
    * @returns {Promise<string|null>} - 返回有效的令牌
    */
   async getValidAccessToken() {
+    // 先尝试直接获取已存储的 token
+    const storageKey = this.storageKey.accessToken;
+    const result = await chrome.storage.local.get(storageKey);
+    const accessToken = result[storageKey];
+    
+    if (accessToken) {
+      return accessToken;
+    }
+    
+    // 如果没有 token，尝试刷新
     const needsRefresh = await this.shouldRefreshToken();
     
     if (needsRefresh) {
-      const refreshed = await this.refreshAccessToken();
-      if (refreshed) {
-        return refreshed;
+      try {
+        const refreshed = await this.refreshAccessToken();
+        if (refreshed) {
+          return refreshed;
+        }
+      } catch (e) {
+        // 刷新失败，继续返回 null
       }
-      // 刷新失败，尝试重新获取
-      return await this.getAccessToken();
     }
 
-    const { accessToken } = await chrome.storage.local.get(this.storageKey.accessToken);
-    return accessToken;
+    return null;
   }
 }
 

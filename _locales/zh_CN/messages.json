@@ -101,6 +101,38 @@
     "message": "设置保存成功！",
     "description": "Confirmation message when settings are saved successfully"
   },
+  "accountInfo": {
+    "message": "账户信息",
+    "description": "Account information section title"
+  },
+  "deviceManagement": {
+    "message": "设备管理",
+    "description": "Device management section title"
+  },
+  "languageSettings": {
+    "message": "语言设置",
+    "description": "Language settings section title"
+  },
+  "about": {
+    "message": "关于",
+    "description": "About section title"
+  },
+  "logout": {
+    "message": "退出登录",
+    "description": "Logout button text"
+  },
+  "selectLanguage": {
+    "message": "选择语言:",
+    "description": "Language selection label"
+  },
+  "notLoggedIn": {
+    "message": "未登录",
+    "description": "Not logged in status"
+  },
+  "loginSuccess": {
+    "message": "登录成功",
+    "description": "Login success message"
+  },
   "versionLabel": {
     "message": "版本:",
     "description": "Label for version information"

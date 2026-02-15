@@ -109,8 +109,29 @@ body {
   align-items: center;
   flex-shrink: 0;
   position: relative;
-  width: 24px; /* 初始只占一个按钮的宽度 */
+  width: 28px;
   height: 24px;
+}
+
+/* 展开操作按钮区域 */
+#pinned-tab-list .expand-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: absolute;
+  right: 0px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(10px);
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+/* 悬停菜单按钮时展开操作按钮（向左展开） */
+#pinned-tab-list .expand-actions.expanded {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
 }
 
 /* 操作按钮基础样式 */
@@ -128,43 +149,54 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 16px;
-  flex-shrink: 0; /* 防止按钮缩小 */
+  flex-shrink: 0;
   background: none;
   position: absolute;
-  opacity: 0;
-  visibility: hidden;
 }
 
-/* 三点按钮位置（默认位置） */
+/* 三横菜单按钮 - 默认显示 */
 #pinned-tab-list .action-btn.menu-btn {
   right: 0;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 10;
 }
 
-/* 关闭按钮位置（与三点按钮相同位置） */
-#pinned-tab-list .action-btn.close-btn {
-  right: 0;
-}
-
-/* 固定按钮位置（向左展开，可遮盖标题） */
-#pinned-tab-list .action-btn.pin-btn {
-  right: 28px; /* 关闭按钮位置 + 间距 */
-  z-index: 10; /* 置顶展示 */
-}
-
-/* 悬停标签项时显示三点按钮 */
+/* 鼠标悬浮在TabItem上时，显示菜单按钮 */
 #pinned-tab-list li:hover .action-btn.menu-btn {
   opacity: 1;
   visibility: visible;
 }
 
-/* 悬停三点按钮时，显示固定和关闭按钮，隐藏三点按钮 */
-#pinned-tab-list li:hover .action-container:hover .action-btn.menu-btn {
+/* 菜单按钮悬停时变成关闭按钮 */
+#pinned-tab-list .action-btn.menu-btn.menu-hover {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* 关闭按钮 - 悬停菜单按钮时显示 */
+#pinned-tab-list .action-btn.close-btn {
+  right: 0;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 20;
+}
+
+/* 菜单按钮悬停时显示关闭按钮 */
+#pinned-tab-list .action-btn.menu-btn.menu-hover ~ .action-btn.close-btn,
+#pinned-tab-list .expand-actions.expanded + .action-btn.close-btn {
+  /* 实际上这里不需要，因为closeBtn在expandActions里面 */
+}
+
+/* 展开区域内的按钮（默认隐藏，悬停时显示） */
+#pinned-tab-list .expand-actions .action-btn {
+  position: relative;
   opacity: 0;
   visibility: hidden;
 }
 
-#pinned-tab-list li:hover .action-container:hover .action-btn.pin-btn,
-#pinned-tab-list li:hover .action-container:hover .action-btn.close-btn {
+/* 悬停菜单按钮时显示展开区域内的按钮 */
+#pinned-tab-list .expand-actions.expanded .action-btn {
   opacity: 1;
   visibility: visible;
 }
@@ -174,18 +206,31 @@ body {
   background-color: #f0f0f0;
 }
 
-/* 固定按钮特殊样式 */
-#pinned-tab-list .action-btn.pin-btn {
-  color: #d93025; /* 固定列表中始终是红色，因为都是已固定的 */
+/* 取消固定按钮特殊样式 */
+#pinned-tab-list .action-btn.unpin-btn {
+  color: #d93025;
 }
 
-#pinned-tab-list .action-btn.pin-btn:hover {
-  color: #d93025; /* 悬停时保持红色 */
+#pinned-tab-list .action-btn.unpin-btn:hover {
+  color: #d93025;
 }
 
 /* 关闭按钮特殊样式 */
 #pinned-tab-list .action-btn.close-btn:hover {
   color: #d93025;
+}
+
+/* 长期固定按钮样式 */
+#pinned-tab-list .action-btn.longterm-btn {
+  color: #5f6368;
+}
+
+#pinned-tab-list .action-btn.longterm-btn:hover {
+  color: #1a73e8;
+}
+
+#pinned-tab-list .action-btn.longterm-btn.active {
+  color: #1a73e8;
 }
 
 .li-icon {

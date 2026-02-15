@@ -22,8 +22,8 @@
     "alarms"
   ],
   "host_permissions": [
-    "http://localhost:3000/*",
-    "http://127.0.0.1:3000/*"
+    "http://localhost:41532/*",
+    "http://127.0.0.1:41532/*"
   ],
   "web_accessible_resources": [
     {
@@ -32,9 +32,12 @@
         "manifest.json",
         "html/about.html",
         "html/settings.html",
+        "html/login.html",
         "js/about.js",
         "js/settings.js",
-        "js/i18n.js"
+        "js/login.js",
+        "js/i18n.js",
+        "css/login.css"
       ],
       "matches": [
         "<all_urls>"

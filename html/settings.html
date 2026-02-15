@@ -1,127 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings - MyTabSearch</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    .container {
-      background-color: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #4285f4;
-      border-bottom: 2px solid #eee;
-      padding-bottom: 10px;
-    }
-    .setting-group {
-      margin: 25px 0;
-    }
-    .setting-item {
-      margin: 15px 0;
-      padding: 15px;
-      border: 1px solid #eee;
-      border-radius: 6px;
-      background-color: #fafafa;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-      color: #333;
-    }
-    select, input[type="range"] {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    .range-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .range-container input {
-      flex: 1;
-    }
-    .range-value {
-      min-width: 40px;
-      text-align: center;
-      font-weight: bold;
-      color: #4285f4;
-    }
-    .save-btn {
-      background-color: #4285f4;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 10px;
-    }
-    .save-btn:hover {
-      background-color: #3367d6;
-    }
-    .save-btn:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-    .status-message {
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 4px;
-      display: none;
-    }
-    .status-success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    .status-error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    .language-selector {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .language-selector select {
-      flex: 1;
-    }
-  </style>
+  <title>设置 - MyTabSearch</title>
+  <link rel="stylesheet" href="../css/settings.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Extension Settings</h1>
-    
-    <div class="setting-group">
-      <h3>Language Settings</h3>
-      <div class="setting-item">
-        <label for="language-select">Select Language:</label>
-        <div class="language-selector">
-          <select id="language-select">
-            <option value="en" id="en-option">English</option>
-            <option value="zh_CN" id="zh-cn-option">中文</option>
-          </select>
+  <div class="settings-container">
+    <!-- 账户信息区域 -->
+    <section class="settings-section" id="account-section">
+      <h2>账户信息</h2>
+      <div class="account-card">
+        <div class="account-info">
+          <div class="account-avatar" id="account-avatar">
+            <span id="avatar-letter">?</span>
+          </div>
+          <div class="account-details">
+            <p class="account-email" id="account-email">加载中...</p>
+            <p class="account-status" id="account-status">
+              <span class="vip-badge" id="vip-badge" style="display: none;">VIP</span>
+            </p>
+          </div>
+        </div>
+        
+        <!-- VIP 状态显示 -->
+        <div class="vip-status" id="vip-status" style="display: none;">
+          <div class="vip-info">
+            <span class="vip-label">VIP状态:</span>
+            <span class="vip-value" id="vip-status-value">-</span>
+          </div>
+          <div class="vip-info">
+            <span class="vip-label">到期时间:</span>
+            <span class="vip-value" id="vip-expires">-</span>
+          </div>
+        </div>
+
+        <!-- 体验期状态显示 -->
+        <div class="trial-status" id="trial-status" style="display: none;">
+          <div class="trial-info">
+            <span class="trial-label">体验期剩余:</span>
+            <span class="trial-value" id="trial-days-left">-</span>
+          </div>
+          <button class="btn-trial-extend" id="btn-extend-trial" style="display: none;">
+            延展体验期
+          </button>
+        </div>
+        
+        <div class="account-actions">
+          <button class="btn-login" id="btn-login" style="display: none;">登录 / 注册</button>
+          <button class="btn-logout" id="btn-logout" style="display: none;">退出登录</button>
         </div>
       </div>
-    </div>
-    
-    <button id="save-settings" class="save-btn">Save Settings</button>
-    <div id="status-message" class="status-message"></div>
+    </section>
+
+    <!-- 设备管理区域 -->
+    <section class="settings-section" id="devices-section">
+      <h2>设备管理</h2>
+      <div class="device-list" id="device-list">
+        <p class="loading-text">加载中...</p>
+      </div>
+    </section>
+
+    <!-- 语言设置 -->
+    <section class="settings-section">
+      <h2>语言设置</h2>
+      <div class="setting-item">
+        <label for="language-select">选择语言:</label>
+        <select id="language-select">
+          <option value="en">English</option>
+          <option value="zh_CN">中文</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- 状态消息 -->
+    <div class="status-message" id="status-message"></div>
   </div>
 
   <script type="module" src="../js/settings.js"></script>

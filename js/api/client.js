@@ -5,7 +5,7 @@
 
 class ApiClient {
   constructor(baseUrl) {
-    this.baseUrl = baseUrl || 'http://localhost:3000';
+    this.baseUrl = baseUrl || 'http://localhost:41532';
     this.maxRetries = 3;
     this.retryDelay = 1000;
   }

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - MyTabSearch</title>
+  <link rel="stylesheet" href="../css/login.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-header">
+      <h1>MyTabSearch</h1>
+      <p>登录以解锁更多功能</p>
+    </div>
+
+    <!-- 邮箱登录 -->
+    <div class="login-section" id="email-section">
+      <h2>邮箱登录</h2>
+      <div class="input-group">
+        <input type="email" id="email-input" placeholder="请输入邮箱地址">
+      </div>
+      <button class="btn-primary" id="btn-send-code">发送验证码</button>
+      
+      <div class="verify-section" id="verify-section" style="display: none;">
+        <div class="input-group">
+          <input type="text" id="code-input" placeholder="请输入验证码" maxlength="6">
+        </div>
+        <button class="btn-primary" id="btn-verify">验证并登录</button>
+      </div>
+      
+      <p class="hint" id="email-hint"></p>
+    </div>
+
+    <!-- 分割线 -->
+    <div class="divider">
+      <span>或</span>
+    </div>
+
+    <!-- OAuth 登录 -->
+    <div class="login-section">
+      <h2>第三方账号登录</h2>
+      <div class="oauth-buttons">
+        <button class="btn-oauth btn-google" id="btn-google">
+          <span class="oauth-icon">G</span>
+          使用 Google 账号登录
+        </button>
+        <button class="btn-oauth btn-microsoft" id="btn-microsoft">
+          <span class="oauth-icon">M</span>
+          使用 Microsoft 账号登录
+        </button>
+      </div>
+    </div>
+
+    <!-- 跳过登录 -->
+    <div class="skip-section">
+      <button class="btn-link" id="btn-skip">暂时跳过</button>
+    </div>
+
+    <!-- 状态消息 -->
+    <div class="status-message" id="status-message"></div>
+  </div>
+
+  <script src="../js/login.js"></script>
+</body>
+</html>

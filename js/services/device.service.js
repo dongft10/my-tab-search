@@ -60,15 +60,26 @@ class DeviceService {
         throw new Error('No access token');
       }
 
+      // 检查是否有 deviceId，如果没有（邮箱登录），直接返回空列表
+      const userInfo = await authService.getUserInfo();
+      const deviceId = userInfo?.[authService.storageKey.deviceId];
+      if (!deviceId) {
+        return [];
+      }
+
       const response = await authApi.getDevices(accessToken);
       
-      if (response.data.code === 0) {
-        const devices = response.data.data.devices || [];
+      // 兼容两种响应格式: {code: 0, data: {...}} 或 {success: true, ...}
+      const isSuccess = response?.code === 0 || response?.success === true;
+      
+      if (isSuccess) {
+        const data = response.data?.data || response.data;
+        const devices = data?.devices || [];
         await this.saveDevices(devices);
         return devices;
       }
 
-      throw new Error(response.data.msg || 'Failed to fetch devices');
+      throw new Error(response.data?.msg || response.data?.message || 'Failed to fetch devices');
     } catch (error) {
       console.error('Fetch devices error:', error);
       throw error;

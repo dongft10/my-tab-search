@@ -101,6 +101,38 @@
     "message": "Settings saved successfully!",
     "description": "Confirmation message when settings are saved successfully"
   },
+  "accountInfo": {
+    "message": "Account Info",
+    "description": "Account information section title"
+  },
+  "deviceManagement": {
+    "message": "Device Management",
+    "description": "Device management section title"
+  },
+  "languageSettings": {
+    "message": "Language Settings",
+    "description": "Language settings section title"
+  },
+  "about": {
+    "message": "About",
+    "description": "About section title"
+  },
+  "logout": {
+    "message": "Logout",
+    "description": "Logout button text"
+  },
+  "selectLanguage": {
+    "message": "Select Language:",
+    "description": "Language selection label"
+  },
+  "notLoggedIn": {
+    "message": "Not logged in",
+    "description": "Not logged in status"
+  },
+  "loginSuccess": {
+    "message": "Login successful",
+    "description": "Login success message"
+  },
   "versionLabel": {
     "message": "Version:",
     "description": "Label for version information"
