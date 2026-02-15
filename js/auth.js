@@ -5,6 +5,7 @@
 
 import authApi from '../api/auth.js';
 import authService from '../services/auth.service.js';
+import i18n from './i18n.js';
 
 // 状态管理
 const state = {
@@ -32,6 +33,11 @@ const elements = {
 
 // 初始化
 function init() {
+  // 初始化 i18n 并更新页面国际化元素
+  i18n.initialize().then(() => {
+    i18n.updatePageI18n();
+  });
+  
   bindEvents();
 }
 
@@ -100,7 +106,7 @@ function handleCodeKeypress(e) {
 // 发送邮箱验证码
 async function handleSendEmail() {
   if (!isValidEmail(state.email)) {
-    showError('请输入有效的邮箱地址');
+    showError(i18n.getMessage('emailRequired'));
     return;
   }
   
@@ -110,16 +116,16 @@ async function handleSendEmail() {
     
     const response = await authApi.sendVerificationCode(state.email);
     
-    if (response.data.code === 0) {
+    if (response.code === 0) {
       showCodeInput();
       startCountdown(60);
-      showSuccess('验证码已发送到您的邮箱');
+      showSuccess(i18n.getMessage('verificationCodeSent'));
     } else {
-      showError(response.data.message || '发送失败，请稍后重试');
+      showError(response.msg || i18n.getMessage('sendFailed'));
     }
   } catch (error) {
     console.error('Send verification code error:', error);
-    showError('网络错误，请稍后重试');
+    showError(i18n.getMessage('networkError'));
   } finally {
     setLoading(false);
     elements.btnSendEmail.disabled = false;
@@ -134,7 +140,7 @@ async function handleSendCode() {
 // 验证邮箱验证码
 async function handleVerify() {
   if (state.code.length !== 6) {
-    showError('请输入6位验证码');
+    showError(i18n.getMessage('codeRequired'));
     return;
   }
   
@@ -144,31 +150,31 @@ async function handleVerify() {
     
     const response = await authApi.verifyEmail(state.email, state.code);
     
-    if (response.data.code === 0) {
+    if (response.code === 0) {
       // 保存用户信息
       await authService.saveUserInfo({
-        userId: response.data.data.userId,
-        deviceId: response.data.data.userId, // 临时使用userId作为deviceId
-        accessToken: response.data.data.accessToken,
+        userId: response.data.userId,
+        deviceId: response.data.userId, // 临时使用userId作为deviceId
+        accessToken: response.data.accessToken,
         registeredAt: new Date().toISOString()
       });
       
-      showSuccess('登录成功');
+      showSuccess(i18n.getMessage('loginSuccess'));
       
       // 通知扩展并关闭弹窗
       setTimeout(() => {
         chrome.runtime.sendMessage({
           action: 'AUTH_SUCCESS',
-          data: response.data.data
+          data: response.data
         });
         window.close();
       }, 1000);
     } else {
-      showError(response.data.message || '验证码错误');
+      showError(response.msg || i18n.getMessage('codeError'));
     }
   } catch (error) {
     console.error('Verify code error:', error);
-    showError('网络错误，请稍后重试');
+    showError(i18n.getMessage('networkError'));
   } finally {
     setLoading(false);
     elements.btnVerify.disabled = false;
@@ -177,13 +183,13 @@ async function handleVerify() {
 
 // OAuth 登录 - Google
 function handleOAuthGoogle() {
-  showError('Google OAuth 登录即将上线');
+  showError(i18n.getMessage('oauthComingSoon'));
   // TODO: 实现 Google OAuth 登录
 }
 
 // OAuth 登录 - Microsoft
 function handleOAuthMicrosoft() {
-  showError('Microsoft OAuth 登录即将上线');
+  showError(i18n.getMessage('oauthComingSoon'));
   // TODO: 实现 Microsoft OAuth 登录
 }
 

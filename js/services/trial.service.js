@@ -8,7 +8,7 @@ import authService from './auth.service.js';
 
 class TrialService {
   constructor() {
-    this.storageKey = 'mytabsearch_trial_status';
+    this.storageKey = 'trialStatus';
   }
 
   /**
@@ -57,17 +57,22 @@ class TrialService {
 
       const response = await authApi.getTrialStatus(accessToken);
       
-      if (response.data.code === 0) {
-        const trialData = response.data.data;
+      if (response.code === 0) {
+        const trialData = response.data;
         await this.saveTrialStatus(trialData);
         return trialData;
       }
 
-      throw new Error(response.data.message || 'Failed to get trial status');
+      throw new Error(response.msg || 'Failed to get trial status');
     } catch (error) {
       console.error('Fetch trial status error:', error);
-      // 返回本地状态
-      return await this.getLocalTrialStatus();
+      // 返回默认状态而不是 null
+      return {
+        isInTrialPeriod: false,
+        trialDaysLeft: 0,
+        extendedCount: 0,
+        maxExtendCount: 2
+      };
     }
   }
 
@@ -121,8 +126,8 @@ class TrialService {
 
       const response = await authApi.extendTrial(accessToken);
       
-      if (response.data.code === 0) {
-        const extendData = response.data.data;
+      if (response.code === 0) {
+        const extendData = response.data;
         
         // 更新本地状态
         await this.saveTrialStatus({
@@ -140,7 +145,7 @@ class TrialService {
         };
       }
 
-      throw new Error(response.data.message || 'Failed to extend trial');
+      throw new Error(response.msg || 'Failed to extend trial');
     } catch (error) {
       console.error('Extend trial error:', error);
       return {

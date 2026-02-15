@@ -123,6 +123,49 @@ class I18nManager {
       }
     });
   }
+
+  // Update all elements with data-i18n attribute
+  updatePageI18n() {
+    // Update text content
+    const textElements = document.querySelectorAll('[data-i18n]');
+    textElements.forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const message = this.getMessage(key);
+      if (message && message !== key) {
+        el.textContent = message;
+      }
+    });
+
+    // Update placeholders
+    const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+    placeholderElements.forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      const message = this.getMessage(key);
+      if (message && message !== key) {
+        el.placeholder = message;
+      }
+    });
+
+    // Update titles
+    const titleElements = document.querySelectorAll('[data-i18n-title]');
+    titleElements.forEach(el => {
+      const key = el.getAttribute('data-i18n-title');
+      const message = this.getMessage(key);
+      if (message && message !== key) {
+        el.title = message;
+      }
+    });
+
+    // Update document title
+    const titleEl = document.querySelector('title[data-i18n]');
+    if (titleEl) {
+      const key = titleEl.getAttribute('data-i18n');
+      const message = this.getMessage(key);
+      if (message && message !== key) {
+        document.title = message;
+      }
+    }
+  }
 }
 
 // Export singleton instance

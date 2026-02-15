@@ -262,5 +262,277 @@
   "pinTabsHint": {
     "message": "使用 Ctrl+Shift+A 打开搜索并固定标签页",
     "description": "Hint text for how to pin tabs"
+  },
+  "longTermPinnedNeedLogin": {
+    "message": "请先注册/登录账号，即可使用长期固定功能",
+    "description": "Toast message when user not logged in"
+  },
+  "longTermPinnedNeedVip": {
+    "message": "您的体验期已结束，续费VIP会员后即可继续使用长期固定功能",
+    "description": "Toast message when trial expired"
+  },
+  "longTermPinnedFailed": {
+    "message": "操作失败，请稍后重试",
+    "description": "Toast message when long term pinned failed"
+  },
+  "longTermPinnedSuccess": {
+    "message": "已设为长期固定",
+    "description": "Toast message when long term pinned success"
+  },
+  "cancelLongTermSuccess": {
+    "message": "已取消长期固定",
+    "description": "Toast message when cancel long term pinned success"
+  },
+  "cancelLongTermFailed": {
+    "message": "取消长期固定失败",
+    "description": "Toast message when cancel long term pinned failed"
+  },
+  "setLongTermPinned": {
+    "message": "设为长期固定",
+    "description": "Tooltip for set long term pinned button"
+  },
+  "cancelLongTermPinned": {
+    "message": "取消长期固定",
+    "description": "Tooltip for cancel long term pinned button"
+  },
+  "pinnedTabsLimitReached": {
+    "message": "固定Tab数量已达上限",
+    "description": "Toast message when pinned tabs limit reached"
+  },
+  "tabPinned": {
+    "message": "标签页已固定",
+    "description": "Toast message when tab is pinned"
+  },
+  "tabUnpinned": {
+    "message": "已取消固定",
+    "description": "Toast message when tab is unpinned"
+  },
+  "tabClosed": {
+    "message": "标签页已关闭",
+    "description": "Toast message when tab is closed"
+  },
+  "emailRequired": {
+    "message": "请输入有效的邮箱地址",
+    "description": "Validation message for email input"
+  },
+  "verificationCodeSent": {
+    "message": "验证码已发送到您的邮箱",
+    "description": "Success message after sending verification code"
+  },
+  "sendFailed": {
+    "message": "发送失败，请稍后重试",
+    "description": "Error message when sending failed"
+  },
+  "networkError": {
+    "message": "网络错误，请稍后重试",
+    "description": "Error message for network issues"
+  },
+  "codeRequired": {
+    "message": "请输入6位验证码",
+    "description": "Validation message for verification code"
+  },
+  "loginSuccess": {
+    "message": "登录成功",
+    "description": "Success message after login"
+  },
+  "codeError": {
+    "message": "验证码错误",
+    "description": "Error message for wrong verification code"
+  },
+  "oauthComingSoon": {
+    "message": "OAuth 登录即将上线",
+    "description": "Message for OAuth not implemented"
+  },
+  "countdownResend": {
+    "message": "秒后重发",
+    "description": "Countdown button text"
+  },
+  "sendCode": {
+    "message": "发送验证码",
+    "description": "Button text to send code"
+  },
+  "alreadyLoggedIn": {
+    "message": "您已登录，正在跳转...",
+    "description": "Message when user already logged in"
+  },
+  "verifyAndLogin": {
+    "message": "验证并登录",
+    "description": "Button text for verify and login"
+  },
+  "sending": {
+    "message": "发送中...",
+    "description": "Button text when sending"
+  },
+  "verifying": {
+    "message": "验证中...",
+    "description": "Button text when verifying"
+  },
+  "loginFailed": {
+    "message": "验证失败",
+    "description": "Error message when login failed"
+  },
+  "oauthNotAvailable": {
+    "message": "登录功能开发中...",
+    "description": "Message when OAuth not available"
+  },
+  "deviceRemoved": {
+    "message": "设备已移除",
+    "description": "Success message when device removed"
+  },
+  "removeDeviceFailed": {
+    "message": "移除设备失败",
+    "description": "Error message when remove device failed"
+  },
+  "logoutSuccess": {
+    "message": "已退出登录",
+    "description": "Success message after logout"
+  },
+  "logoutFailed": {
+    "message": "退出登录失败",
+    "description": "Error message when logout failed"
+  },
+  "trialExtended": {
+    "message": "体验期已延展",
+    "description": "Success message when trial extended"
+  },
+  "trialExtendFailed": {
+    "message": "体验期延展失败",
+    "description": "Error message when trial extend failed"
+  },
+  "loadSettingsFailed": {
+    "message": "加载设置失败",
+    "description": "Error message when load settings failed"
+  },
+  "setLongTermFailed": {
+    "message": "设置长期固定失败",
+    "description": "Toast message when set long term failed"
+  },
+  "loginTitle": {
+    "message": "登录 - MyTabSearch",
+    "description": "Login page title"
+  },
+  "loginSubtitle": {
+    "message": "登录以解锁更多功能",
+    "description": "Login page subtitle"
+  },
+  "emailLoginTitle": {
+    "message": "邮箱登录",
+    "description": "Email login section title"
+  },
+  "enterEmailPlaceholder": {
+    "message": "请输入邮箱地址",
+    "description": "Email input placeholder"
+  },
+  "enterCodePlaceholder": {
+    "message": "请输入验证码",
+    "description": "Code input placeholder"
+  },
+  "orText": {
+    "message": "或",
+    "description": "Divider text"
+  },
+  "oauthLoginTitle": {
+    "message": "第三方账号登录",
+    "description": "OAuth login section title"
+  },
+  "loginWithGoogle": {
+    "message": "使用 Google 账号登录",
+    "description": "Google login button text"
+  },
+  "loginWithMicrosoft": {
+    "message": "使用 Microsoft 账号登录",
+    "description": "Microsoft login button text"
+  },
+  "skipForNow": {
+    "message": "暂时跳过",
+    "description": "Skip button text"
+  },
+  "settingsTitle": {
+    "message": "设置 - MyTabSearch",
+    "description": "Settings page title"
+  },
+  "accountInfoTitle": {
+    "message": "账户信息",
+    "description": "Account info section title"
+  },
+  "loadingText": {
+    "message": "加载中...",
+    "description": "Loading text"
+  },
+  "vipStatusLabel": {
+    "message": "VIP状态:",
+    "description": "VIP status label"
+  },
+  "vipExpiresLabel": {
+    "message": "到期时间:",
+    "description": "VIP expires label"
+  },
+  "trialRemainingLabel": {
+    "message": "体验期剩余:",
+    "description": "Trial remaining label"
+  },
+  "extendTrial": {
+    "message": "延展体验期",
+    "description": "Extend trial button text"
+  },
+  "loginOrRegister": {
+    "message": "登录 / 注册",
+    "description": "Login or register button text"
+  },
+  "deviceManagementTitle": {
+    "message": "设备管理",
+    "description": "Device management section title"
+  },
+  "languageSettingsTitle": {
+    "message": "语言设置",
+    "description": "Language settings section title"
+  },
+  "selectLanguageLabel": {
+    "message": "选择语言:",
+    "description": "Select language label"
+  },
+  "authPageTitle": {
+    "message": "账户登录 - MyTabSearch",
+    "description": "Auth page title"
+  },
+  "authPageSubtitle": {
+    "message": "登录以同步您的标签页和数据",
+    "description": "Auth page subtitle"
+  },
+  "emailAddressLabel": {
+    "message": "邮箱地址",
+    "description": "Email address label"
+  },
+  "verificationCodeLabel": {
+    "message": "验证码",
+    "description": "Verification code label"
+  },
+  "codePlaceholder": {
+    "message": "6位验证码",
+    "description": "Code input placeholder"
+  },
+  "authTip": {
+    "message": "未注册的手机号将自动创建账户",
+    "description": "Auth tip text"
+  },
+  "agreeTermsPrivacy": {
+    "message": "登录即表示同意",
+    "description": "Terms and privacy prefix"
+  },
+  "termsOfService": {
+    "message": "服务条款",
+    "description": "Terms of service link"
+  },
+  "privacyPolicy": {
+    "message": "隐私政策",
+    "description": "Privacy policy link"
+  },
+  "search": {
+    "message": "搜索",
+    "description": "Search alt text"
+  },
+  "andText": {
+    "message": "和",
+    "description": "And text for connecting terms and privacy"
   }
 }

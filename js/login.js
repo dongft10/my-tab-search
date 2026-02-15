@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     authService = modules.authService;
     i18n = modules.i18n;
     await i18n.initialize();
+    // 更新页面国际化元素
+    i18n.updatePageI18n();
   } catch (e) {
     console.error('[login] Module load error:', e);
   }
@@ -49,9 +51,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userInfo = await authService.getUserInfo();
     console.log('[login] User info:', userInfo);
     const userIdKey = authService.storageKey.userId;
-    if (userInfo && userInfo[userIdKey]) {
+      if (userInfo && userInfo[userIdKey]) {
       console.log('[login] Already logged in, redirecting...');
-      showMessage('您已登录，正在跳转...', 'info');
+      showMessage(i18n?.getMessage('alreadyLoggedIn') || 'You are already logged in, redirecting...', 'info');
       // 不自动跳转，让用户留在登录页面可以注销
       // setTimeout(() => {
       //   chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
@@ -86,22 +88,22 @@ async function handleSendCode() {
   const email = elements.emailInput.value.trim();
   
   if (!email || !isValidEmail(email)) {
-    showMessage('请输入有效的邮箱地址', 'error');
+    showMessage(i18n?.getMessage('emailRequired') || 'Please enter a valid email address', 'error');
     return;
   }
   
   elements.btnSendCode.disabled = true;
-  elements.btnSendCode.textContent = '发送中...';
+  elements.btnSendCode.textContent = i18n?.getMessage('sending') || 'Sending...';
   
   try {
     const response = await authApi.sendVerificationCode(email);
     console.log('[login] response.data:', response.data);
     
     // 兼容两种响应格式: {code: 0} 或 {success: true}
-    const isSuccess = response.data && (response.data.code === 0 || response.data.success === true);
+    const isSuccess = response.code === 0 || response.data?.success === true;
     
     if (isSuccess) {
-      showMessage('验证码已发送，请注意查收', 'success');
+      showMessage(i18n?.getMessage('verificationCodeSent') || 'Verification code sent to your email', 'success');
       const verifySection = document.getElementById('verify-section');
       const btnSendCode = document.getElementById('btn-send-code');
       const emailInput = document.getElementById('email-input');
@@ -109,15 +111,15 @@ async function handleSendCode() {
       if (btnSendCode) btnSendCode.style.display = 'none';
       if (emailInput) emailInput.disabled = true;
     } else {
-      showMessage(response.data?.message || '发送失败', 'error');
+      showMessage(response.msg || i18n?.getMessage('sendFailed') || 'Failed to send', 'error');
       elements.btnSendCode.disabled = false;
-      elements.btnSendCode.textContent = '发送验证码';
+      elements.btnSendCode.textContent = i18n?.getMessage('sendCode') || 'Send verification code';
     }
   } catch (error) {
     console.error('Send code error:', error);
-    showMessage('发送失败，请重试', 'error');
+    showMessage(i18n?.getMessage('sendFailed') || 'Failed to send, please try again', 'error');
     elements.btnSendCode.disabled = false;
-    elements.btnSendCode.textContent = '发送验证码';
+    elements.btnSendCode.textContent = i18n?.getMessage('sendCode') || 'Send verification code';
   }
 }
 
@@ -127,12 +129,12 @@ async function handleVerify() {
   const code = elements.codeInput.value.trim();
   
   if (!code || code.length !== 6) {
-    showMessage('请输入6位验证码', 'error');
+    showMessage(i18n?.getMessage('codeRequired') || 'Please enter 6-digit verification code', 'error');
     return;
   }
   
   elements.btnVerify.disabled = true;
-  elements.btnVerify.textContent = '验证中...';
+  elements.btnVerify.textContent = i18n?.getMessage('verifying') || 'Verifying...';
   
   try {
     // 获取本地存储的 deviceId（如果有的话）
@@ -142,8 +144,8 @@ async function handleVerify() {
     const response = await authApi.verifyEmail(email, code, deviceId);
     
     // 兼容两种响应格式: {code: 0} 或 {success: true}
-    const isSuccess = response.data && (response.data.code === 0 || response.data.success === true);
-    const data = response.data?.data || response.data;
+    const isSuccess = response.code === 0 || response.data?.success === true;
+    const data = response.data;
     
     if (isSuccess) {
       const userId = data?.userId;
@@ -167,28 +169,28 @@ async function handleVerify() {
       
       await chrome.storage.local.set(storageData);
       
-      showMessage('登录成功！', 'success');
+      showMessage(i18n?.getMessage('loginSuccess') || 'Login successful!', 'success');
       
       setTimeout(() => {
         chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
         window.close();
       }, 1000);
     } else {
-      showMessage(response.data.message || '验证失败', 'error');
+      showMessage(response.msg || i18n?.getMessage('loginFailed') || 'Login failed', 'error');
       elements.btnVerify.disabled = false;
-      elements.btnVerify.textContent = '验证并登录';
+      elements.btnVerify.textContent = i18n?.getMessage('verifyAndLogin') || 'Verify and login';
     }
   } catch (error) {
     console.error('Verify error:', error);
-    showMessage('验证失败，请重试', 'error');
+    showMessage(i18n?.getMessage('loginFailed') || 'Login failed, please try again', 'error');
     elements.btnVerify.disabled = false;
-    elements.btnVerify.textContent = '验证并登录';
+    elements.btnVerify.textContent = i18n?.getMessage('verifyAndLogin') || 'Verify and login';
   }
 }
 
 // OAuth 登录
 async function handleOAuth(provider) {
-  showMessage(`${provider} 登录功能开发中...`, 'info');
+  showMessage(i18n?.getMessage('oauthNotAvailable') || `${provider} login feature coming soon...`, 'info');
 }
 
 // 跳过登录

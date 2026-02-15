@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>账户登录 - MyTabSearch</title>
+  <title data-i18n="authPageTitle">账户登录 - MyTabSearch</title>
   <link rel="stylesheet" href="../css/auth.css">
 </head>
 <body>
   <div class="auth-container">
     <div class="auth-header">
-      <h1>MyTabSearch 账户登录</h1>
-      <p class="auth-subtitle">登录以同步您的标签页和数据</p>
+      <h1 data-i18n="authPageTitle">MyTabSearch 账户登录</h1>
+      <p class="auth-subtitle" data-i18n="authPageSubtitle">登录以同步您的标签页和数据</p>
     </div>
 
     <div class="auth-content">
@@ -23,7 +23,7 @@
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          <span>使用 Google 账号登录</span>
+          <span data-i18n="loginWithGoogle">使用 Google 账号登录</span>
         </button>
         
         <button id="btn-microsoft" class="oauth-btn microsoft">
@@ -33,39 +33,39 @@
             <path fill="#7FBA00" d="M13 1h10v10H13z"/>
             <path fill="#FFB900" d="M13 13h10v10H13z"/>
           </svg>
-          <span>使用 Microsoft 账号登录</span>
+          <span data-i18n="loginWithMicrosoft">使用 Microsoft 账号登录</span>
         </button>
       </div>
 
       <div class="divider">
-        <span>或</span>
+        <span data-i18n="orText">或</span>
       </div>
 
       <!-- 邮箱登录区域 -->
       <div class="email-section">
         <div class="form-group">
-          <label for="input-email">邮箱地址</label>
+          <label for="input-email" data-i18n="emailAddressLabel">邮箱地址</label>
           <input type="email" id="input-email" placeholder="user@example.com" autocomplete="email">
         </div>
 
         <div class="form-group" id="code-group" style="display: none;">
-          <label for="input-code">验证码</label>
+          <label for="input-code" data-i18n="verificationCodeLabel">验证码</label>
           <div class="code-input-group">
-            <input type="text" id="input-code" placeholder="6位验证码" maxlength="6" autocomplete="one-time-code">
-            <button id="btn-send-code" class="btn-secondary">发送验证码</button>
+            <input type="text" id="input-code" data-i18n-placeholder="codePlaceholder" placeholder="6位验证码" maxlength="6" autocomplete="one-time-code">
+            <button id="btn-send-code" class="btn-secondary" data-i18n="sendVerificationCode">发送验证码</button>
           </div>
           <p class="form-hint" id="code-hint"></p>
         </div>
 
-        <button id="btn-send-email" class="btn-primary btn-full" style="display: none;">
+        <button id="btn-send-email" class="btn-primary btn-full" style="display: none;" data-i18n="sendVerificationCode">
           发送验证码
         </button>
 
-        <button id="btn-verify" class="btn-primary btn-full" style="display: none;">
+        <button id="btn-verify" class="btn-primary btn-full" style="display: none;" data-i18n="verifyAndLogin">
           验证并登录
         </button>
 
-        <p class="auth-tip" id="auth-tip">未注册的手机号将自动创建账户</p>
+        <p class="auth-tip" id="auth-tip" data-i18n="authTip">未注册的手机号将自动创建账户</p>
       </div>
 
       <!-- 加载和错误状态 -->
@@ -73,7 +73,7 @@
     </div>
 
     <div class="auth-footer">
-      <p>登录即表示同意 <a href="#" id="link-terms">服务条款</a> 和 <a href="#" id="link-privacy">隐私政策</a></p>
+      <p><span data-i18n="agreeTermsPrivacy">登录即表示同意</span> <a href="#" id="link-terms" data-i18n="termsOfService">服务条款</a> <span data-i18n="andText">和</span> <a href="#" id="link-privacy" data-i18n="privacyPolicy">隐私政策</a></p>
     </div>
   </div>
 

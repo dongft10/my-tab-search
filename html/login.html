@@ -3,29 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登录 - MyTabSearch</title>
+  <title data-i18n="loginTitle">登录 - MyTabSearch</title>
   <link rel="stylesheet" href="../css/login.css">
 </head>
 <body>
   <div class="login-container">
     <div class="login-header">
       <h1>MyTabSearch</h1>
-      <p>登录以解锁更多功能</p>
+      <p data-i18n="loginSubtitle">登录以解锁更多功能</p>
     </div>
 
     <!-- 邮箱登录 -->
     <div class="login-section" id="email-section">
-      <h2>邮箱登录</h2>
+      <h2 data-i18n="emailLoginTitle">邮箱登录</h2>
       <div class="input-group">
-        <input type="email" id="email-input" placeholder="请输入邮箱地址">
+        <input type="email" id="email-input" data-i18n-placeholder="enterEmailPlaceholder" placeholder="请输入邮箱地址">
       </div>
-      <button class="btn-primary" id="btn-send-code">发送验证码</button>
+      <button class="btn-primary" id="btn-send-code" data-i18n="sendVerificationCode">发送验证码</button>
       
       <div class="verify-section" id="verify-section" style="display: none;">
         <div class="input-group">
-          <input type="text" id="code-input" placeholder="请输入验证码" maxlength="6">
+          <input type="text" id="code-input" data-i18n-placeholder="enterCodePlaceholder" placeholder="请输入验证码" maxlength="6">
         </div>
-        <button class="btn-primary" id="btn-verify">验证并登录</button>
+        <button class="btn-primary" id="btn-verify" data-i18n="verifyAndLogin">验证并登录</button>
       </div>
       
       <p class="hint" id="email-hint"></p>
@@ -33,27 +33,27 @@
 
     <!-- 分割线 -->
     <div class="divider">
-      <span>或</span>
+      <span data-i18n="orText">或</span>
     </div>
 
     <!-- OAuth 登录 -->
     <div class="login-section">
-      <h2>第三方账号登录</h2>
+      <h2 data-i18n="oauthLoginTitle">第三方账号登录</h2>
       <div class="oauth-buttons">
         <button class="btn-oauth btn-google" id="btn-google">
           <span class="oauth-icon">G</span>
-          使用 Google 账号登录
+          <span data-i18n="loginWithGoogle">使用 Google 账号登录</span>
         </button>
         <button class="btn-oauth btn-microsoft" id="btn-microsoft">
           <span class="oauth-icon">M</span>
-          使用 Microsoft 账号登录
+          <span data-i18n="loginWithMicrosoft">使用 Microsoft 账号登录</span>
         </button>
       </div>
     </div>
 
     <!-- 跳过登录 -->
     <div class="skip-section">
-      <button class="btn-link" id="btn-skip">暂时跳过</button>
+      <button class="btn-link" id="btn-skip" data-i18n="skipForNow">暂时跳过</button>
     </div>
 
     <!-- 状态消息 -->

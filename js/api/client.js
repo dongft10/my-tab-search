@@ -3,11 +3,18 @@
  * 处理与后端 API 的所有通信
  */
 
+import { API_CONFIG, getApiUrl } from '../config.js';
+
 class ApiClient {
+  /**
+   * 构造函数
+   * @param {string} baseUrl - 可选的基础 URL，默认使用配置文件中的地址
+   */
   constructor(baseUrl) {
-    this.baseUrl = baseUrl || 'http://localhost:41532';
-    this.maxRetries = 3;
-    this.retryDelay = 1000;
+    this.baseUrl = baseUrl || API_CONFIG.BASE_URL;
+    this.apiVersion = API_CONFIG.API_VERSION;
+    this.maxRetries = API_CONFIG.REQUEST.MAX_RETRIES;
+    this.retryDelay = API_CONFIG.REQUEST.RETRY_DELAY;
   }
 
   /**
@@ -19,7 +26,7 @@ class ApiClient {
    * @returns {Promise} - 返回响应
    */
   async request(endpoint, method = 'GET', data = null, headers = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = getApiUrl(endpoint);
     
     const defaultHeaders = {
       'Content-Type': 'application/json',

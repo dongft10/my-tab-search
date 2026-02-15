@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>设置 - MyTabSearch</title>
+  <title data-i18n="settingsTitle">设置 - MyTabSearch</title>
   <link rel="stylesheet" href="../css/settings.css">
 </head>
 <body>
   <div class="settings-container">
     <!-- 账户信息区域 -->
     <section class="settings-section" id="account-section">
-      <h2>账户信息</h2>
+      <h2 data-i18n="accountInfoTitle">账户信息</h2>
       <div class="account-card">
         <div class="account-info">
           <div class="account-avatar" id="account-avatar">
             <span id="avatar-letter">?</span>
           </div>
           <div class="account-details">
-            <p class="account-email" id="account-email">加载中...</p>
+            <p class="account-email" id="account-email" data-i18n="loadingText">加载中...</p>
             <p class="account-status" id="account-status">
               <span class="vip-badge" id="vip-badge" style="display: none;">VIP</span>
             </p>
@@ -27,11 +27,11 @@
         <!-- VIP 状态显示 -->
         <div class="vip-status" id="vip-status" style="display: none;">
           <div class="vip-info">
-            <span class="vip-label">VIP状态:</span>
+            <span class="vip-label" data-i18n="vipStatusLabel">VIP状态:</span>
             <span class="vip-value" id="vip-status-value">-</span>
           </div>
           <div class="vip-info">
-            <span class="vip-label">到期时间:</span>
+            <span class="vip-label" data-i18n="vipExpiresLabel">到期时间:</span>
             <span class="vip-value" id="vip-expires">-</span>
           </div>
         </div>
@@ -39,37 +39,37 @@
         <!-- 体验期状态显示 -->
         <div class="trial-status" id="trial-status" style="display: none;">
           <div class="trial-info">
-            <span class="trial-label">体验期剩余:</span>
+            <span class="trial-label" data-i18n="trialRemainingLabel">体验期剩余:</span>
             <span class="trial-value" id="trial-days-left">-</span>
           </div>
-          <button class="btn-trial-extend" id="btn-extend-trial" style="display: none;">
+          <button class="btn-trial-extend" id="btn-extend-trial" style="display: none;" data-i18n="extendTrial">
             延展体验期
           </button>
         </div>
         
         <div class="account-actions">
-          <button class="btn-login" id="btn-login" style="display: none;">登录 / 注册</button>
-          <button class="btn-logout" id="btn-logout" style="display: none;">退出登录</button>
+          <button class="btn-login" id="btn-login" style="display: none;" data-i18n="loginOrRegister">登录 / 注册</button>
+          <button class="btn-logout" id="btn-logout" style="display: none;" data-i18n="logout">退出登录</button>
         </div>
       </div>
     </section>
 
     <!-- 设备管理区域 -->
     <section class="settings-section" id="devices-section">
-      <h2>设备管理</h2>
+      <h2 data-i18n="deviceManagementTitle">设备管理</h2>
       <div class="device-list" id="device-list">
-        <p class="loading-text">加载中...</p>
+        <p class="loading-text" data-i18n="loadingText">加载中...</p>
       </div>
     </section>
 
     <!-- 语言设置 -->
     <section class="settings-section">
-      <h2>语言设置</h2>
+      <h2 data-i18n="languageSettingsTitle">语言设置</h2>
       <div class="setting-item">
-        <label for="language-select">选择语言:</label>
+        <label for="language-select" data-i18n="selectLanguageLabel">选择语言:</label>
         <select id="language-select">
           <option value="en">English</option>
-          <option value="zh_CN">中文</option>
+          <option value="zh_CN" data-i18n="chineseOption">中文</option>
         </select>
       </div>
     </section>

@@ -4,6 +4,9 @@
  */
 
 import apiClient from './client.js';
+import { API_CONFIG } from '../config.js';
+
+const { ENDPOINTS } = API_CONFIG;
 
 class AuthApi {
   /**
@@ -12,7 +15,7 @@ class AuthApi {
    * @returns {Promise} - 返回注册结果
    */
   async silentRegister(deviceInfo) {
-    return apiClient.post('/api/v1/auth/silent-register', deviceInfo);
+    return apiClient.post(ENDPOINTS.AUTH.SILENT_REGISTER, deviceInfo);
   }
 
   /**
@@ -22,7 +25,7 @@ class AuthApi {
    * @returns {Promise} - 返回令牌
    */
   async getToken(userId, deviceId) {
-    return apiClient.post('/api/v1/auth/token', {
+    return apiClient.post(ENDPOINTS.AUTH.GET_TOKEN, {
       userId,
       deviceId
     });
@@ -34,7 +37,7 @@ class AuthApi {
    * @returns {Promise} - 返回结果
    */
   async revokeToken(accessToken) {
-    return apiClient.post('/api/v1/auth/revoke', {
+    return apiClient.post(ENDPOINTS.AUTH.REVOKE_TOKEN, {
       accessToken
     });
   }
@@ -45,7 +48,7 @@ class AuthApi {
    * @returns {Promise} - 返回验证结果
    */
   async validateToken(accessToken) {
-    return apiClient.get('/api/v1/auth/validate', {
+    return apiClient.get(ENDPOINTS.AUTH.VALIDATE_TOKEN, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
@@ -56,7 +59,7 @@ class AuthApi {
    * @returns {Promise} - 返回新的令牌
    */
   async refreshToken(accessToken) {
-    return apiClient.post('/api/v1/auth/refresh', {
+    return apiClient.post(ENDPOINTS.AUTH.REFRESH_TOKEN, {
       accessToken
     });
   }
@@ -67,7 +70,7 @@ class AuthApi {
    * @returns {Promise} - 返回发送结果
    */
   async sendVerificationCode(email) {
-    return apiClient.post('/api/v1/auth/send-verification', {
+    return apiClient.post(ENDPOINTS.AUTH.SEND_VERIFICATION, {
       email
     });
   }
@@ -84,7 +87,7 @@ class AuthApi {
     if (deviceId) {
       data.deviceId = deviceId;
     }
-    return apiClient.post('/api/v1/auth/verify-email', data);
+    return apiClient.post(ENDPOINTS.AUTH.VERIFY_EMAIL, data);
   }
 
   /**
@@ -93,7 +96,7 @@ class AuthApi {
    * @returns {Promise} - 返回用户资料
    */
   async getUserProfile(accessToken) {
-    return apiClient.get('/api/v1/user/profile', {
+    return apiClient.get(ENDPOINTS.USER.PROFILE, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
@@ -104,7 +107,7 @@ class AuthApi {
    * @returns {Promise} - 返回VIP状态
    */
   async getVipStatus(accessToken) {
-    return apiClient.get('/api/v1/vip/status', {
+    return apiClient.get(ENDPOINTS.VIP.STATUS, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
@@ -116,7 +119,7 @@ class AuthApi {
    * @returns {Promise} - 返回同步结果
    */
   async syncVipStatus(accessToken, lastSyncAt) {
-    return apiClient.post('/api/v1/vip/sync', {
+    return apiClient.post(ENDPOINTS.VIP.SYNC, {
       lastSyncAt
     }, {
       'Authorization': `Bearer ${accessToken}`
@@ -129,7 +132,7 @@ class AuthApi {
    * @returns {Promise} - 返回体验期状态
    */
   async getTrialStatus(accessToken) {
-    return apiClient.get('/api/v1/trial/status', {
+    return apiClient.get(ENDPOINTS.TRIAL.STATUS, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
@@ -140,7 +143,7 @@ class AuthApi {
    * @returns {Promise} - 返回延展结果
    */
   async extendTrial(accessToken) {
-    return apiClient.post('/api/v1/trial/extend', {
+    return apiClient.post(ENDPOINTS.TRIAL.EXTEND, {
       confirm: true
     }, {
       'Authorization': `Bearer ${accessToken}`
@@ -153,7 +156,7 @@ class AuthApi {
    * @returns {Promise} - 返回功能限制
    */
   async getUserLimits(accessToken) {
-    return apiClient.get('/api/v1/user/limits', {
+    return apiClient.get(ENDPOINTS.USER.LIMITS, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
@@ -165,7 +168,7 @@ class AuthApi {
    * @returns {Promise} - 返回权限检查结果
    */
   async checkFeatureAccess(accessToken, feature) {
-    return apiClient.get(`/api/v1/user/feature/${feature}`, {
+    return apiClient.get(`${ENDPOINTS.USER.FEATURE}/${feature}`, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
@@ -176,7 +179,7 @@ class AuthApi {
    * @returns {Promise} - 返回设备列表
    */
   async getDevices(accessToken) {
-    return apiClient.get('/api/v1/devices', {
+    return apiClient.get(ENDPOINTS.DEVICES.LIST, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
@@ -188,7 +191,7 @@ class AuthApi {
    * @returns {Promise} - 返回删除结果
    */
   async deleteDevice(accessToken, deviceId) {
-    return apiClient.delete(`/api/v1/devices/${deviceId}`, {
+    return apiClient.delete(`${ENDPOINTS.DEVICES.DELETE}/${deviceId}`, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
@@ -199,7 +202,7 @@ class AuthApi {
    * @returns {Promise} - 返回登出结果
    */
   async logoutDevice(accessToken) {
-    return apiClient.post('/api/v1/devices/logout', {}, {
+    return apiClient.post(ENDPOINTS.DEVICES.LOGOUT_ALL, {}, {
       'Authorization': `Bearer ${accessToken}`
     });
   }

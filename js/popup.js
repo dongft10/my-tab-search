@@ -616,6 +616,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initialize i18n
   await i18n.initialize();
+  
+  // 更新页面国际化元素
+  i18n.updatePageI18n();
 
   // Set initial loading text with i18n
   tabsCount.textContent = i18n.getMessage('loadingText') || 'Loading...';

@@ -2,6 +2,12 @@
 import i18n from './i18n.js';
 // Import feature limit service
 import featureLimitService from './services/feature-limit.service.js';
+// Import auth service
+import authService from './services/auth.service.js';
+// Import trial service
+import trialService from './services/trial.service.js';
+// Import VIP service
+import vipService from './services/vip.service.js';
 
 // DOM elements
 let pinnedTabList;
@@ -10,8 +16,6 @@ let pinnedTabList;
 let selectedIndex = -1;
 // 标签列表
 let lis;
-// 是否有长期固定权限
-let hasLongTermPinnedAccess = false;
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -44,11 +48,11 @@ function showToast(message, duration = 3000) {
 async function initialize() {
   await i18n.initialize();
   
+  // 更新页面国际化元素
+  i18n.updatePageI18n();
+  
   // 初始化 DOM 元素
   pinnedTabList = document.getElementById('pinned-tab-list');
-  
-  // 检查长期固定权限
-  hasLongTermPinnedAccess = await featureLimitService.hasFeatureAccess('longTermPinned');
   
   // 更新国际化文本
   updateI18nText();
@@ -87,7 +91,7 @@ function bindEvents() {
   
   // 窗口失去焦点时关闭窗口
   window.addEventListener('blur', () => {
-    window.close();
+    // window.close();
   });
   
   // 设置按钮
@@ -285,34 +289,26 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null) {
         removeFromPinnedList(tab.tabId);
       });
       
-      // 创建长期固定按钮（展开时显示，有权限时才添加）
-      let longTermBtn = null;
-      if (hasLongTermPinnedAccess) {
-        longTermBtn = document.createElement('button');
-        longTermBtn.classList.add('action-btn', 'longterm-btn');
-        // 根据是否已长期固定显示不同图标
-        if (tab.isLongTermPinned) {
-          longTermBtn.innerHTML = "📌";
-          longTermBtn.title = i18n.getMessage('cancelLongTermPinned') || '取消长期固定';
-          longTermBtn.classList.add('active');
-        } else {
-          longTermBtn.innerHTML = "📍";
-          longTermBtn.title = i18n.getMessage('setLongTermPinned') || '设为长期固定';
-        }
-        longTermBtn.addEventListener('click', async function (e) {
-          e.stopPropagation();
-          if (tab.isLongTermPinned) {
-            await cancelLongTermPinned(tab.tabId);
-          } else {
-            await setLongTermPinned(tab.tabId);
-          }
-        });
+      // 创建长期固定按钮（展开时始终显示）
+      const longTermBtn = document.createElement('button');
+      longTermBtn.classList.add('action-btn', 'longterm-btn');
+      // 根据是否已长期固定显示不同图标
+      if (tab.isLongTermPinned) {
+        longTermBtn.innerHTML = "📌";
+        longTermBtn.title = i18n.getMessage('cancelLongTermPinned') || '取消长期固定';
+        longTermBtn.classList.add('active');
+      } else {
+        longTermBtn.innerHTML = "📍";
+        longTermBtn.title = i18n.getMessage('setLongTermPinned') || '设为长期固定';
       }
+      longTermBtn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        // 检查用户状态并处理
+        await handleLongTermPinnedClick(tab.tabId, tab.isLongTermPinned);
+      });
       
       // 组装展开区域（从左到右：长期固定 → 取消固定 → 关闭）
-      if (longTermBtn) {
-        expandActions.appendChild(longTermBtn);
-      }
+      expandActions.appendChild(longTermBtn);
       expandActions.appendChild(unpinBtn);
       expandActions.appendChild(closeBtn);
       
@@ -528,6 +524,55 @@ function getHostName(url) {
   }
 }
 
+// 处理长期固定按钮点击（根据用户类型显示不同提示）
+async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
+  try {
+    // 检查是否已注册/登录
+    const isRegistered = await authService.isRegistered();
+    
+    console.log('[pinned-list] isRegistered:', isRegistered);
+    console.log('[pinned-list] userInfo:', await authService.getUserInfo());
+    
+    if (!isRegistered) {
+      // 未注册用户
+      showToast(i18n.getMessage('longTermPinnedNeedLogin'));
+      return;
+    }
+    
+    // 获取体验期状态
+    const trialStatus = await trialService.getTrialStatus();
+    
+    // 获取VIP状态
+    const vipStatus = await vipService.getVipStatus();
+    
+    // 体验期用户可以正常使用
+    if (trialStatus.isInTrialPeriod) {
+      if (isCurrentlyLongTermPinned) {
+        await cancelLongTermPinned(tabId);
+      } else {
+        await setLongTermPinned(tabId);
+      }
+      return;
+    }
+    
+    // VIP用户可以正常使用
+    if (vipStatus.isVip) {
+      if (isCurrentlyLongTermPinned) {
+        await cancelLongTermPinned(tabId);
+      } else {
+        await setLongTermPinned(tabId);
+      }
+      return;
+    }
+    
+    // 普通用户（已过体验期且非VIP）
+    showToast(i18n.getMessage('longTermPinnedNeedVip'));
+  } catch (error) {
+    console.error('Long term pinned error:', error);
+    showToast(i18n.getMessage('longTermPinnedFailed'));
+  }
+}
+
 // 设置长期固定Tab
 async function setLongTermPinned(tabId) {
   try {
@@ -547,13 +592,13 @@ async function setLongTermPinned(tabId) {
     
     await chrome.storage.sync.set({ pinnedTabs: updatedTabs });
     
-    showToast(i18n.getMessage('longTermPinnedSuccess') || '已设为长期固定');
+    showToast(i18n.getMessage('longTermPinnedSuccess'));
     
     // 重新加载列表
     await loadPinnedTabs();
   } catch (error) {
     console.error('Set long term pinned error:', error);
-    showToast(i18n.getMessage('longTermPinnedFailed') || '设置长期固定失败');
+    showToast(i18n.getMessage('setLongTermFailed'));
   }
 }
 
@@ -576,13 +621,13 @@ async function cancelLongTermPinned(tabId) {
     
     await chrome.storage.sync.set({ pinnedTabs: updatedTabs });
     
-    showToast(i18n.getMessage('cancelLongTermSuccess') || '已取消长期固定');
+    showToast(i18n.getMessage('cancelLongTermSuccess'));
     
     // 重新加载列表
     await loadPinnedTabs();
   } catch (error) {
     console.error('Cancel long term pinned error:', error);
-    showToast(i18n.getMessage('cancelLongTermFailed') || '取消长期固定失败');
+    showToast(i18n.getMessage('cancelLongTermFailed'));
   }
 }
 

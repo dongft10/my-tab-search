@@ -262,5 +262,277 @@
   "pinTabsHint": {
     "message": "Use Ctrl+Shift+A to open search and pin tabs",
     "description": "Hint text for how to pin tabs"
+  },
+  "longTermPinnedNeedLogin": {
+    "message": "Please register/login to use long-term pinning feature",
+    "description": "Toast message when user not logged in"
+  },
+  "longTermPinnedNeedVip": {
+    "message": "Your trial period has ended. Renew VIP to continue using long-term pinning",
+    "description": "Toast message when trial expired"
+  },
+  "longTermPinnedFailed": {
+    "message": "Operation failed, please try again later",
+    "description": "Toast message when long term pinned failed"
+  },
+  "longTermPinnedSuccess": {
+    "message": "Set to long-term pinned",
+    "description": "Toast message when long term pinned success"
+  },
+  "cancelLongTermSuccess": {
+    "message": "Long-term pinned cancelled",
+    "description": "Toast message when cancel long term pinned success"
+  },
+  "cancelLongTermFailed": {
+    "message": "Failed to cancel long-term pinned",
+    "description": "Toast message when cancel long term pinned failed"
+  },
+  "setLongTermPinned": {
+    "message": "Set as long-term pinned",
+    "description": "Tooltip for set long term pinned button"
+  },
+  "cancelLongTermPinned": {
+    "message": "Cancel long-term pinned",
+    "description": "Tooltip for cancel long term pinned button"
+  },
+  "pinnedTabsLimitReached": {
+    "message": "Pinned tabs limit reached",
+    "description": "Toast message when pinned tabs limit reached"
+  },
+  "tabPinned": {
+    "message": "Tab pinned",
+    "description": "Toast message when tab is pinned"
+  },
+  "tabUnpinned": {
+    "message": "Tab unpinned",
+    "description": "Toast message when tab is unpinned"
+  },
+  "tabClosed": {
+    "message": "Tab closed",
+    "description": "Toast message when tab is closed"
+  },
+  "emailRequired": {
+    "message": "Please enter a valid email address",
+    "description": "Validation message for email input"
+  },
+  "verificationCodeSent": {
+    "message": "Verification code sent to your email",
+    "description": "Success message after sending verification code"
+  },
+  "sendFailed": {
+    "message": "Failed to send, please try again later",
+    "description": "Error message when sending failed"
+  },
+  "networkError": {
+    "message": "Network error, please try again later",
+    "description": "Error message for network issues"
+  },
+  "codeRequired": {
+    "message": "Please enter 6-digit verification code",
+    "description": "Validation message for verification code"
+  },
+  "loginSuccess": {
+    "message": "Login successful",
+    "description": "Success message after login"
+  },
+  "codeError": {
+    "message": "Verification code error",
+    "description": "Error message for wrong verification code"
+  },
+  "oauthComingSoon": {
+    "message": "OAuth login coming soon",
+    "description": "Message for OAuth not implemented"
+  },
+  "countdownResend": {
+    "message": "seconds to resend",
+    "description": "Countdown button text"
+  },
+  "sendCode": {
+    "message": "Send verification code",
+    "description": "Button text to send code"
+  },
+  "alreadyLoggedIn": {
+    "message": "You are already logged in, redirecting...",
+    "description": "Message when user already logged in"
+  },
+  "verifyAndLogin": {
+    "message": "Verify and login",
+    "description": "Button text for verify and login"
+  },
+  "sending": {
+    "message": "Sending...",
+    "description": "Button text when sending"
+  },
+  "verifying": {
+    "message": "Verifying...",
+    "description": "Button text when verifying"
+  },
+  "loginFailed": {
+    "message": "Login failed",
+    "description": "Error message when login failed"
+  },
+  "oauthNotAvailable": {
+    "message": "Login feature coming soon...",
+    "description": "Message when OAuth not available"
+  },
+  "deviceRemoved": {
+    "message": "Device removed",
+    "description": "Success message when device removed"
+  },
+  "removeDeviceFailed": {
+    "message": "Failed to remove device",
+    "description": "Error message when remove device failed"
+  },
+  "logoutSuccess": {
+    "message": "Logged out successfully",
+    "description": "Success message after logout"
+  },
+  "logoutFailed": {
+    "message": "Logout failed",
+    "description": "Error message when logout failed"
+  },
+  "trialExtended": {
+    "message": "Trial extended",
+    "description": "Success message when trial extended"
+  },
+  "trialExtendFailed": {
+    "message": "Failed to extend trial",
+    "description": "Error message when trial extend failed"
+  },
+  "loadSettingsFailed": {
+    "message": "Failed to load settings",
+    "description": "Error message when load settings failed"
+  },
+  "setLongTermFailed": {
+    "message": "Failed to set long-term pinned",
+    "description": "Toast message when set long term failed"
+  },
+  "loginTitle": {
+    "message": "Login - MyTabSearch",
+    "description": "Login page title"
+  },
+  "loginSubtitle": {
+    "message": "Login to unlock more features",
+    "description": "Login page subtitle"
+  },
+  "emailLoginTitle": {
+    "message": "Email Login",
+    "description": "Email login section title"
+  },
+  "enterEmailPlaceholder": {
+    "message": "Please enter your email address",
+    "description": "Email input placeholder"
+  },
+  "enterCodePlaceholder": {
+    "message": "Please enter verification code",
+    "description": "Code input placeholder"
+  },
+  "orText": {
+    "message": "or",
+    "description": "Divider text"
+  },
+  "oauthLoginTitle": {
+    "message": "Login with third-party account",
+    "description": "OAuth login section title"
+  },
+  "loginWithGoogle": {
+    "message": "Sign in with Google",
+    "description": "Google login button text"
+  },
+  "loginWithMicrosoft": {
+    "message": "Sign in with Microsoft",
+    "description": "Microsoft login button text"
+  },
+  "skipForNow": {
+    "message": "Skip for now",
+    "description": "Skip button text"
+  },
+  "settingsTitle": {
+    "message": "Settings - MyTabSearch",
+    "description": "Settings page title"
+  },
+  "accountInfoTitle": {
+    "message": "Account Info",
+    "description": "Account info section title"
+  },
+  "loadingText": {
+    "message": "Loading...",
+    "description": "Loading text"
+  },
+  "vipStatusLabel": {
+    "message": "VIP Status:",
+    "description": "VIP status label"
+  },
+  "vipExpiresLabel": {
+    "message": "Expires:",
+    "description": "VIP expires label"
+  },
+  "trialRemainingLabel": {
+    "message": "Trial Remaining:",
+    "description": "Trial remaining label"
+  },
+  "extendTrial": {
+    "message": "Extend Trial",
+    "description": "Extend trial button text"
+  },
+  "loginOrRegister": {
+    "message": "Login / Register",
+    "description": "Login or register button text"
+  },
+  "deviceManagementTitle": {
+    "message": "Device Management",
+    "description": "Device management section title"
+  },
+  "languageSettingsTitle": {
+    "message": "Language Settings",
+    "description": "Language settings section title"
+  },
+  "selectLanguageLabel": {
+    "message": "Select Language:",
+    "description": "Select language label"
+  },
+  "authPageTitle": {
+    "message": "Account Login - MyTabSearch",
+    "description": "Auth page title"
+  },
+  "authPageSubtitle": {
+    "message": "Login to sync your tabs and data",
+    "description": "Auth page subtitle"
+  },
+  "emailAddressLabel": {
+    "message": "Email Address",
+    "description": "Email address label"
+  },
+  "verificationCodeLabel": {
+    "message": "Verification Code",
+    "description": "Verification code label"
+  },
+  "codePlaceholder": {
+    "message": "6-digit code",
+    "description": "Code input placeholder"
+  },
+  "authTip": {
+    "message": "Unregistered phone numbers will automatically create an account",
+    "description": "Auth tip text"
+  },
+  "agreeTermsPrivacy": {
+    "message": "By logging in, you agree to",
+    "description": "Terms and privacy prefix"
+  },
+  "termsOfService": {
+    "message": "Terms of Service",
+    "description": "Terms of service link"
+  },
+  "privacyPolicy": {
+    "message": "Privacy Policy",
+    "description": "Privacy policy link"
+  },
+  "search": {
+    "message": "Search",
+    "description": "Search alt text"
+  },
+  "andText": {
+    "message": "and",
+    "description": "And text for connecting terms and privacy"
   }
 }

@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize i18n
   await i18n.initialize();
   
+  // 更新页面国际化元素
+  i18n.updatePageI18n();
+  
   // Apply internationalization
   applyI18n();
   
@@ -181,8 +184,8 @@ async function loadVipStatus() {
     try {
       const response = await authApi.getVipStatus(accessToken);
       
-      if (response.data.code === 0) {
-        const vipData = response.data.data;
+      if (response.code === 0) {
+        const vipData = response.data;
         
         if (vipData.userType === 'vip') {
           elements.vipBadge.style.display = 'inline-block';
@@ -222,8 +225,8 @@ async function loadTrialStatus() {
     try {
       const response = await authApi.getTrialStatus(accessToken);
       
-      if (response.data.code === 0) {
-        const trialData = response.data.data;
+      if (response.code === 0) {
+        const trialData = response.data;
         
         if (trialData.isInTrialPeriod) {
           elements.trialStatus.style.display = 'block';
@@ -296,7 +299,7 @@ async function loadDevices() {
           if (confirm('确定要移除此设备吗？')) {
             const result = await deviceService.deleteDevice(deviceId);
             if (result.success) {
-              showMessage('设备已移除', 'success');
+              showMessage(i18n?.getMessage('deviceRemoved') || 'Device removed', 'success');
               await loadDevices();
             } else {
               showMessage(result.message || '移除设备失败', 'error');
@@ -407,14 +410,14 @@ async function handleLogout() {
   try {
     // 使用设备服务进行登出
     await deviceService.logout();
-    showMessage('已退出登录', 'success');
+    showMessage(i18n?.getMessage('logoutSuccess') || 'Logged out successfully', 'success');
     
     setTimeout(() => {
       window.location.reload();
     }, 1000);
   } catch (error) {
     console.error('Logout error:', error);
-    showMessage('退出登录失败', 'error');
+    showMessage(i18n?.getMessage('logoutFailed') || 'Logout failed', 'error');
   }
 }
 

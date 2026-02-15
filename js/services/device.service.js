@@ -5,10 +5,12 @@
 
 import authApi from '../api/auth.js';
 import authService from './auth.service.js';
+import vipService from './vip.service.js';
+import featureLimitService from './feature-limit.service.js';
 
 class DeviceService {
   constructor() {
-    this.storageKey = 'mytabsearch_devices';
+    this.storageKey = 'devices';
     this.cacheTimeout = 5 * 60 * 1000; // 5分钟缓存
     this.cachedDevices = null;
     this.cacheTime = null;
@@ -150,14 +152,14 @@ class DeviceService {
 
       const response = await authApi.deleteDevice(accessToken, deviceId);
       
-      if (response.data.code === 0) {
+      if (response.code === 0) {
         // 清除缓存
         await this.clearCache();
         // 刷新设备列表
         await this.refreshDevices();
         return {
           success: true,
-          message: response.data.msg || 'Device deleted'
+          message: response.msg || 'Device deleted'
         };
       }
 
@@ -184,16 +186,19 @@ class DeviceService {
 
       const response = await authApi.logoutDevice(accessToken);
       
-      if (response.data.code === 0) {
+      // 兼容两种响应格式
+      const isSuccess = response?.code === 0 || response?.success === true;
+      
+      if (isSuccess) {
         // 清除所有本地存储
         await this.clearLocalData();
         return {
           success: true,
-          message: response.data.msg || 'Logged out'
+          message: response?.data?.msg || response?.msg || 'Logged out'
         };
       }
 
-      throw new Error(response.data.msg || 'Failed to logout');
+      throw new Error(response?.data?.msg || response?.msg || 'Failed to logout');
     } catch (error) {
       console.error('Logout error:', error);
       return {
@@ -226,17 +231,18 @@ class DeviceService {
       // 清除设备缓存
       await this.clearCache();
       
-      // 清除其他用户相关数据
+      // 使用 authService 的 storageKey 清除登录相关数据
       const keysToRemove = [
-        'mytabsearch_user_info',
-        'mytabsearch_vip_status',
-        'mytabsearch_feature_limits',
-        'mytabsearch_auth_token',
-        'mytabsearch_refresh_token'
+        authService.storageKey.userId,
+        authService.storageKey.deviceId,
+        authService.storageKey.accessToken,
+        authService.storageKey.tokenExpiresAt,
+        authService.storageKey.registeredAt,
+        vipService.storageKey,
+        featureLimitService.storageKey
       ];
       
       await chrome.storage.local.remove(keysToRemove);
-      await chrome.storage.sync.remove(['pinnedTabs', 'searchHistory']);
     } catch (error) {
       console.error('Clear local data error:', error);
     }

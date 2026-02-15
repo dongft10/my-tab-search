@@ -9,11 +9,11 @@ import fingerprintUtil from '../utils/fingerprint.js';
 class AuthService {
   constructor() {
     this.storageKey = {
-      userId: 'mytabsearch_user_id',
-      deviceId: 'mytabsearch_device_id',
-      accessToken: 'mytabsearch_access_token',
-      tokenExpiresAt: 'mytabsearch_token_expires_at',
-      registeredAt: 'mytabsearch_registered_at'
+      userId: 'userId',
+      deviceId: 'deviceId',
+      accessToken: 'accessToken',
+      tokenExpiresAt: 'tokenExpiresAt',
+      registeredAt: 'registeredAt'
     };
     // Token 刷新提前时间（过期前 5 天）
     this.refreshThreshold = 5 * 24 * 60 * 60 * 1000; // 5天，单位毫秒
@@ -134,11 +134,17 @@ class AuthService {
    * @returns {Promise} - 返回注册状态
    */
   async isRegistered() {
-    const { userId, deviceId } = await chrome.storage.local.get([
+    const result = await chrome.storage.local.get([
       this.storageKey.userId,
-      this.storageKey.deviceId
+      this.storageKey.deviceId,
+      this.storageKey.accessToken,
+      this.storageKey.registeredAt
     ]);
-    return !!userId && !!deviceId;
+    // 只要有 userId 或 accessToken 或 registeredAt 任一存在，即认为已注册/登录
+    const userId = result[this.storageKey.userId];
+    const accessToken = result[this.storageKey.accessToken];
+    const registeredAt = result[this.storageKey.registeredAt];
+    return !!(userId || accessToken || registeredAt);
   }
 
   /**

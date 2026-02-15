@@ -8,7 +8,7 @@ import authService from './auth.service.js';
 
 class VipService {
   constructor() {
-    this.storageKey = 'mytabsearch_vip_status';
+    this.storageKey = 'vipStatus';
     this.syncInterval = 60 * 60 * 1000; // 1小时同步一次
     this.lastSyncAt = null;
     this.syncTimer = null;
@@ -63,8 +63,8 @@ class VipService {
 
       const response = await authApi.syncVipStatus(accessToken, lastSyncAt);
       
-      if (response.data.code === 0) {
-        const vipData = response.data.data;
+      if (response.code === 0) {
+        const vipData = response.data;
         await this.saveVipStatus({
           vipStatus: vipData.vipStatus,
           vipTier: vipData.vipTier,
@@ -78,11 +78,16 @@ class VipService {
         return vipData;
       }
 
-      throw new Error(response.data.message || 'Sync failed');
+      throw new Error(response.message || 'Sync failed');
     } catch (error) {
       console.error('Sync VIP status error:', error);
-      // 返回本地状态
-      return await this.getLocalVipStatus();
+      // 返回默认状态而不是 null
+      return {
+        vipStatus: 'inactive',
+        vipTier: '',
+        vipFeatures: [],
+        isVip: false
+      };
     }
   }
 

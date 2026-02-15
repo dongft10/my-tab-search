@@ -1,14 +1,19 @@
 // background.js
 
-// Note: Service workers cannot use ES6 imports directly
-// We'll use a different approach for i18n in background.js
+// 导入通用配置文件
+importScripts('./config.common.js');
 
-// 因为 background.js 是 Chrome 扩展的 Service Worker，而 Service Worker 在 Manifest V3 中不支持 ES6 模块导
-// 入（ import/export 语法），所以PINNED_TABS_WINDOW的配置需要在本文将单独写。
-// 固定标签页弹窗尺寸配置（与 config.js 中的 PINNED_TABS_CONFIG 保持一致）
-const PINNED_TABS_WINDOW_CONFIG = {
-  WIDTH: 416,   // 窗口宽度
-  HEIGHT: 600   // 窗口高度
+// 从全局配置中获取配置
+const { API_CONFIG, PINNED_TABS_CONFIG, STORAGE_KEYS } = CONFIG_COMMON;
+
+// 存储键名常量（转换为小写驼峰格式以兼容现有代码）
+const STORAGE_KEYS_LOCAL = {
+  userId: STORAGE_KEYS.USER_ID,
+  deviceId: STORAGE_KEYS.DEVICE_ID,
+  accessToken: STORAGE_KEYS.ACCESS_TOKEN,
+  tokenExpiresAt: STORAGE_KEYS.TOKEN_EXPIRES_AT,
+  registeredAt: STORAGE_KEYS.REGISTERED_AT,
+  deviceFingerprint: STORAGE_KEYS.DEVICE_FINGERPRINT
 };
 
 // 使用 chrome.storage 持久化固定标签页弹窗的窗口 ID
@@ -640,8 +645,8 @@ chrome.commands.onCommand.addListener(async (command) => {
       }
 
       // 如果没有 popup 窗口，则创建新的（位置在屏幕正中间）
-      const windowWidth = PINNED_TABS_WINDOW_CONFIG.WIDTH;
-      const windowHeight = PINNED_TABS_WINDOW_CONFIG.HEIGHT;
+      const windowWidth = PINNED_TABS_CONFIG.WINDOW_WIDTH;
+      const windowHeight = PINNED_TABS_CONFIG.WINDOW_HEIGHT;
 
       // 获取屏幕信息
       let screenWidth = 1920;
@@ -855,8 +860,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       }
 
       // 如果没有 popup 窗口，则创建新的（位置在屏幕正中间）
-      const windowWidth = PINNED_TABS_WINDOW_CONFIG.WIDTH;
-      const windowHeight = PINNED_TABS_WINDOW_CONFIG.HEIGHT;
+      const windowWidth = PINNED_TABS_CONFIG.WINDOW_WIDTH;
+      const windowHeight = PINNED_TABS_CONFIG.WINDOW_HEIGHT;
 
       // 获取屏幕信息
       let screenWidth = 1920;
@@ -958,16 +963,6 @@ chrome.runtime.onStartup.addListener(async () => {
   await initializeAll();
 });
 
-// 存储键名常量
-const STORAGE_KEYS = {
-  userId: 'mytabsearch_user_id',
-  deviceId: 'mytabsearch_device_id',
-  accessToken: 'mytabsearch_access_token',
-  tokenExpiresAt: 'mytabsearch_token_expires_at',
-  registeredAt: 'mytabsearch_registered_at',
-  deviceFingerprint: 'mytabsearch_device_fingerprint'
-};
-
 /**
  * 设备指纹生成工具
  * 生成唯一的设备标识
@@ -1055,8 +1050,8 @@ class FingerprintUtil {
    */
   async getStoredFingerprint() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(STORAGE_KEYS.deviceFingerprint, (result) => {
-        resolve(result[STORAGE_KEYS.deviceFingerprint] || null);
+      chrome.storage.local.get(STORAGE_KEYS_LOCAL.deviceFingerprint, (result) => {
+        resolve(result[STORAGE_KEYS_LOCAL.deviceFingerprint] || null);
       });
     });
   }
@@ -1068,7 +1063,7 @@ class FingerprintUtil {
    */
   async storeFingerprint(fingerprint) {
     return new Promise((resolve) => {
-      chrome.storage.local.set({ [STORAGE_KEYS.deviceFingerprint]: fingerprint }, () => {
+      chrome.storage.local.set({ [STORAGE_KEYS_LOCAL.deviceFingerprint]: fingerprint }, () => {
         resolve();
       });
     });
@@ -1091,9 +1086,10 @@ class FingerprintUtil {
  */
 class ApiClient {
   constructor() {
-    this.baseUrl = 'http://localhost:41532';
-    this.maxRetries = 3;
-    this.retryDelay = 1000;
+    this.baseUrl = API_CONFIG.BASE_URL;
+    this.apiVersion = API_CONFIG.API_VERSION;
+    this.maxRetries = API_CONFIG.REQUEST.MAX_RETRIES;
+    this.retryDelay = API_CONFIG.REQUEST.RETRY_DELAY;
   }
 
   /**
@@ -1105,7 +1101,7 @@ class ApiClient {
    * @returns {Promise} - 返回响应
    */
   async request(endpoint, method = 'GET', data = null, headers = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = `${this.baseUrl}${this.apiVersion}${endpoint}`;
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
@@ -1146,7 +1142,7 @@ class ApiClient {
     }
 
     // 如果是静默注册请求，返回模拟数据以允许扩展继续工作
-    if (endpoint === '/api/v1/auth/silent-register' && method === 'POST') {
+    if (endpoint === API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER && method === 'POST') {
       console.log('Backend service unavailable, using mock registration data');
       return {
         data: {
@@ -1214,7 +1210,7 @@ class AuthService {
       const extensionVersion = chrome.runtime.getManifest().version;
 
       // 发送注册请求
-      const response = await this.apiClient.post('/api/v1/auth/silent-register', {
+      const response = await this.apiClient.post(API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER, {
         deviceFingerprint,
         browserInfo,
         extensionVersion
@@ -1242,8 +1238,8 @@ class AuthService {
    */
   async isRegistered() {
     return new Promise((resolve) => {
-      chrome.storage.local.get([STORAGE_KEYS.userId, STORAGE_KEYS.deviceId], (result) => {
-        resolve(!!result[STORAGE_KEYS.userId] && !!result[STORAGE_KEYS.deviceId]);
+      chrome.storage.local.get([STORAGE_KEYS_LOCAL.userId, STORAGE_KEYS_LOCAL.deviceId], (result) => {
+        resolve(!!result[STORAGE_KEYS_LOCAL.userId] && !!result[STORAGE_KEYS_LOCAL.deviceId]);
       });
     });
   }
@@ -1255,10 +1251,10 @@ class AuthService {
   async getUserInfo() {
     return new Promise((resolve) => {
       chrome.storage.local.get([
-        STORAGE_KEYS.userId,
-        STORAGE_KEYS.deviceId,
-        STORAGE_KEYS.accessToken,
-        STORAGE_KEYS.registeredAt
+        STORAGE_KEYS_LOCAL.userId,
+        STORAGE_KEYS_LOCAL.deviceId,
+        STORAGE_KEYS_LOCAL.accessToken,
+        STORAGE_KEYS_LOCAL.registeredAt
       ], (result) => {
         resolve(result);
       });
@@ -1274,16 +1270,16 @@ class AuthService {
     const storageData = {};
     
     if (userInfo.userId) {
-      storageData[STORAGE_KEYS.userId] = userInfo.userId;
+      storageData[STORAGE_KEYS_LOCAL.userId] = userInfo.userId;
     }
     if (userInfo.deviceId) {
-      storageData[STORAGE_KEYS.deviceId] = userInfo.deviceId;
+      storageData[STORAGE_KEYS_LOCAL.deviceId] = userInfo.deviceId;
     }
     if (userInfo.accessToken) {
-      storageData[STORAGE_KEYS.accessToken] = userInfo.accessToken;
+      storageData[STORAGE_KEYS_LOCAL.accessToken] = userInfo.accessToken;
     }
     if (userInfo.registeredAt) {
-      storageData[STORAGE_KEYS.registeredAt] = userInfo.registeredAt;
+      storageData[STORAGE_KEYS_LOCAL.registeredAt] = userInfo.registeredAt;
     }
 
     return new Promise((resolve) => {
@@ -1300,13 +1296,13 @@ class AuthService {
   async getAccessToken() {
     try {
       const userInfo = await this.getUserInfo();
-      if (!userInfo || !userInfo[STORAGE_KEYS.userId] || !userInfo[STORAGE_KEYS.deviceId]) {
+      if (!userInfo || !userInfo[STORAGE_KEYS_LOCAL.userId] || !userInfo[STORAGE_KEYS_LOCAL.deviceId]) {
         throw new Error('User not registered');
       }
 
-      const response = await this.apiClient.post('/api/v1/auth/token', {
-        userId: userInfo[STORAGE_KEYS.userId],
-        deviceId: userInfo[STORAGE_KEYS.deviceId]
+      const response = await this.apiClient.post(API_CONFIG.ENDPOINTS.AUTH.GET_TOKEN, {
+        userId: userInfo[STORAGE_KEYS_LOCAL.userId],
+        deviceId: userInfo[STORAGE_KEYS_LOCAL.deviceId]
       });
 
       const accessToken = response.data.accessToken;
@@ -1314,8 +1310,8 @@ class AuthService {
 
       // 存储访问令牌和过期时间
       await chrome.storage.local.set({
-        [STORAGE_KEYS.accessToken]: accessToken,
-        [STORAGE_KEYS.tokenExpiresAt]: expiresAt
+        [STORAGE_KEYS_LOCAL.accessToken]: accessToken,
+        [STORAGE_KEYS_LOCAL.tokenExpiresAt]: expiresAt
       });
 
       return accessToken;
@@ -1371,8 +1367,8 @@ const authService = new AuthService();
 async function shouldRefreshToken() {
   try {
     const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
-      STORAGE_KEYS.accessToken,
-      STORAGE_KEYS.tokenExpiresAt
+      STORAGE_KEYS_LOCAL.accessToken,
+      STORAGE_KEYS_LOCAL.tokenExpiresAt
     ]);
 
     if (!accessToken || !tokenExpiresAt) {
@@ -1396,20 +1392,20 @@ async function shouldRefreshToken() {
  */
 async function refreshAccessToken() {
   try {
-    const { accessToken } = await chrome.storage.local.get(STORAGE_KEYS.accessToken);
+    const { accessToken } = await chrome.storage.local.get(STORAGE_KEYS_LOCAL.accessToken);
     if (!accessToken) {
       console.log('No token to refresh');
       return false;
     }
 
-    const response = await apiClient.post('/api/v1/auth/refresh', {
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.REFRESH_TOKEN, {
       accessToken
     });
 
     if (response.data && response.data.accessToken) {
       await chrome.storage.local.set({
-        [STORAGE_KEYS.accessToken]: response.data.accessToken,
-        [STORAGE_KEYS.tokenExpiresAt]: response.data.expiresAt
+        [STORAGE_KEYS_LOCAL.accessToken]: response.data.accessToken,
+        [STORAGE_KEYS_LOCAL.tokenExpiresAt]: response.data.expiresAt
       });
       console.log('Token refreshed successfully');
       return true;
@@ -1419,8 +1415,8 @@ async function refreshAccessToken() {
     console.error('Failed to refresh token:', error);
     // 刷新失败时清除存储，下次重新获取
     await chrome.storage.local.remove([
-      STORAGE_KEYS.accessToken,
-      STORAGE_KEYS.tokenExpiresAt
+      STORAGE_KEYS_LOCAL.accessToken,
+      STORAGE_KEYS_LOCAL.tokenExpiresAt
     ]);
     return false;
   }

@@ -5,6 +5,9 @@ import i18n from './i18n.js';
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize i18n
   await i18n.initialize();
+  
+  // 更新页面国际化元素
+  i18n.updatePageI18n();
 
   // Apply i18n to UI elements
   applyI18n();

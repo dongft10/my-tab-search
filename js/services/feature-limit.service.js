@@ -8,7 +8,7 @@ import authService from './auth.service.js';
 
 class FeatureLimitService {
   constructor() {
-    this.storageKey = 'mytabsearch_feature_limits';
+    this.storageKey = 'featureLimits';
     this.cacheTimeout = 60 * 60 * 1000; // 1小时缓存
     this.cachedLimits = null;
     this.cacheTime = null;
@@ -57,21 +57,22 @@ class FeatureLimitService {
     try {
       const accessToken = await authService.getValidAccessToken();
       if (!accessToken) {
-        throw new Error('No access token');
+        // 没有访问令牌时静默返回默认限制
+        return await this.getLocalLimits() || this.getDefaultLimits();
       }
 
       const response = await authApi.getUserLimits(accessToken);
       
-      if (response.data.code === 0) {
-        const limitsData = response.data.data;
+      if (response.code === 0) {
+        const limitsData = response.data;
         await this.saveLimits(limitsData);
         return limitsData;
       }
 
-      throw new Error(response.data.msg || 'Sync failed');
+      // 同步失败时返回缓存的或默认限制
+      return await this.getLocalLimits() || this.getDefaultLimits();
     } catch (error) {
-      console.error('Sync limits error:', error);
-      // 返回缓存的或默认限制
+      // 网络错误或服务不可用时静默返回默认限制
       return await this.getLocalLimits() || this.getDefaultLimits();
     }
   }
