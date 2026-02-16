@@ -67,7 +67,7 @@ export const PINNED_TABS_CONFIG = {
   MAX_PINNED_TABS: 5,
   
   // 固定标签页弹窗尺寸
-  WINDOW_WIDTH: 416,
+  WINDOW_WIDTH: 384,
   WINDOW_HEIGHT: 600
 };
 

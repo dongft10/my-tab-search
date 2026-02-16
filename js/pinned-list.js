@@ -11,6 +11,8 @@ import vipService from './services/vip.service.js';
 
 // DOM elements
 let pinnedTabList;
+let searchInput;
+let tabCount;
 
 // 当前选中的tab item
 let selectedIndex = -1;
@@ -53,6 +55,11 @@ async function initialize() {
   
   // 初始化 DOM 元素
   pinnedTabList = document.getElementById('pinned-tab-list');
+  searchInput = document.getElementById('search-input');
+  tabCount = document.getElementById('tab-count');
+  
+  // 将焦点设置到搜索框
+  searchInput.focus();
   
   // 更新国际化文本
   updateI18nText();
@@ -72,6 +79,12 @@ function updateI18nText() {
     titleElement.textContent = i18n.getMessage('pinnedTabsTitle') || 'Pinned Tab List';
   }
   
+  // 更新搜索框占位符
+  if (searchInput) {
+    searchInput.placeholder = i18n.getMessage('searchPinnedTabs') || 'search pinned tabs...';
+    searchInput.setAttribute('aria-label', i18n.getMessage('searchPinnedTabsAria') || 'search pinned tabs');
+  }
+  
   // 更新按钮提示
   const settingsBtn = document.getElementById('settings-btn');
   if (settingsBtn) {
@@ -89,9 +102,16 @@ function bindEvents() {
   // 键盘事件
   window.addEventListener('keydown', handleKeydown);
   
+  // 搜索框输入事件
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      loadPinnedTabs();
+    });
+  }
+  
   // 窗口失去焦点时关闭窗口
   window.addEventListener('blur', () => {
-    // window.close();
+    window.close();
   });
   
   // 设置按钮
@@ -208,21 +228,143 @@ function updateSelection() {
 // @param targetTabId 可选，指定要滚动到的标签页ID
 async function loadPinnedTabs(targetTabId = null) {
   try {
-    const result = await chrome.storage.sync.get('pinnedTabs');
-    const pinnedTabs = result.pinnedTabs || [];
+    const result = await chrome.storage.local.get('pinnedTabs');
+    let pinnedTabs = result.pinnedTabs || [];
     
-    renderPinnedTabs(pinnedTabs, targetTabId);
+    // 获取搜索关键字
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const keywords = query ? query.split(/\s+/).filter(kw => kw.length > 0) : [];
+    
+    // 如果有搜索关键字，对标签页进行过滤
+    if (keywords.length > 0) {
+      // 使用子序列匹配过滤标题
+      pinnedTabs = pinnedTabs.filter((tab) => {
+        const lowerTitle = (tab.title || '').toLowerCase();
+        return keywords.every(keyword => subsequenceMatch(keyword, lowerTitle));
+      });
+      
+      // 根据匹配度排序
+      pinnedTabs.sort((a, b) => {
+        const scoreA = calculateMatchScore(a.title, keywords);
+        const scoreB = calculateMatchScore(b.title, keywords);
+        return scoreB - scoreA;
+      });
+    }
+    
+    renderPinnedTabs(pinnedTabs, targetTabId, keywords);
   } catch (error) {
     console.error('Error loading pinned tabs:', error);
     renderEmptyState();
   }
 }
 
+// 子序列匹配：检查关键字是否按顺序出现在文本中
+function subsequenceMatch(keyword, text) {
+  if (!keyword || !text) return false;
+  
+  let textIndex = 0;
+  const keywordLower = keyword.toLowerCase();
+  const textLower = text.toLowerCase();
+  
+  for (let i = 0; i < keywordLower.length && textIndex < textLower.length; i++) {
+    const char = keywordLower[i];
+    const foundIndex = textLower.indexOf(char, textIndex);
+    
+    if (foundIndex === -1) {
+      return false;
+    }
+    
+    textIndex = foundIndex + 1;
+  }
+  
+  return true;
+}
+
+// 计算匹配分数：关键字越靠前、匹配字符越多，分数越高
+function calculateMatchScore(title, keywords) {
+  if (!title || !keywords || keywords.length === 0) return 0;
+  
+  const lowerTitle = title.toLowerCase();
+  let score = 0;
+  
+  keywords.forEach((keyword, kwIndex) => {
+    const keywordLower = keyword.toLowerCase();
+    
+    // 标题完全包含关键字
+    if (lowerTitle.includes(keywordLower)) {
+      score += 100;
+      
+      // 标题以关键字开头，加更多分
+      if (lowerTitle.startsWith(keywordLower)) {
+        score += 50;
+      }
+    }
+    
+    // 子序列匹配
+    if (subsequenceMatch(keywordLower, lowerTitle)) {
+      score += 50;
+      
+      // 关键字在标题中越靠前，分数越高
+      const matchIndex = lowerTitle.indexOf(keywordLower);
+      if (matchIndex !== -1) {
+        score += Math.max(0, 20 - matchIndex / 10);
+      }
+    }
+    
+    // 关键字越靠后权重越低（用户通常更关注前面的关键字）
+    score -= kwIndex * 5;
+  });
+  
+  return score;
+}
+
+// 高亮匹配的关键字
+function highlightMatches(text, keywords) {
+  if (!keywords || keywords.length === 0 || !text) {
+    return text;
+  }
+
+  // 创建一个标记数组，记录每个字符是否被匹配
+  const matched = new Array(text.length).fill(false);
+  const lowerText = text.toLowerCase();
+
+  // 对每个关键字进行匹配，高亮关键字中每个字符的所有出现位置
+  keywords.forEach(keyword => {
+    // 对于关键字中的每个字符，在文本中找到所有出现位置
+    for (let k = 0; k < keyword.length; k++) {
+      const char = keyword[k].toLowerCase();
+      for (let i = 0; i < text.length; i++) {
+        if (lowerText[i] === char) {
+          matched[i] = true;
+        }
+      }
+    }
+  });
+
+  // 构建高亮的 HTML
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    if (matched[i]) {
+      result += `<span class="highlight">${text[i]}</span>`;
+    } else {
+      result += text[i];
+    }
+  }
+
+  return result;
+}
+
 // 渲染固定标签页
 // @param pinnedTabs 固定标签页列表
 // @param targetTabId 可选，指定要滚动到的标签页ID
-function renderPinnedTabs(pinnedTabs, targetTabId = null) {
+// @param keywords 可选，搜索关键字用于高亮
+function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = []) {
   pinnedTabList.innerHTML = '';
+  
+  // 更新数量显示
+  if (tabCount) {
+    tabCount.textContent = `${pinnedTabs.length} ${i18n.getMessage('tabs') || 'Tabs'}`;
+  }
   
   if (pinnedTabs.length === 0) {
     renderEmptyState();
@@ -238,6 +380,11 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null) {
       const li = document.createElement('li');
       li.dataset.tabId = tab.tabId;
       
+      // 如果是长期固定的Tab，添加专属底色
+      if (tab.isLongTermPinned) {
+        li.classList.add('long-term-pinned');
+      }
+      
       // 标签图标
       const icon = document.createElement('img');
       icon.classList.add('li-icon');
@@ -249,7 +396,7 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null) {
       // 标题和 URL
       const titleDiv = document.createElement('div');
       titleDiv.classList.add('tab-title');
-      titleDiv.textContent = tab.title;
+      titleDiv.innerHTML = highlightMatches(tab.title, keywords);
       
       const urlHostNameDiv = document.createElement('div');
       urlHostNameDiv.classList.add('tab-url-hostname');
@@ -279,6 +426,11 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null) {
         closeTabAndRemoveFromPinnedList(tab.tabId);
       });
       
+      // 如果是长期固定的tab，隐藏关闭按钮（避免关闭不存在的tab）
+      if (tab.isLongTermPinned) {
+        closeBtn.style.display = 'none';
+      }
+      
       // 创建取消固定按钮（展开时显示）
       const unpinBtn = document.createElement('button');
       unpinBtn.classList.add('action-btn', 'unpin-btn');
@@ -288,6 +440,11 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null) {
         e.stopPropagation();
         removeFromPinnedList(tab.tabId);
       });
+      
+      // 如果是长期固定的tab，隐藏取消固定按钮
+      if (tab.isLongTermPinned) {
+        unpinBtn.style.display = 'none';
+      }
       
       // 创建长期固定按钮（展开时始终显示）
       const longTermBtn = document.createElement('button');
@@ -386,6 +543,11 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null) {
 function renderEmptyState() {
   pinnedTabList.innerHTML = '';
   
+  // 更新数量显示
+  if (tabCount) {
+    tabCount.textContent = '0';
+  }
+  
   const emptyState = document.createElement('div');
   emptyState.classList.add('empty-state');
   
@@ -417,8 +579,29 @@ async function switchToTab(tabId) {
   try {
     // 检查标签页是否存在
     const tab = await chrome.tabs.get(tabId);
+    const tabUrl = tab.url; // 保存 URL 备用
     if (!tab) {
-      // 标签页不存在，从固定列表中移除
+      // 标签页不存在，检查是否是长期固定的tab（通过tabId匹配）
+      const result = await chrome.storage.local.get('pinnedTabs');
+      const pinnedTabs = result.pinnedTabs || [];
+      const targetTab = pinnedTabs.find(t => t.isLongTermPinned && t.tabId === tabId);
+      
+      if (targetTab) {
+        // 长期固定的tab已被关闭，重新打开该网页
+        const newTab = await chrome.tabs.create({ url: targetTab.url });
+        // 更新pinnedTabList中记录的tabId（通过URL匹配）
+        const updatedTabs = pinnedTabs.map(t => {
+          if (t.isLongTermPinned && t.url === targetTab.url) {
+            return { ...t, tabId: newTab.id, title: newTab.title };
+          }
+          return t;
+        });
+        await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+        window.close();
+        return;
+      }
+      
+      // 非长期固定的tab，直接从列表中移除
       await removeFromPinnedList(tabId);
       return;
     }
@@ -434,12 +617,31 @@ async function switchToTab(tabId) {
     // 关闭弹窗
     window.close();
   } catch (error) {
-    if(error.message && error.message.includes('No tab with id')) {
-      // 标签页不存在，从固定列表中移除
+    if (error.message && error.message.includes('No tab with id')) {
+      // 标签页不存在，检查是否是长期固定的tab（通过tabId匹配）
+      const result = await chrome.storage.local.get('pinnedTabs');
+      const pinnedTabs = result.pinnedTabs || [];
+      const targetTab = pinnedTabs.find(t => t.isLongTermPinned && t.tabId === tabId);
+      
+      if (targetTab) {
+        // 长期固定的tab已被关闭，重新打开该网页
+        const newTab = await chrome.tabs.create({ url: targetTab.url });
+        // 更新pinnedTabList中记录的tabId（通过URL匹配）
+        const updatedTabs = pinnedTabs.map(t => {
+          if (t.isLongTermPinned && t.url === targetTab.url) {
+            return { ...t, tabId: newTab.id, title: newTab.title };
+          }
+          return t;
+        });
+        await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+        window.close();
+        return;
+      }
+      
+      // 非长期固定的tab，直接从列表中移除
       await removeFromPinnedList(tabId);
-    } else if(error.message && !error.message.includes('No tab with id')) {
-      // 其他错误，重新抛出
-      throw error;
+    } else {
+      console.error('Switch to tab error:', error);
     }
   }
 }
@@ -447,8 +649,15 @@ async function switchToTab(tabId) {
 // 从固定列表中移除（不关闭标签页）
 async function removeFromPinnedList(tabId) {
   try {
-    const result = await chrome.storage.sync.get('pinnedTabs');
+    const result = await chrome.storage.local.get('pinnedTabs');
     let pinnedTabs = result.pinnedTabs || [];
+    
+    // 检查是否是长期固定的tab，如果是则不执行移除
+    const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+    if (targetTab && targetTab.isLongTermPinned) {
+      console.log('[removeFromPinnedList] Cannot remove long-term pinned tab:', tabId);
+      return;
+    }
     
     // 找到要移除的标签页的索引
     const removedIndex = pinnedTabs.findIndex(tab => tab.tabId === tabId);
@@ -457,7 +666,7 @@ async function removeFromPinnedList(tabId) {
     pinnedTabs = pinnedTabs.filter(tab => tab.tabId !== tabId);
     
     // 保存到存储
-    await chrome.storage.sync.set({ pinnedTabs });
+    await chrome.storage.local.set({ pinnedTabs });
     
     // 确定要滚动到的标签页ID
     // 优先选择下一个标签页，如果没有则选择上一个
@@ -482,20 +691,31 @@ async function removeFromPinnedList(tabId) {
 // 关闭标签页并从固定列表中移除
 async function closeTabAndRemoveFromPinnedList(tabId) {
   try {
-    // 先从固定列表中移除
-    await removeFromPinnedList(tabId);
+    // 检查是否是长期固定的tab
+    const result = await chrome.storage.local.get('pinnedTabs');
+    const pinnedTabs = result.pinnedTabs || [];
+    const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+    const isLongTermPinned = targetTab && targetTab.isLongTermPinned;
     
-    // 然后关闭标签页（如果标签页还存在）
+    // 关闭浏览器标签页（如果标签页还存在）
     try {
+      await chrome.tabs.get(tabId);
+      // 只有 tab 存在时才尝试关闭
       await chrome.tabs.remove(tabId);
     } catch (tabError) {
-      // 标签页可能已经被关闭，忽略此错误
-      if (tabError.message && tabError.message.includes('No tab with id')) {
-        // 标签页已关闭，这是预期的行为
-      } else {
-        // 其他错误，重新抛出
-        throw tabError;
-      }
+      // 标签页不存在（可能已经被关闭或不存在），忽略错误
+      console.log('[closeTabAndRemoveFromPinnedList] Tab does not exist or already closed:', tabId);
+    }
+    
+    // 根据是否是长期固定tab决定是否从列表中移除
+    if (isLongTermPinned) {
+      // 长期固定的tab：关闭了浏览器tab，但仍保留在列表中
+      showToast('长期固定的Tab已关闭，但仍保留在列表中');
+      // 刷新列表显示
+      await loadPinnedTabs();
+    } else {
+      // 普通tab：从列表中移除
+      await removeFromPinnedList(tabId);
     }
   } catch (error) {
     console.error('Error closing tab and removing from pinned list:', error);
@@ -539,11 +759,11 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       return;
     }
     
-    // 获取体验期状态
-    const trialStatus = await trialService.getTrialStatus();
+    // 获取体验期状态（缓存超过1天自动刷新）
+    const trialStatus = await trialService.fetchTrialStatus();
     
-    // 获取VIP状态
-    const vipStatus = await vipService.getVipStatus();
+    // 获取VIP状态（强制刷新，确保获取最新状态）
+    const vipStatus = await vipService.getVipStatus(true);
     
     // 体验期用户可以正常使用
     if (trialStatus.isInTrialPeriod) {
@@ -566,7 +786,14 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
     }
     
     // 普通用户（已过体验期且非VIP）
-    showToast(i18n.getMessage('longTermPinnedNeedVip'));
+    // 允许取消已有的长期固定，但不允许新设置
+    if (isCurrentlyLongTermPinned) {
+      // 已经是长期固定，允许取消
+      await cancelLongTermPinned(tabId);
+    } else {
+      // 不是长期固定，不允许新设置
+      showToast(i18n.getMessage('longTermPinnedNeedVip'));
+    }
   } catch (error) {
     console.error('Long term pinned error:', error);
     showToast(i18n.getMessage('longTermPinnedFailed'));
@@ -576,7 +803,7 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
 // 设置长期固定Tab
 async function setLongTermPinned(tabId) {
   try {
-    const result = await chrome.storage.sync.get('pinnedTabs');
+    const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
     
     const updatedTabs = tabs.map(t => {
@@ -590,7 +817,7 @@ async function setLongTermPinned(tabId) {
       return t;
     });
     
-    await chrome.storage.sync.set({ pinnedTabs: updatedTabs });
+    await chrome.storage.local.set({ pinnedTabs: updatedTabs });
     
     showToast(i18n.getMessage('longTermPinnedSuccess'));
     
@@ -605,7 +832,7 @@ async function setLongTermPinned(tabId) {
 // 取消长期固定Tab
 async function cancelLongTermPinned(tabId) {
   try {
-    const result = await chrome.storage.sync.get('pinnedTabs');
+    const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
     
     const updatedTabs = tabs.map(t => {
@@ -619,7 +846,7 @@ async function cancelLongTermPinned(tabId) {
       return t;
     });
     
-    await chrome.storage.sync.set({ pinnedTabs: updatedTabs });
+    await chrome.storage.local.set({ pinnedTabs: updatedTabs });
     
     showToast(i18n.getMessage('cancelLongTermSuccess'));
     

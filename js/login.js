@@ -137,11 +137,23 @@ async function handleVerify() {
   elements.btnVerify.textContent = i18n?.getMessage('verifying') || 'Verifying...';
   
   try {
-    // 获取本地存储的 deviceId（如果有的话）
+    // 获取本地存储的 deviceId 和设备信息（如果有的话）
     const userInfo = await authService.getUserInfo();
     const deviceId = userInfo?.[authService.storageKey.deviceId];
     
-    const response = await authApi.verifyEmail(email, code, deviceId);
+    // 获取设备指纹和浏览器信息
+    let deviceInfo = null;
+    if (typeof fingerprintUtil !== 'undefined') {
+      const fingerprint = await fingerprintUtil.generate();
+      const browserInfo = await fingerprintUtil.getBrowserInfo();
+      deviceInfo = {
+        fingerprint,
+        browserInfo,
+        extensionVersion: chrome.runtime.getManifest().version
+      };
+    }
+    
+    const response = await authApi.verifyEmail(email, code, deviceId, deviceInfo);
     
     // 兼容两种响应格式: {code: 0} 或 {success: true}
     const isSuccess = response.code === 0 || response.data?.success === true;

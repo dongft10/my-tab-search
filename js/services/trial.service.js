@@ -46,10 +46,33 @@ class TrialService {
 
   /**
    * 从服务器获取体验期状态
+   * @param {boolean} forceRefresh - 是否强制刷新（默认false，缓存超过1天才刷新）
    * @returns {Promise<object>} - 返回体验期状态
    */
-  async fetchTrialStatus() {
+  async fetchTrialStatus(forceRefresh = false) {
     try {
+      const localStatus = await this.getLocalTrialStatus();
+      const oneDay = 24 * 60 * 60 * 1000;
+      
+      // 检查缓存是否超过1天
+      if (!forceRefresh && localStatus && localStatus.lastUpdateAt) {
+        const cacheAge = Date.now() - new Date(localStatus.lastUpdateAt).getTime();
+        if (cacheAge < oneDay) {
+          // 缓存未超过1天，直接返回本地状态
+          // 检查是否过期
+          if (localStatus.trialEndsAt) {
+            const endsAt = new Date(localStatus.trialEndsAt).getTime();
+            if (endsAt < Date.now()) {
+              localStatus.isInTrialPeriod = false;
+              localStatus.trialDaysLeft = 0;
+            }
+          }
+          console.log('[Trial] Using cached status, cache age:', Math.round(cacheAge / 1000 / 60), 'minutes');
+          return localStatus;
+        }
+      }
+
+      // 缓存超过1天或没有缓存，从服务器获取
       const accessToken = await this.getValidAccessToken();
       if (!accessToken) {
         throw new Error('No access token');
@@ -60,6 +83,7 @@ class TrialService {
       if (response.code === 0) {
         const trialData = response.data;
         await this.saveTrialStatus(trialData);
+        console.log('[Trial] Fetched fresh status from server');
         return trialData;
       }
 

@@ -17,7 +17,7 @@ class PinnedTabsService {
    */
   async getPinnedTabs() {
     try {
-      const result = await chrome.storage.sync.get(this.storageKey);
+      const result = await chrome.storage.local.get(this.storageKey);
       return result[this.storageKey] || [];
     } catch (error) {
       console.error('Get pinned tabs error:', error);
@@ -32,12 +32,24 @@ class PinnedTabsService {
    */
   async savePinnedTabs(tabs) {
     try {
-      await chrome.storage.sync.set({
+      await chrome.storage.local.set({
         [this.storageKey]: tabs
       });
     } catch (error) {
       console.error('Save pinned tabs error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 清除所有固定Tab（退登时使用）
+   * @returns {Promise}
+   */
+  async clearPinnedTabs() {
+    try {
+      await chrome.storage.local.remove([this.storageKey, this.longTermStorageKey]);
+    } catch (error) {
+      console.error('Clear pinned tabs error:', error);
     }
   }
 
@@ -48,7 +60,7 @@ class PinnedTabsService {
    */
   async addPinnedTab(tab) {
     try {
-      // 检查固定Tab上限
+      // 检查固定Tab上限（缓存超过1天自动刷新）
       const limit = await featureLimitService.getFeatureLimit('pinnedTabs');
       const tabs = await this.getPinnedTabs();
       
