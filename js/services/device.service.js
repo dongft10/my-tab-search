@@ -7,6 +7,7 @@ import authApi from '../api/auth.js';
 import authService from './auth.service.js';
 import vipService from './vip.service.js';
 import featureLimitService from './feature-limit.service.js';
+import pinnedTabsService from './pinned-tabs.service.js';
 
 class DeviceService {
   constructor() {
@@ -230,6 +231,9 @@ class DeviceService {
     try {
       // 清除设备缓存
       await this.clearCache();
+      
+      // 清除固定标签页
+      await pinnedTabsService.clearPinnedTabs();
       
       // 使用 authService 的 storageKey 清除登录相关数据
       const keysToRemove = [

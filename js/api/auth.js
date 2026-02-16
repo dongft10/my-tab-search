@@ -18,17 +18,24 @@ class AuthApi {
     return apiClient.post(ENDPOINTS.AUTH.SILENT_REGISTER, deviceInfo);
   }
 
-  /**
-   * 获取访问令牌
-   * @param {string} userId - 用户 ID
-   * @param {string} deviceId - 设备 ID
-   * @returns {Promise} - 返回令牌
-   */
-  async getToken(userId, deviceId) {
-    return apiClient.post(ENDPOINTS.AUTH.GET_TOKEN, {
-      userId,
-      deviceId
-    });
+   /**
+    * @param {string} email - 邮箱地址
+    * @param {string} code - 验证码
+    * @param {string} deviceId - 设备ID（可选，用于关联现有设备）
+    * @param {Object} deviceInfo - 设备信息（可选，包含 fingerprint 和 browserInfo）
+    * @returns {Promise} - 返回验证结果
+    */
+  async verifyEmail(email, code, deviceId = null, deviceInfo = null) {
+    const data = { email, code };
+    if (deviceId) {
+      data.deviceId = deviceId;
+    }
+    if (deviceInfo) {
+      data.deviceFingerprint = deviceInfo.fingerprint;
+      data.browserInfo = deviceInfo.browserInfo;
+      data.extensionVersion = deviceInfo.extensionVersion;
+    }
+    return apiClient.post(ENDPOINTS.AUTH.VERIFY_EMAIL, data);
   }
 
   /**

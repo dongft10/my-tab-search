@@ -23,7 +23,7 @@
     "message": "Loading...",
     "description": "Text shown while loading tabs"
   },
-  "tabsCount": {
+  "tabCount": {
     "message": "$COUNT$ Tabs",
     "description": "Text showing the number of tabs, $COUNT$ will be replaced with the actual number",
     "placeholders": {
@@ -530,6 +530,14 @@
   "search": {
     "message": "Search",
     "description": "Search alt text"
+  },
+  "searchPinnedTabs": {
+    "message": "search pinned tabs...",
+    "description": "Placeholder text for the pinned tabs search input"
+  },
+  "searchPinnedTabsAria": {
+    "message": "search pinned tabs",
+    "description": "ARIA label for the pinned tabs search input"
   },
   "andText": {
     "message": "and",

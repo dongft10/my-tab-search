@@ -66,9 +66,9 @@ if (typeof CONFIG_COMMON === 'undefined') {
     // 固定标签页容量限制（最大数量）
     MAX_PINNED_TABS: 5,
     
-    // 固定标签页弹窗尺寸
+    // 固定标签页弹窗尺寸（设大一些避免Chrome裁剪）
     WINDOW_WIDTH: 416,
-    WINDOW_HEIGHT: 600
+    WINDOW_HEIGHT: 800
   };
 
   const SEARCH_CONFIG = {

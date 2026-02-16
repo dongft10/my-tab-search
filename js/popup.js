@@ -2,6 +2,8 @@
 import i18n from './i18n.js';
 // Import config
 import { PINNED_TABS_CONFIG } from './config.js';
+// Import feature limit service
+import featureLimitService from './services/feature-limit.service.js';
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -34,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const searchInput = document.getElementById("search-input");
   const tabList = document.getElementById("tab-list");
-  let tabsCount = document.getElementById("tab-count");
+  let tabCount = document.getElementById("tab-count");
 
   // 当前选中的tab item
   let selectedIndex = -1;
@@ -169,6 +171,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function updateTabs(nextSelectedTabId, targetTabId = null, relativeOffset = null) {
     const query = searchInput.value.trim().toLowerCase();
 
+    // 预先获取 pinnedTabs（只需要 1 次 I/O），构建 Map 用于快速查找
+    const pinnedResult = await new Promise((resolve) => {
+      chrome.storage.local.get('pinnedTabs', resolve);
+    });
+    const pinnedTabs = pinnedResult.pinnedTabs || [];
+    const pinnedMap = new Map();
+    pinnedTabs.forEach(t => {
+      pinnedMap.set(t.tabId, t);
+      pinnedMap.set(t.url, t);
+    });
+
     // 使用 Promise 包装 chrome.tabs.query
     const tabs = await new Promise((resolve) => {
       chrome.tabs.query({}, resolve);
@@ -241,8 +254,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const actionContainer = document.createElement("div");
         actionContainer.classList.add("action-container");
 
-        // 检查标签页是否已固定
-        const isPinned = await isTabPinned(tab.id);
+        // 检查标签页是否已固定（使用预构建的 pinnedMap）
+        const isPinned = isTabPinnedSync(tab.id, tab.url, pinnedMap);
 
         // 如果已固定，给列表项添加橙色底色
         if (isPinned) {
@@ -369,12 +382,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 已打开标签总数展示控制
     if (query.length === 0) {
       chrome.tabs.query({ windowType: 'normal' }, function (allTabs) {
-        const message = i18n.getMessage('tabsCount', allTabs.length.toString());
-        tabsCount.textContent = message ? message.replace('$COUNT$', allTabs.length) : `${allTabs.length} Tabs`;
+        const message = i18n.getMessage('tabCount', allTabs.length.toString());
+        tabCount.textContent = message ? message.replace('$COUNT$', allTabs.length) : `${allTabs.length} Tabs`;
       });
     } else {
-      const message = i18n.getMessage('tabsCount', filteredTabs.length.toString());
-      tabsCount.textContent = message ? message.replace('$COUNT$', filteredTabs.length) : `${filteredTabs.length} Tabs`;
+      const message = i18n.getMessage('tabCount', filteredTabs.length.toString());
+      tabCount.textContent = message ? message.replace('$COUNT$', filteredTabs.length) : `${filteredTabs.length} Tabs`;
     }
   }
 
@@ -385,34 +398,69 @@ document.addEventListener("DOMContentLoaded", async () => {
     return url.toString();
   }
 
-  // 从配置文件获取固定标签页容量限制
-  const { MAX_PINNED_TABS } = PINNED_TABS_CONFIG;
+  // 检查标签页是否已固定（同步版本，使用预构建的 pinnedMap）
+  function isTabPinnedSync(tabId, tabUrl, pinnedMap) {
+    if (pinnedMap.has(tabId)) {
+      return true;
+    }
+    if (tabUrl && pinnedMap.has(tabUrl)) {
+      return true;
+    }
+    return false;
+  }
 
-  // 检查标签页是否已固定
-  async function isTabPinned(tabId) {
+  // 检查标签页是否已固定（异步版本，兼容旧调用）
+  async function isTabPinned(tabId, tabUrl = null) {
     const result = await new Promise((resolve) => {
-      chrome.storage.sync.get('pinnedTabs', resolve);
+      chrome.storage.local.get('pinnedTabs', resolve);
     });
     const pinnedTabs = result.pinnedTabs || [];
-    return pinnedTabs.some(tab => tab.tabId === tabId);
+    
+    // 先通过 tabId 判断
+    if (pinnedTabs.some(tab => tab.tabId === tabId)) {
+      return true;
+    }
+    
+    // 如果没有通过 tabId 找到，但提供了 URL，则通过 URL 辅助判断
+    if (tabUrl) {
+      return pinnedTabs.some(tab => tab.url === tabUrl);
+    }
+    
+    return false;
   }
 
   // 添加标签页到固定列表
   async function pinTab(tab) {
     try {
+      // 获取固定标签页容量限制（缓存超过1天自动刷新）
+      const maxPinnedTabs = await featureLimitService.getFeatureLimit('pinnedTabs');
+      
       const result = await new Promise((resolve) => {
-        chrome.storage.sync.get('pinnedTabs', resolve);
+        chrome.storage.local.get('pinnedTabs', resolve);
       });
       let pinnedTabs = result.pinnedTabs || [];
 
-      // 检查是否已固定
+      // 检查是否已固定（通过 tabId）
       if (pinnedTabs.some(t => t.tabId === tab.id)) {
         return { success: true, message: '已固定' };
       }
 
+      // 检查是否通过 URL 匹配到已固定的长期 tab（长期固定的 tab 重新打开的情况）
+      const existingIndex = pinnedTabs.findIndex(t => t.url === tab.url);
+      if (existingIndex !== -1) {
+        // 更新 tabId 为当前新打开的 tab
+        pinnedTabs[existingIndex].tabId = tab.id;
+        pinnedTabs[existingIndex].title = tab.title;
+        // 保存到存储
+        await new Promise((resolve) => {
+          chrome.storage.local.set({ pinnedTabs }, resolve);
+        });
+        return { success: true, message: '已重新固定' };
+      }
+
       // 检查容量限制
-      if (pinnedTabs.length >= MAX_PINNED_TABS) {
-        return { success: false, message: i18n.getMessage('pinnedTabsLimit', MAX_PINNED_TABS.toString()) || `固定标签页数量超过${MAX_PINNED_TABS}个的限制` };
+      if (pinnedTabs.length >= maxPinnedTabs) {
+        return { success: false, message: i18n.getMessage('pinnedTabsLimit', maxPinnedTabs.toString()) || `固定标签页数量超过${maxPinnedTabs}个的限制` };
       }
 
       // 添加到固定列表
@@ -425,7 +473,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       // 保存到存储
       await new Promise((resolve) => {
-        chrome.storage.sync.set({ pinnedTabs }, resolve);
+        chrome.storage.local.set({ pinnedTabs }, resolve);
       });
 
       return { success: true, message: '固定成功' };
@@ -439,16 +487,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function unpinTab(tabId) {
     try {
       const result = await new Promise((resolve) => {
-        chrome.storage.sync.get('pinnedTabs', resolve);
+        chrome.storage.local.get('pinnedTabs', resolve);
       });
       let pinnedTabs = result.pinnedTabs || [];
+
+      // 检查是否是长期固定的tab，如果是则不执行移除
+      const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+      if (targetTab && targetTab.isLongTermPinned) {
+        return { success: false, message: '长期固定的Tab无法取消固定' };
+      }
 
       // 过滤掉要移除的标签页
       pinnedTabs = pinnedTabs.filter(tab => tab.tabId !== tabId);
 
       // 保存到存储
       await new Promise((resolve) => {
-        chrome.storage.sync.set({ pinnedTabs }, resolve);
+        chrome.storage.local.set({ pinnedTabs }, resolve);
       });
 
       return { success: true, message: '取消固定成功' };
@@ -460,7 +514,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 处理List item 关闭标签事件
   function handleCloseBtnClicked(tabId) {
-    if (tabId !== undefined) {
+    if (tabId === undefined) return;
+    
+    // 检查是否是长期固定的tab
+    chrome.storage.local.get('pinnedTabs', (result) => {
+      const pinnedTabs = result.pinnedTabs || [];
+      const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+      
+      if (targetTab && targetTab.isLongTermPinned) {
+        // 长期固定的tab：关闭浏览器标签页，但只从当前列表移除，不从pinnedTabList中移除
+        chrome.tabs.remove(tabId, () => {
+          // 从当前列表中移除该tab（通过更新tab列表）
+          updateTabs(-1);
+        });
+        return;
+      }
+      
+      // 普通tab：关闭浏览器标签页并从列表中移除
       chrome.tabs.remove(tabId, () => {
         if (chrome.runtime.lastError) {
           const errorMessage = i18n.getMessage('closeTabFailed', chrome.runtime.lastError.message);
@@ -475,14 +545,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         updateTabs(nextTabId);
       });
-    }
+    });
   }
 
   // 处理固定/取消固定事件
   // @param tab 要固定/取消固定的标签页
   // @param tabIndex 标签页在列表中的索引
   async function handlePinTab(tab, tabIndex) {
-    const isPinned = await isTabPinned(tab.id);
+    // 预先获取 pinnedTabs 构建 Map
+    const pinnedResult = await new Promise((resolve) => {
+      chrome.storage.local.get('pinnedTabs', resolve);
+    });
+    const pinnedTabs = pinnedResult.pinnedTabs || [];
+    const pinnedMap = new Map();
+    pinnedTabs.forEach(t => {
+      pinnedMap.set(t.tabId, t);
+      pinnedMap.set(t.url, t);
+    });
+    
+    // 检查标签页是否已固定（使用预构建的 pinnedMap）
+    const isPinned = isTabPinnedSync(tab.id, tab.url, pinnedMap);
     let result;
 
     if (isPinned) {
@@ -621,7 +703,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   i18n.updatePageI18n();
 
   // Set initial loading text with i18n
-  tabsCount.textContent = i18n.getMessage('loadingText') || 'Loading...';
+  tabCount.textContent = i18n.getMessage('loadingText') || 'Loading...';
 
   // initial tab update
   updateTabs();

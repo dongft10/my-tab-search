@@ -23,7 +23,7 @@
     "message": "加载中...",
     "description": "Text shown while loading tabs"
   },
-  "tabsCount": {
+  "tabCount": {
     "message": "$COUNT$ Tabs",
     "description": "Text showing the number of tabs, $COUNT$ will be replaced with the actual number",
     "placeholders": {
@@ -530,6 +530,14 @@
   "search": {
     "message": "搜索",
     "description": "Search alt text"
+  },
+  "searchPinnedTabs": {
+    "message": "搜索已固定的标签页...",
+    "description": "Placeholder text for the pinned tabs search input"
+  },
+  "searchPinnedTabsAria": {
+    "message": "搜索已固定的标签页",
+    "description": "ARIA label for the pinned tabs search input"
   },
   "andText": {
     "message": "和",

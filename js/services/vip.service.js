@@ -10,6 +10,7 @@ class VipService {
   constructor() {
     this.storageKey = 'vipStatus';
     this.syncInterval = 60 * 60 * 1000; // 1小时同步一次
+    this.cacheMaxAge = 24 * 60 * 60 * 1000; // 缓存最大有效期1天
     this.lastSyncAt = null;
     this.syncTimer = null;
   }
@@ -93,9 +94,10 @@ class VipService {
 
   /**
    * 获取VIP状态（优先使用本地，必要时同步）
+   * @param {boolean} forceRefresh - 是否强制从服务器刷新（默认false）
    * @returns {Promise<object>} - 返回VIP状态
    */
-  async getVipStatus() {
+  async getVipStatus(forceRefresh = false) {
     try {
       const localStatus = await this.getLocalVipStatus();
       
@@ -104,12 +106,12 @@ class VipService {
         return await this.syncVipStatus();
       }
 
-      // 检查是否需要同步
       const lastSync = new Date(localStatus.lastSyncAt).getTime();
       const now = Date.now();
       
-      // 超过1小时不同步，直接返回本地状态
-      if (now - lastSync > this.syncInterval) {
+      // 强制刷新：直接返回本地缓存状态，供前端使用
+      // 非强制：检查缓存是否超过1天，超过才同步
+      if (!forceRefresh && (now - lastSync > this.cacheMaxAge)) {
         // 后台同步
         this.syncVipStatus();
       }

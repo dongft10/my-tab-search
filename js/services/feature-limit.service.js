@@ -93,7 +93,8 @@ class FeatureLimitService {
         longTermPinned: 0,
         crossDeviceSync: 0,
         contentSearch: 0,
-        syncDevices: 0
+        syncDevices: 0,
+        vipPinnedTabs: 100
       }
     };
   }
@@ -168,9 +169,10 @@ class FeatureLimitService {
   /**
    * 获取功能限制值
    * @param {string} feature - 功能ID
+   * @param {boolean} forceRefresh - 是否强制从服务器刷新（默认false，缓存超过1天才刷新）
    * @returns {Promise<number>} - 限制值
    */
-  async getFeatureLimit(feature) {
+  async getFeatureLimit(feature, forceRefresh = false) {
     try {
       const limits = await this.getLimits();
       const featureLimits = limits.limits || {};
@@ -192,6 +194,23 @@ class FeatureLimitService {
         return -1;
       }
 
+      // 检查是否需要刷新（缓存超过1天或强制刷新）
+      if (!forceRefresh && this.cacheTime) {
+        const cacheAge = Date.now() - this.cacheTime;
+        const oneDay = 24 * 60 * 60 * 1000;
+        if (cacheAge > oneDay) {
+          // 缓存超过1天，强制刷新一次
+          this.cachedLimits = null;
+          this.cacheTime = null;
+          await chrome.storage.local.remove(this.storageKey);
+          const freshLimits = await this.getLimits();
+          const freshFeatureLimits = freshLimits.limits || {};
+          console.log('[FeatureLimit] Cache expired, refreshed limit for', feature, ':', freshFeatureLimits[limitKey], 'UserType:', freshLimits.userType);
+          return freshFeatureLimits[limitKey] !== undefined ? freshFeatureLimits[limitKey] : 0;
+        }
+      }
+
+      console.log('[FeatureLimit] Get limit for', feature, ':', featureLimits[limitKey], 'UserType:', limits.userType);
       return featureLimits[limitKey] !== undefined ? featureLimits[limitKey] : 0;
     } catch (error) {
       console.error('Get feature limit error:', error);

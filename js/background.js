@@ -1,10 +1,36 @@
 // background.js
 
 // 导入通用配置文件
-importScripts('./config.common.js');
+try {
+  importScripts('./config.common.js');
+} catch (error) {
+  console.error('[background] Failed to import config.common.js:', error);
+}
 
-// 从全局配置中获取配置
-const { API_CONFIG, PINNED_TABS_CONFIG, STORAGE_KEYS } = CONFIG_COMMON;
+// 备用配置（如果 importScripts 失败）
+const FALLBACK_CONFIG = {
+  API_CONFIG: {
+    BASE_URL: 'http://localhost:41532',
+    API_VERSION: '/api/v1'
+  },
+  PINNED_TABS_CONFIG: {
+    MAX_PINNED_TABS: 5,
+    WINDOW_WIDTH: 416,
+    WINDOW_HEIGHT: 800
+  },
+  STORAGE_KEYS: {
+    USER_ID: 'userId',
+    DEVICE_ID: 'deviceId',
+    ACCESS_TOKEN: 'accessToken',
+    TOKEN_EXPIRES_AT: 'tokenExpiresAt',
+    REGISTERED_AT: 'registeredAt',
+    DEVICE_FINGERPRINT: 'deviceFingerprint'
+  }
+};
+
+// 从全局配置中获取配置（如果 CONFIG_COMMON 可用则使用，否则使用备用配置）
+const CONFIG = typeof CONFIG_COMMON !== 'undefined' ? CONFIG_COMMON : FALLBACK_CONFIG;
+const { API_CONFIG, PINNED_TABS_CONFIG, STORAGE_KEYS } = CONFIG;
 
 // 存储键名常量（转换为小写驼峰格式以兼容现有代码）
 const STORAGE_KEYS_LOCAL = {
@@ -722,15 +748,24 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   // 从历史记录中移除已关闭的标签页
   await removeFromHistory(tabId);
 
-  // 从固定列表中移除已关闭的标签页
+  // 从固定列表中移除已关闭的标签页（但长期固定的tab不移除）
   try {
-    const result = await chrome.storage.sync.get('pinnedTabs');
+    const result = await chrome.storage.local.get('pinnedTabs');
     const pinnedTabs = result.pinnedTabs || [];
-    const filteredTabs = pinnedTabs.filter(tab => tab.tabId !== tabId);
+    
+    // 过滤掉已关闭的非长期固定标签页
+    const filteredTabs = pinnedTabs.filter(tab => {
+      // 如果是长期固定的tab，即使浏览器标签页关闭了也不移除
+      if (tab.isLongTermPinned && tab.tabId === tabId) {
+        return true; // 保留
+      }
+      // 其他标签页如果关闭了则移除
+      return tab.tabId !== tabId;
+    });
 
     if (filteredTabs.length !== pinnedTabs.length) {
       // 有标签页被移除，更新存储
-      await chrome.storage.sync.set({ pinnedTabs: filteredTabs });
+      await chrome.storage.local.set({ pinnedTabs: filteredTabs });
       console.log('[background] Removed closed tab from pinned list:', tabId);
     }
   } catch (error) {
@@ -898,8 +933,20 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
   if (message.action === 'openSettings') {
     try {
-      // 打开设置页面
-      chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
+      // 检查是否已打开设置页面
+      const settingsUrl = chrome.runtime.getURL('html/settings.html');
+      const tabs = await chrome.tabs.query({ url: settingsUrl });
+      
+      if (tabs.length > 0) {
+        // 已打开设置页面，切换到该标签页
+        await chrome.tabs.update(tabs[0].id, { active: true });
+        if (tabs[0].windowId) {
+          await chrome.windows.update(tabs[0].windowId, { focused: true });
+        }
+      } else {
+        // 未打开设置页面，创建新标签页
+        chrome.tabs.create({ url: settingsUrl });
+      }
       sendResponse({ success: true });
     } catch (error) {
       console.error('[background] Error opening settings:', error);
@@ -910,8 +957,20 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
   if (message.action === 'openAbout') {
     try {
-      // 打开关于页面
-      chrome.tabs.create({ url: chrome.runtime.getURL('html/about.html') });
+      // 检查是否已打开关于页面
+      const aboutUrl = chrome.runtime.getURL('html/about.html');
+      const tabs = await chrome.tabs.query({ url: aboutUrl });
+      
+      if (tabs.length > 0) {
+        // 已打开关于页面，切换到该标签页
+        await chrome.tabs.update(tabs[0].id, { active: true });
+        if (tabs[0].windowId) {
+          await chrome.windows.update(tabs[0].windowId, { focused: true });
+        }
+      } else {
+        // 未打开关于页面，创建新标签页
+        chrome.tabs.create({ url: aboutUrl });
+      }
       sendResponse({ success: true });
     } catch (error) {
       console.error('[background] Error opening about:', error);
