@@ -33,12 +33,126 @@ const elements = {
 
 // 初始化
 function init() {
-  // 初始化 i18n 并更新页面国际化元素
+  // 初始化 i18n（添加错误处理，避免卡住）
   i18n.initialize().then(() => {
     i18n.updatePageI18n();
+  }).catch(err => {
+    console.error('i18n init error:', err);
   });
   
+  // 检查是否是 OAuth 回调（非阻塞）
+  try {
+    checkOAuthCallback();
+  } catch (err) {
+    console.error('OAuth callback check error:', err);
+  }
+  
   bindEvents();
+}
+
+// 检查是否是 OAuth 回调
+function checkOAuthCallback() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    
+    // 检查 URL 中是否有 OAuth 参数
+    const code = urlParams.get('code') || hashParams.get('code');
+    const provider = urlParams.get('provider') || hashParams.get('provider');
+    const error = urlParams.get('error') || hashParams.get('error');
+    
+    if (code && provider) {
+      // 显示加载遮罩
+      showOAuthOverlay();
+      
+      // 处理 OAuth 回调
+      handleOAuthCallback(provider, code);
+      return;
+    }
+    
+    if (error) {
+      showOAuthOverlay();
+      showOAuthError(decodeURIComponent(error));
+      return;
+    }
+  } catch (err) {
+    console.error('checkOAuthCallback error:', err);
+  }
+}
+
+// 显示 OAuth 处理遮罩
+function showOAuthOverlay() {
+  const overlay = document.getElementById('oauth-callback-overlay');
+  const main = document.getElementById('auth-main');
+  if (overlay) overlay.style.display = 'flex';
+  if (main) main.style.display = 'none';
+}
+
+// 显示 OAuth 错误
+function showOAuthError(message) {
+  const overlay = document.getElementById('oauth-callback-overlay');
+  if (overlay) {
+    const content = overlay.querySelector('.oauth-callback-content');
+    if (content) {
+      content.innerHTML = `
+        <div class="spinner" style="border-top-color: #ea4335;"></div>
+        <p class="error">${message || '授权失败，请重试'}</p>
+        <p style="margin-top: 16px;">
+          <a href="auth.html" style="color: #4285f4; text-decoration: none;">返回登录</a>
+        </p>
+      `;
+    }
+    overlay.style.display = 'flex';
+  }
+}
+
+// 处理 OAuth 回调
+async function handleOAuthCallback(provider, code) {
+  try {
+    const { default: authApi } = await import('../api/auth.js');
+    
+    // 发送 code 给后端换取 token
+    const response = await authApi.verifyOAuthCode(provider, code);
+    
+    if (response.code === 0 || response.data?.success) {
+      const data = response.data;
+      
+      // 保存用户信息
+      const { default: authService } = await import('../services/auth.service.js');
+      await authService.saveUserInfo({
+        userId: data.userId,
+        deviceId: data.deviceId || data.userId,
+        accessToken: data.accessToken,
+        registeredAt: new Date().toISOString()
+      });
+      
+      // 显示成功
+      const overlay = document.getElementById('oauth-callback-overlay');
+      if (overlay) {
+        const content = overlay.querySelector('.oauth-callback-content');
+        if (content) {
+          content.innerHTML = `
+            <div class="spinner" style="border-top-color: #34a853;"></div>
+            <p class="success">登录成功！正在跳转...</p>
+          `;
+        }
+      }
+      
+      // 通知扩展并关闭
+      setTimeout(() => {
+        chrome.runtime.sendMessage({
+          action: 'AUTH_SUCCESS',
+          data: data
+        });
+        window.close();
+      }, 1500);
+    } else {
+      showOAuthError(response.msg || '登录失败');
+    }
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    showOAuthError('网络错误，请重试');
+  }
 }
 
 // 绑定事件
@@ -182,15 +296,74 @@ async function handleVerify() {
 }
 
 // OAuth 登录 - Google
-function handleOAuthGoogle() {
-  showError(i18n.getMessage('oauthComingSoon'));
-  // TODO: 实现 Google OAuth 登录
+async function handleOAuthGoogle() {
+  try {
+    const clientId = '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'; // 生产环境替换为实际 Client ID
+    const redirectUri = chrome.identity.getRedirectURL();
+    
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('redirect_uri', redirectUri);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', 'openid email profile');
+    authUrl.searchParams.set('state', 'google');
+    
+    const responseUrl = await chrome.identity.launchWebAuthFlow({
+      url: authUrl.toString(),
+      interactive: true
+    });
+    
+    if (responseUrl) {
+      const url = new URL(responseUrl);
+      const code = url.searchParams.get('code');
+      const error = url.searchParams.get('error');
+      
+      if (code) {
+        // 跳转到带参数的页面处理回调
+        window.location.href = `auth.html?provider=google&code=${code}`;
+      } else if (error) {
+        showError(decodeURIComponent(error));
+      }
+    }
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    showError('授权失败，请重试');
+  }
 }
 
 // OAuth 登录 - Microsoft
-function handleOAuthMicrosoft() {
-  showError(i18n.getMessage('oauthComingSoon'));
-  // TODO: 实现 Microsoft OAuth 登录
+async function handleOAuthMicrosoft() {
+  try {
+    const clientId = 'YOUR_MICROSOFT_CLIENT_ID'; // 生产环境替换为实际 Client ID
+    const redirectUri = chrome.identity.getRedirectURL();
+    
+    const authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('redirect_uri', redirectUri);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', 'openid email profile');
+    authUrl.searchParams.set('state', 'microsoft');
+    
+    const responseUrl = await chrome.identity.launchWebAuthFlow({
+      url: authUrl.toString(),
+      interactive: true
+    });
+    
+    if (responseUrl) {
+      const url = new URL(responseUrl);
+      const code = url.searchParams.get('code');
+      const error = url.searchParams.get('error');
+      
+      if (code) {
+        window.location.href = `auth.html?provider=microsoft&code=${code}`;
+      } else if (error) {
+        showError(decodeURIComponent(error));
+      }
+    }
+  } catch (error) {
+    console.error('Microsoft OAuth error:', error);
+    showError('授权失败，请重试');
+  }
 }
 
 // 显示验证码输入区域

@@ -3,6 +3,7 @@
   "name": "__MSG_extName__",
   "version": "2.0.0",
   "description": "__MSG_extDescription__",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7wbIWQpLuQE9Q/Tj/tc6xjjGnPlCf9K4AjPFqNGLNT+Cv19HMzL8lPfUi52HPnjQv9lxQq0cu56ljTy63iYAE2oglgtZXioibaIX8FtxBN86kivVn1AZdIymB/FdsL8AwZc8GjG1RvWAb+4ULA8hIZOT5b0uD1AvGhZcqwpss+vJEMFC40lCGMSz/PqnZXU0JgYK8QvkqYS2UNMLdUq/Mj7kH0DsJGdWUWjM1M69yGt2vhGAvOuWUTo1b+DqEtY/xLNHPu1cunc5kyBHE3AE7Em92WlJ7HN7hlsgoXO1P7wSQ+DIeGViWEmPYa07+3ogGkIRc2w59/H3tOMG/bbJxwIDAQAB",
   "default_locale": "en",
   "icons": {
     "16": "images/icon-16.png",
@@ -19,7 +20,8 @@
     "favicon",
     "storage",
     "activeTab",
-    "alarms"
+    "alarms",
+    "identity"
   ],
   "host_permissions": [
     "http://localhost:41532/*",
@@ -33,9 +35,11 @@
         "html/about.html",
         "html/settings.html",
         "html/login.html",
+        "html/auth.html",
         "js/about.js",
         "js/settings.js",
         "js/login.js",
+        "js/auth-callback.js",
         "js/i18n.js",
         "css/login.css"
       ],

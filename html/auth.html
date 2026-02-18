@@ -7,7 +7,15 @@
   <link rel="stylesheet" href="../css/auth.css">
 </head>
 <body>
-  <div class="auth-container">
+  <!-- OAuth 回调处理状态 -->
+  <div id="oauth-callback-overlay" class="oauth-overlay" style="display: none;">
+    <div class="oauth-callback-content">
+      <div class="spinner"></div>
+      <p data-i18n="oauthProcessing">正在处理授权，请稍候...</p>
+    </div>
+  </div>
+
+  <div class="auth-container" id="auth-main">
     <div class="auth-header">
       <h1 data-i18n="authPageTitle">MyTabSearch 账户登录</h1>
       <p class="auth-subtitle" data-i18n="authPageSubtitle">登录以同步您的标签页和数据</p>

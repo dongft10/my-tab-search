@@ -32,7 +32,11 @@ export const API_CONFIG = {
       VALIDATE_TOKEN: '/auth/validate',
       REFRESH_TOKEN: '/auth/refresh',
       SEND_VERIFICATION: '/auth/send-verification',
-      VERIFY_EMAIL: '/auth/verify-email'
+      VERIFY_EMAIL: '/auth/verify-email',
+      OAUTH_VERIFY: '/auth/oauth/verify',
+      OAUTH_TOKEN_LOGIN: '/auth/oauth/token-login',
+      OAUTH_GOOGLE: '/auth/oauth/google',
+      OAUTH_MICROSOFT: '/auth/oauth/microsoft'
     },
     // 用户相关
     USER: {
