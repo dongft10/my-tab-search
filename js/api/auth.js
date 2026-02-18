@@ -213,6 +213,36 @@ class AuthApi {
       'Authorization': `Bearer ${accessToken}`
     });
   }
+
+  /**
+   * 验证 OAuth code 并获取 token
+   * @param {string} provider - OAuth 提供商 (google/microsoft)
+   * @param {string} code - OAuth 授权码
+   * @returns {Promise} - 返回验证结果
+   */
+  async verifyOAuthCode(provider, code) {
+    return apiClient.post(ENDPOINTS.AUTH.OAUTH_VERIFY, {
+      provider,
+      code
+    });
+  }
+
+  /**
+   * 验证 OAuth token 并登录
+   * @param {string} provider - OAuth 提供商 (google/microsoft)
+   * @param {string} accessToken - OAuth access token
+   * @param {object} userInfo - 用户信息
+   * @returns {Promise} - 返回验证结果
+   */
+  async verifyOAuthToken(provider, accessToken, userInfo) {
+    return apiClient.post(ENDPOINTS.AUTH.OAUTH_TOKEN_LOGIN, {
+      provider,
+      accessToken,
+      email: userInfo.email,
+      name: userInfo.name,
+      picture: userInfo.picture
+    });
+  }
 }
 
 // 导出单例实例

@@ -202,7 +202,131 @@ async function handleVerify() {
 
 // OAuth 登录
 async function handleOAuth(provider) {
-  showMessage(i18n?.getMessage('oauthNotAvailable') || `${provider} login feature coming soon...`, 'info');
+  try {
+    const clientId = provider === 'google' 
+      ? '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'
+      : 'YOUR_MICROSOFT_CLIENT_ID';
+    const redirectUri = chrome.identity.getRedirectURL();
+    
+    let authUrl;
+    
+    // 获取扩展 ID 并构建重定向 URI
+    const extensionId = chrome.runtime.id;
+    const redirectBase = `https://${extensionId}.chromiumapp.org`;
+    
+    if (provider === 'google') {
+      const redirectUri = `${redirectBase}/google`;
+      authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      authUrl.searchParams.set('client_id', clientId);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('response_type', 'token');
+      authUrl.searchParams.set('scope', 'openid email profile');
+      authUrl.searchParams.set('state', 'google');
+      authUrl.searchParams.set('access_type', 'online');
+    } else if (provider === 'microsoft') {
+      const redirectUri = `${redirectBase}/microsoft`;
+      authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
+      authUrl.searchParams.set('client_id', clientId);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('response_type', 'token');
+      authUrl.searchParams.set('scope', 'openid email profile User.read');
+      authUrl.searchParams.set('state', 'microsoft');
+    }
+    
+    const responseUrl = await chrome.identity.launchWebAuthFlow({
+      url: authUrl.toString(),
+      interactive: true
+    });
+    
+    if (responseUrl) {
+      console.log('[OAuth] Response URL:', responseUrl);
+      
+      // 解析返回的 token (在 hash fragment 中)
+      const url = new URL(responseUrl);
+      const hashParams = new URLSearchParams(url.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const expiresIn = hashParams.get('expires_in');
+      const error = url.searchParams.get('error');
+      
+      console.log('[OAuth] Access token:', accessToken ? 'present' : 'missing');
+      console.log('[OAuth] Error:', error);
+      
+      if (accessToken) {
+        // 使用 access_token 获取用户信息并登录
+        await handleOAuthToken(provider, accessToken);
+      } else if (error) {
+        showMessage(decodeURIComponent(error), 'error');
+      } else {
+        showMessage('No access token received', 'error');
+      }
+    } else {
+      showMessage('No response from OAuth', 'error');
+    }
+  } catch (error) {
+    console.error('OAuth error:', error);
+    showMessage('Authorization failed, please try again', 'error');
+  }
+}
+
+// 使用 OAuth token 登录
+async function handleOAuthToken(provider, accessToken) {
+  try {
+    showMessage('Processing...', 'info');
+    console.log('[OAuth] handleOAuthToken called, provider:', provider);
+    console.log('[OAuth] authApi:', authApi);
+    console.log('[OAuth] authService:', authService);
+    
+    if (!authApi || !authApi.verifyOAuthToken) {
+      console.error('[OAuth] authApi.verifyOAuthToken is not defined!');
+      showMessage('Error: API not loaded', 'error');
+      return;
+    }
+    
+    // 使用 token 获取用户信息
+    let userInfo;
+    if (provider === 'google') {
+      console.log('[OAuth] Fetching user info from Google...');
+      const resp = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      userInfo = await resp.json();
+      console.log('[OAuth] User info:', userInfo);
+    }
+    
+    if (userInfo && userInfo.email) {
+      console.log('[OAuth] Calling backend to verify token...');
+      // 发送给后端验证并创建账户
+      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo);
+      console.log('[OAuth] Backend response:', response);
+      
+      if (response.code === 0 || response.data?.success) {
+        const data = response.data;
+        
+        // 保存用户信息
+        await chrome.storage.local.set({
+          [authService.storageKey.userId]: data.userId,
+          [authService.storageKey.accessToken]: data.accessToken,
+          [authService.storageKey.tokenExpiresAt]: data.expiresAt,
+          [authService.storageKey.registeredAt]: new Date().toISOString()
+        });
+        
+        showMessage('Login successful!', 'success');
+        
+        setTimeout(() => {
+          chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
+          window.close();
+        }, 1000);
+      } else {
+        showMessage(response.msg || 'Login failed', 'error');
+      }
+    } else {
+      console.error('[OAuth] No user info or email:', userInfo);
+      showMessage('Failed to get user info', 'error');
+    }
+  } catch (error) {
+    console.error('OAuth token handle error:', error);
+    showMessage('Login failed: ' + error.message, 'error');
+  }
 }
 
 // 跳过登录

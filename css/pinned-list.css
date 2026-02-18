@@ -228,12 +228,6 @@ body {
   z-index: 20;
 }
 
-/* 菜单按钮悬停时显示关闭按钮 */
-#pinned-tab-list .action-btn.menu-btn.menu-hover ~ .action-btn.close-btn,
-#pinned-tab-list .expand-actions.expanded + .action-btn.close-btn {
-  /* 实际上这里不需要，因为closeBtn在expandActions里面 */
-}
-
 /* 展开区域内的按钮（默认隐藏，悬停时显示） */
 #pinned-tab-list .expand-actions .action-btn {
   position: relative;
