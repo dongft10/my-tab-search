@@ -85,7 +85,7 @@ class TrialService {
       }
 
       // 缓存超过配置时间或没有缓存，从服务器获取
-      const accessToken = await this.getValidAccessToken();
+      const accessToken = await authService.getValidAccessToken();
       if (!accessToken) {
         throw new Error('No access token');
       }
@@ -165,7 +165,7 @@ class TrialService {
    */
   async extendTrial() {
     try {
-      const accessToken = await this.getValidAccessToken();
+      const accessToken = await authService.getValidAccessToken();
       if (!accessToken) {
         throw new Error('No access token');
       }
