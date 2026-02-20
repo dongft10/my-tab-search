@@ -8,6 +8,8 @@ import authService from './services/auth.service.js';
 import trialService from './services/trial.service.js';
 // Import VIP service
 import vipService from './services/vip.service.js';
+// Import sync queue service
+import syncQueueService from './services/sync-queue.service.js';
 
 // DOM elements
 let pinnedTabList;
@@ -589,10 +591,14 @@ async function switchToTab(tabId) {
       if (targetTab) {
         // 长期固定的tab已被关闭，重新打开该网页
         const newTab = await chrome.tabs.create({ url: targetTab.url });
-        // 更新pinnedTabList中记录的tabId（通过URL匹配）
+        // 更新pinnedTabList中记录的tabId（保留原标题）
         const updatedTabs = pinnedTabs.map(t => {
           if (t.isLongTermPinned && t.url === targetTab.url) {
-            return { ...t, tabId: newTab.id, title: newTab.title };
+            return { 
+              ...t, 
+              tabId: newTab.id, 
+              longTermPinnedAt: new Date().toISOString()
+            };
           }
           return t;
         });
@@ -626,10 +632,14 @@ async function switchToTab(tabId) {
       if (targetTab) {
         // 长期固定的tab已被关闭，重新打开该网页
         const newTab = await chrome.tabs.create({ url: targetTab.url });
-        // 更新pinnedTabList中记录的tabId（通过URL匹配）
+        // 更新pinnedTabList中记录的tabId（保留原标题）
         const updatedTabs = pinnedTabs.map(t => {
           if (t.isLongTermPinned && t.url === targetTab.url) {
-            return { ...t, tabId: newTab.id, title: newTab.title };
+            return { 
+              ...t, 
+              tabId: newTab.id, 
+              longTermPinnedAt: new Date().toISOString()
+            };
           }
           return t;
         });
@@ -667,6 +677,9 @@ async function removeFromPinnedList(tabId) {
     
     // 保存到存储
     await chrome.storage.local.set({ pinnedTabs });
+    
+    // 异步同步到服务器
+    syncQueueService.addOperation('unpinTab', { tabId }).catch(err => console.warn('Sync unpinTab failed:', err));
     
     // 确定要滚动到的标签页ID
     // 优先选择下一个标签页，如果没有则选择上一个
@@ -747,26 +760,23 @@ function getHostName(url) {
 // 处理长期固定按钮点击（根据用户类型显示不同提示）
 async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
   try {
-    // 检查是否已注册/登录
-    const isRegistered = await authService.isRegistered();
+    // 检查是否已完成邮箱验证或OAuth登录
+    const isEmailVerified = await authService.isEmailVerified();
     
-    console.log('[pinned-list] isRegistered:', isRegistered);
+    console.log('[pinned-list] isEmailVerified:', isEmailVerified);
     console.log('[pinned-list] userInfo:', await authService.getUserInfo());
     
-    if (!isRegistered) {
-      // 未注册用户
-      showToast(i18n.getMessage('longTermPinnedNeedLogin'));
-      return;
-    }
-    
-    // 获取体验期状态（缓存超过1天自动刷新）
-    const trialStatus = await trialService.fetchTrialStatus();
-    
-    // 获取VIP状态（强制刷新，确保获取最新状态）
-    const vipStatus = await vipService.getVipStatus(true);
-    
-    // 体验期用户可以正常使用
-    if (trialStatus.isInTrialPeriod) {
+    if (!isEmailVerified) {
+      // 静默注册用户：检查长期固定数量限制（5个）
+      const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
+      const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
+      
+      if (!isCurrentlyLongTermPinned && longTermCount >= 5) {
+        showToast(i18n.getMessage('pinnedTabsLimit', '5') || `长期固定标签页数量已达上限（最多5个），请完成邮箱验证解锁更多功能`);
+        return;
+      }
+      
+      // 未超过限制，允许操作
       if (isCurrentlyLongTermPinned) {
         await cancelLongTermPinned(tabId);
       } else {
@@ -775,8 +785,62 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       return;
     }
     
-    // VIP用户可以正常使用
-    if (vipStatus.isVip) {
+    // 已完成邮箱验证的用户：根据体验期/VIP状态决定
+    // 乐观模式：优先使用本地缓存，服务器异常时不影响用户操作
+    
+    let localTrialStatus = null;
+    let trialStatusError = null;
+    try {
+      // 使用 getTrialStatus 获取本地缓存状态
+      localTrialStatus = await trialService.getTrialStatus();
+    } catch (e) {
+      console.warn('[pinned-list] Failed to get local trial status:', e);
+      trialStatusError = e;
+    }
+    
+    // 如果本地状态显示在体验期内，允许操作（限制100个）
+    if (localTrialStatus && localTrialStatus.isInTrialPeriod) {
+      console.log('[pinned-list] User in trial period, checking limit');
+      const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
+      const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
+      const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
+      
+      if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
+        showToast(i18n.getMessage('pinnedTabsLimit', limit.toString()) || `长期固定标签页数量已达上限（最多${limit}个）`);
+        return;
+      }
+      
+      if (isCurrentlyLongTermPinned) {
+        await cancelLongTermPinned(tabId);
+      } else {
+        await setLongTermPinned(tabId);
+      }
+      // 后台异步刷新状态
+      trialService.fetchTrialStatus();
+      return;
+    }
+    
+    // 获取VIP状态（使用本地缓存，不强制刷新）
+    let vipStatus = null;
+    let vipStatusError = null;
+    try {
+      vipStatus = await vipService.getVipStatus(false);
+    } catch (e) {
+      console.warn('[pinned-list] Failed to get VIP status:', e);
+      vipStatusError = e;
+    }
+    
+    // VIP用户可以正常使用（限制100个）
+    if (vipStatus && vipStatus.isVip) {
+      const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
+      const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
+      const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
+      
+      if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
+        showToast(i18n.getMessage('pinnedTabsLimit', limit.toString()) || `长期固定标签页数量已达上限（最多${limit}个）`);
+        return;
+      }
+      
       if (isCurrentlyLongTermPinned) {
         await cancelLongTermPinned(tabId);
       } else {
@@ -785,14 +849,42 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       return;
     }
     
-    // 普通用户（已过体验期且非VIP）
-    // 允许取消已有的长期固定，但不允许新设置
+    // 如果获取状态时出错（服务器异常），使用乐观模式允许操作
+    // 因为用户已完成邮箱验证，应该有基本的使用权限
+    if (trialStatusError || vipStatusError) {
+      console.log('[pinned-list] Server error detected, using optimistic mode');
+      // 检查长期固定数量，使用前端限制作为fallback（100个）
+      const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
+      const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
+      const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
+      
+      if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
+        showToast(i18n.getMessage('pinnedTabsLimit', limit.toString()) || `长期固定标签页数量已达上限（最多${limit}个）`);
+        return;
+      }
+      
+      if (isCurrentlyLongTermPinned) {
+        await cancelLongTermPinned(tabId);
+      } else {
+        await setLongTermPinned(tabId);
+      }
+      return;
+    }
+    
+    // 体验期结束且非VIP的普通用户：限制5个长期固定（引导购买VIP）
+    const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
+    const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
+    const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
+    
+    if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
+      showToast(i18n.getMessage('longTermPinnedLimitReached') || `长期固定标签页数量已达上限（最多${limit}个），升级VIP可解锁更多`);
+      return;
+    }
+    
     if (isCurrentlyLongTermPinned) {
-      // 已经是长期固定，允许取消
       await cancelLongTermPinned(tabId);
     } else {
-      // 不是长期固定，不允许新设置
-      showToast(i18n.getMessage('longTermPinnedNeedVip'));
+      await setLongTermPinned(tabId);
     }
   } catch (error) {
     console.error('Long term pinned error:', error);
@@ -818,6 +910,13 @@ async function setLongTermPinned(tabId) {
     });
     
     await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+    
+    // 异步同步到服务器
+    syncQueueService.addOperation('updateTab', {
+      tabId,
+      isLongTermPinned: true,
+      longTermPinnedAt: new Date().toISOString()
+    }).catch(err => console.warn('Sync updateTab failed:', err));
     
     showToast(i18n.getMessage('longTermPinnedSuccess'));
     
@@ -847,6 +946,13 @@ async function cancelLongTermPinned(tabId) {
     });
     
     await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+    
+    // 异步同步到服务器
+    syncQueueService.addOperation('updateTab', {
+      tabId,
+      isLongTermPinned: false,
+      longTermPinnedAt: null
+    }).catch(err => console.warn('Sync updateTab failed:', err));
     
     showToast(i18n.getMessage('cancelLongTermSuccess'));
     

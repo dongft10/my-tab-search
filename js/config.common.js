@@ -68,7 +68,9 @@ if (typeof CONFIG_COMMON === 'undefined') {
 
   const PINNED_TABS_CONFIG = {
     // 固定标签页容量限制（最大数量）
-    MAX_PINNED_TABS: 5,
+    // 静默注册用户：5个
+    // 已完成注册用户（体验期/VIP）：100个
+    MAX_PINNED_TABS: 100,
     
     // 固定标签页弹窗尺寸（设大一些避免Chrome裁剪）
     WINDOW_WIDTH: 400,
@@ -97,7 +99,7 @@ if (typeof CONFIG_COMMON === 'undefined') {
     ACCESS_TOKEN: 'accessToken',
     TOKEN_EXPIRES_AT: 'tokenExpiresAt',
     REGISTERED_AT: 'registeredAt',
-    DEVICE_FINGERPRINT: 'deviceFingerprint'
+    USER_DEVICE_UUID: 'userDeviceUuid'
   };
 
   /**

@@ -18,20 +18,21 @@ class AuthApi {
     return apiClient.post(ENDPOINTS.AUTH.SILENT_REGISTER, deviceInfo);
   }
 
-   /**
-    * @param {string} email - 邮箱地址
-    * @param {string} code - 验证码
-    * @param {string} deviceId - 设备ID（可选，用于关联现有设备）
-    * @param {Object} deviceInfo - 设备信息（可选，包含 fingerprint 和 browserInfo）
-    * @returns {Promise} - 返回验证结果
-    */
+  /**
+   * 验证邮箱验证码（关联设备）
+   * @param {string} email - 邮箱地址
+   * @param {string} code - 验证码
+   * @param {string} deviceId - 设备ID（可选，用于关联现有设备）
+   * @param {Object} deviceInfo - 设备信息（可选，包含 userDeviceUuid 和 browserInfo）
+   * @returns {Promise} - 返回验证结果
+   */
   async verifyEmail(email, code, deviceId = null, deviceInfo = null) {
     const data = { email, code };
     if (deviceId) {
       data.deviceId = deviceId;
     }
     if (deviceInfo) {
-      data.deviceFingerprint = deviceInfo.fingerprint;
+      data.userDeviceUuid = deviceInfo.userDeviceUuid;
       data.browserInfo = deviceInfo.browserInfo;
       data.extensionVersion = deviceInfo.extensionVersion;
     }
@@ -80,21 +81,6 @@ class AuthApi {
     return apiClient.post(ENDPOINTS.AUTH.SEND_VERIFICATION, {
       email
     });
-  }
-
-  /**
-   * 验证邮箱验证码
-   * @param {string} email - 邮箱地址
-   * @param {string} code - 验证码
-   * @param {string} deviceId - 设备ID（可选，用于关联现有设备）
-   * @returns {Promise} - 返回验证结果
-   */
-  async verifyEmail(email, code, deviceId = null) {
-    const data = { email, code };
-    if (deviceId) {
-      data.deviceId = deviceId;
-    }
-    return apiClient.post(ENDPOINTS.AUTH.VERIFY_EMAIL, data);
   }
 
   /**
@@ -232,15 +218,65 @@ class AuthApi {
    * @param {string} provider - OAuth 提供商 (google/microsoft)
    * @param {string} accessToken - OAuth access token
    * @param {object} userInfo - 用户信息
+   * @param {string} userDeviceUuid - 设备UUID（可选）
    * @returns {Promise} - 返回验证结果
    */
-  async verifyOAuthToken(provider, accessToken, userInfo) {
-    return apiClient.post(ENDPOINTS.AUTH.OAUTH_TOKEN_LOGIN, {
+  async verifyOAuthToken(provider, accessToken, userInfo, userDeviceUuid = null) {
+    const data = {
       provider,
       accessToken,
       email: userInfo.email,
       name: userInfo.name,
       picture: userInfo.picture
+    };
+    if (userDeviceUuid) {
+      data.userDeviceUuid = userDeviceUuid;
+    }
+    return apiClient.post(ENDPOINTS.AUTH.OAUTH_TOKEN_LOGIN, data);
+  }
+
+  /**
+   * 同步固定Tab到服务器
+   * @param {string} accessToken - 访问令牌
+   * @param {object} tabData - Tab数据
+   * @returns {Promise} - 返回同步结果
+   */
+  async syncPinnedTab(accessToken, tabData) {
+    return apiClient.post(ENDPOINTS.PINNED_TABS.SYNC, {
+      action: 'add',
+      tab: tabData
+    }, {
+      'Authorization': `Bearer ${accessToken}`
+    });
+  }
+
+  /**
+   * 同步取消固定Tab到服务器
+   * @param {string} accessToken - 访问令牌
+   * @param {string} tabId - Tab ID
+   * @returns {Promise} - 返回同步结果
+   */
+  async syncUnpinTab(accessToken, tabId) {
+    return apiClient.post(ENDPOINTS.PINNED_TABS.SYNC, {
+      action: 'remove',
+      tabId: tabId
+    }, {
+      'Authorization': `Bearer ${accessToken}`
+    });
+  }
+
+  /**
+   * 同步更新固定Tab到服务器
+   * @param {string} accessToken - 访问令牌
+   * @param {object} tabData - Tab数据
+   * @returns {Promise} - 返回同步结果
+   */
+  async syncUpdateTab(accessToken, tabData) {
+    return apiClient.post(ENDPOINTS.PINNED_TABS.SYNC, {
+      action: 'update',
+      tab: tabData
+    }, {
+      'Authorization': `Bearer ${accessToken}`
     });
   }
 }
