@@ -14,30 +14,8 @@ try {
   console.error('[background] Failed to import sync-queue.common.js:', error);
 }
 
-// 备用配置（如果 importScripts 失败）
-const FALLBACK_CONFIG = {
-  API_CONFIG: {
-    BASE_URL: 'http://localhost:41532',
-    API_VERSION: '/api/v1'
-  },
-  PINNED_TABS_CONFIG: {
-    MAX_PINNED_TABS: 100,
-    WINDOW_WIDTH: 400,
-    WINDOW_HEIGHT: 800
-  },
-  STORAGE_KEYS: {
-    USER_ID: 'userId',
-    DEVICE_ID: 'deviceId',
-    ACCESS_TOKEN: 'accessToken',
-    TOKEN_EXPIRES_AT: 'tokenExpiresAt',
-    REGISTERED_AT: 'registeredAt',
-    USER_DEVICE_UUID: 'userDeviceUuid'
-  }
-};
-
-// 从全局配置中获取配置（如果 CONFIG_COMMON 可用则使用，否则使用备用配置）
-const CONFIG = typeof CONFIG_COMMON !== 'undefined' ? CONFIG_COMMON : FALLBACK_CONFIG;
-const { API_CONFIG, PINNED_TABS_CONFIG, STORAGE_KEYS } = CONFIG;
+// 从全局配置中获取配置
+const { API_CONFIG, PINNED_TABS_CONFIG, STORAGE_KEYS } = CONFIG_COMMON;
 
 // 存储键名常量（转换为小写驼峰格式以兼容现有代码）
 const STORAGE_KEYS_LOCAL = {

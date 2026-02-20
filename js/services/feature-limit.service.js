@@ -337,25 +337,12 @@ class FeatureLimitService {
           // 体验期内或VIP用户：100个
           return 100;
         } else {
-          // 体验期结束且非VIP的普通用户：5个（引导购买VIP）
-          return 5;
+          // 体验期结束且非VIP的普通用户：返回 null 让服务器获取最新状态
+          return null;
         }
       } catch (e) {
-        console.warn('[FeatureLimit] Failed to check trial/VIP status, using fallback');
-        // 获取状态失败时（服务器异常），fallback使用本地缓存
-        // 如果有缓存数据，使用乐观值100（不阻塞用户）
-        // 如果没有缓存数据，返回5个
-        try {
-          const trialData = await chrome.storage.local.get('trialStatus');
-          const vipData = await chrome.storage.local.get('vipStatus');
-          // 如果有任何缓存数据，使用乐观值
-          if (trialData.trialStatus || vipData.vipStatus) {
-            return 100;
-          }
-        } catch (e2) {
-          console.warn('[FeatureLimit] Failed to check cache:', e2);
-        }
-        return 5;
+        // 获取状态失败时，返回 null 让系统从服务器获取
+        return null;
       }
     }
 

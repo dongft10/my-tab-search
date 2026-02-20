@@ -367,6 +367,18 @@
     "message": "秒后重发",
     "description": "Countdown button text"
   },
+  "resendCode": {
+    "message": "重新发送",
+    "description": "Button text to resend code"
+  },
+  "resendCountdown": {
+    "message": "重新发送 ({seconds}s)",
+    "description": "Button text during countdown"
+  },
+  "waitForResend": {
+    "message": "请等待 {seconds} 秒后重新发送",
+    "description": "Message when user tries to resend during countdown"
+  },
   "sendCode": {
     "message": "发送验证码",
     "description": "Button text to send code"
@@ -496,7 +508,7 @@
     "description": "Extend trial button text"
   },
   "promotionPeriodMessage": {
-    "message": "应用推广试用期，全功能完全免费使用，欢迎提供宝贵的使用体验反馈",
+    "message": "✨应用推广试用期，全功能完全免费使用，欢迎提供宝贵的使用体验反馈🎯😄",
     "description": "Message shown during promotion period when trial is disabled"
   },
   "loginOrRegister": {

@@ -27,20 +27,20 @@ if (typeof CONFIG_COMMON === 'undefined') {
     
     // API 端点定义
     ENDPOINTS: {
-    // 认证相关
-    AUTH: {
-      SILENT_REGISTER: '/auth/silent-register',
-      GET_TOKEN: '/auth/token',
-      REVOKE_TOKEN: '/auth/revoke',
-      VALIDATE_TOKEN: '/auth/validate',
-      REFRESH_TOKEN: '/auth/refresh',
-      SEND_VERIFICATION: '/auth/send-verification',
-      VERIFY_EMAIL: '/auth/verify-email',
-      OAUTH_VERIFY: '/auth/oauth/verify',
-      OAUTH_TOKEN_LOGIN: '/auth/oauth/token-login',
-      OAUTH_GOOGLE: '/auth/oauth/google',
-      OAUTH_MICROSOFT: '/auth/oauth/microsoft'
-    },
+      // 认证相关
+      AUTH: {
+        SILENT_REGISTER: '/auth/silent-register',
+        GET_TOKEN: '/auth/token',
+        REVOKE_TOKEN: '/auth/revoke',
+        VALIDATE_TOKEN: '/auth/validate',
+        REFRESH_TOKEN: '/auth/refresh',
+        SEND_VERIFICATION: '/auth/send-verification',
+        VERIFY_EMAIL: '/auth/verify-email',
+        OAUTH_VERIFY: '/auth/oauth/verify',
+        OAUTH_TOKEN_LOGIN: '/auth/oauth/token-login',
+        OAUTH_GOOGLE: '/auth/oauth/google',
+        OAUTH_MICROSOFT: '/auth/oauth/microsoft'
+      },
       // 用户相关
       USER: {
         PROFILE: '/user/profile',
@@ -62,6 +62,14 @@ if (typeof CONFIG_COMMON === 'undefined') {
         LIST: '/devices',
         DELETE: '/devices',
         LOGOUT_ALL: '/devices/logout'
+      },
+      // 固定标签页相关
+      PINNED_TABS: {
+        SYNC: '/pinned-tabs/sync',
+        LIST: '/pinned-tabs',
+        ADD: '/pinned-tabs',
+        UPDATE: '/pinned-tabs',
+        DELETE: '/pinned-tabs'
       }
     }
   };
@@ -73,7 +81,7 @@ if (typeof CONFIG_COMMON === 'undefined') {
     MAX_PINNED_TABS: 100,
     
     // 固定标签页弹窗尺寸（设大一些避免Chrome裁剪）
-    WINDOW_WIDTH: 400,
+    WINDOW_WIDTH: 416,
     WINDOW_HEIGHT: 800
   };
 

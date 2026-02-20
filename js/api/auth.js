@@ -84,6 +84,19 @@ class AuthApi {
   }
 
   /**
+   * 获取访问令牌
+   * @param {string} userId - 用户ID
+   * @param {string} deviceId - 设备ID
+   * @returns {Promise} - 返回令牌
+   */
+  async getToken(userId, deviceId) {
+    return apiClient.post(ENDPOINTS.AUTH.GET_TOKEN, {
+      userId,
+      deviceId
+    });
+  }
+
+  /**
    * 获取用户资料
    * @param {string} accessToken - 访问令牌
    * @returns {Promise} - 返回用户资料
