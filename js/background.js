@@ -7,6 +7,13 @@ try {
   console.error('[background] Failed to import config.common.js:', error);
 }
 
+// 导入同步队列服务（Service Worker 版本）
+try {
+  importScripts('./services/sync-queue.common.js');
+} catch (error) {
+  console.error('[background] Failed to import sync-queue.common.js:', error);
+}
+
 // 备用配置（如果 importScripts 失败）
 const FALLBACK_CONFIG = {
   API_CONFIG: {
@@ -14,7 +21,7 @@ const FALLBACK_CONFIG = {
     API_VERSION: '/api/v1'
   },
   PINNED_TABS_CONFIG: {
-    MAX_PINNED_TABS: 5,
+    MAX_PINNED_TABS: 100,
     WINDOW_WIDTH: 400,
     WINDOW_HEIGHT: 800
   },
@@ -24,7 +31,7 @@ const FALLBACK_CONFIG = {
     ACCESS_TOKEN: 'accessToken',
     TOKEN_EXPIRES_AT: 'tokenExpiresAt',
     REGISTERED_AT: 'registeredAt',
-    DEVICE_FINGERPRINT: 'deviceFingerprint'
+    USER_DEVICE_UUID: 'userDeviceUuid'
   }
 };
 
@@ -39,7 +46,7 @@ const STORAGE_KEYS_LOCAL = {
   accessToken: STORAGE_KEYS.ACCESS_TOKEN,
   tokenExpiresAt: STORAGE_KEYS.TOKEN_EXPIRES_AT,
   registeredAt: STORAGE_KEYS.REGISTERED_AT,
-  deviceFingerprint: STORAGE_KEYS.DEVICE_FINGERPRINT
+  userDeviceUuid: STORAGE_KEYS.USER_DEVICE_UUID
 };
 
 // 使用 chrome.storage 持久化固定标签页弹窗的窗口 ID
@@ -1023,123 +1030,6 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 /**
- * 设备指纹生成工具
- * 生成唯一的设备标识
- */
-class FingerprintUtil {
-  /**
-   * 生成设备指纹
-   * @returns {Promise} - 返回设备指纹
-   */
-  async generate() {
-    try {
-      // 直接基于硬件/浏览器特征计算指纹
-      // 不依赖 localStorage 存储，确保同一设备总是得到相同指纹
-      const fingerprint = await this.calculateFingerprint();
-      return fingerprint;
-    } catch (error) {
-      console.error('Failed to generate fingerprint:', error);
-      // 失败时生成一个临时指纹
-      return this.generateTemporaryFingerprint();
-    }
-  }
-
-  /**
-   * 计算设备指纹
-   * @returns {Promise} - 返回计算结果
-   */
-  async calculateFingerprint() {
-    const components = [];
-
-    // 1. 浏览器信息
-    components.push(navigator.userAgent);
-    components.push(navigator.platform);
-    components.push(navigator.language || navigator.userLanguage);
-    components.push(navigator.vendor || '');
-
-    // 2. 屏幕信息
-    if (typeof screen !== 'undefined') {
-      components.push(screen.width?.toString() || '0');
-      components.push(screen.height?.toString() || '0');
-      components.push(screen.colorDepth?.toString() || '0');
-    } else {
-      components.push('0', '0', '0');
-    }
-
-    // 3. 硬件信息
-    components.push(navigator.hardwareConcurrency?.toString() || '0');
-    components.push(navigator.deviceMemory?.toString() || '0');
-
-    // 4. 时区信息
-    components.push(Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-    // 5. Cookie 启用状态
-    components.push(navigator.cookieEnabled?.toString() || 'false');
-
-    // 6. 插件信息（仅用于指纹，不收集具体插件）
-    const pluginCount = navigator.plugins?.length || 0;
-    components.push(pluginCount.toString());
-
-    // 7. 扩展 ID
-    components.push(chrome.runtime.id);
-
-    // 组合所有组件并哈希
-    const combined = components.join('|');
-    return this.hash(combined);
-  }
-
-  /**
-   * 哈希函数
-   * @param {string} input - 输入字符串
-   * @returns {string} - 返回哈希值
-   */
-  hash(input) {
-    let hash = 0;
-    for (let i = 0; i < input.length; i++) {
-      const char = input.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash).toString(16);
-  }
-
-  /**
-   * 获取存储的指纹
-   * @returns {Promise} - 返回存储的指纹
-   */
-  async getStoredFingerprint() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(STORAGE_KEYS_LOCAL.deviceFingerprint, (result) => {
-        resolve(result[STORAGE_KEYS_LOCAL.deviceFingerprint] || null);
-      });
-    });
-  }
-
-  /**
-   * 存储指纹
-   * @param {string} fingerprint - 设备指纹
-   * @returns {Promise} - 返回结果
-   */
-  async storeFingerprint(fingerprint) {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [STORAGE_KEYS_LOCAL.deviceFingerprint]: fingerprint }, () => {
-        resolve();
-      });
-    });
-  }
-
-  /**
-   * 生成临时指纹
-   * @returns {string} - 返回临时指纹
-   */
-  generateTemporaryFingerprint() {
-    const timestamp = Date.now().toString();
-    const random = Math.random().toString(36).substring(2);
-    return this.hash(timestamp + random + chrome.runtime.id);
-  }
-}
-
-/**
  * API 客户端
  * 处理与后端 API 的通信
  */
@@ -1243,7 +1133,31 @@ class ApiClient {
 class AuthService {
   constructor() {
     this.apiClient = new ApiClient();
-    this.fingerprintUtil = new FingerprintUtil();
+  }
+
+  /**
+   * 获取或生成 user_device_uuid
+   * @returns {Promise<string>} - 返回 UUID
+   */
+  async getUserDeviceUUID() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(STORAGE_KEYS_LOCAL.userDeviceUuid, (result) => {
+        if (result[STORAGE_KEYS_LOCAL.userDeviceUuid]) {
+          resolve(result[STORAGE_KEYS_LOCAL.userDeviceUuid]);
+        } else {
+          // 生成新的 UUID
+          const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+          // 存储并返回
+          chrome.storage.local.set({ [STORAGE_KEYS_LOCAL.userDeviceUuid]: uuid }, () => {
+            resolve(uuid);
+          });
+        }
+      });
+    });
   }
 
   /**
@@ -1259,8 +1173,8 @@ class AuthService {
         return await this.getUserInfo();
       }
 
-      // 生成设备指纹
-      const deviceFingerprint = await this.fingerprintUtil.generate();
+      // 获取或生成 user_device_uuid
+      let userDeviceUuid = await this.getUserDeviceUUID();
 
       // 获取浏览器信息
       const browserInfo = this.getBrowserInfo();
@@ -1270,16 +1184,16 @@ class AuthService {
 
       // 发送注册请求
       const response = await this.apiClient.post(API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER, {
-        deviceFingerprint,
+        userDeviceUuid,
         browserInfo,
         extensionVersion
       });
 
-      // 存储用户信息
+      // 存储用户信息（静默注册不设置 registeredAt）
       await this.saveUserInfo({
         userId: response.data.userId,
-        deviceId: response.data.deviceId,
-        registeredAt: response.data.createdAt
+        deviceId: response.data.deviceId
+        // 注意：不设置 registeredAt，只有邮箱验证或OAuth登录后才设置
       });
 
       console.log('Silent registration successful:', response.data);
@@ -1528,8 +1442,25 @@ async function initializeAll() {
     await performSilentRegistration();
     // 初始化时检查一次 Token 状态
     await periodicTokenRefresh();
+    // 初始化同步队列服务
+    initializeSyncQueue();
   } catch (error) {
     console.error('[Background] Failed to initialize:', error);
+  }
+}
+
+// 初始化同步队列服务
+async function initializeSyncQueue() {
+  try {
+    // 使用全局同步队列服务（通过 importScripts 加载）
+    if (self.SyncQueueService) {
+      self.SyncQueueService.startPeriodicSync(60000);
+      console.log('[Background] Sync queue service initialized');
+    } else {
+      console.warn('[Background] SyncQueueService not available');
+    }
+  } catch (error) {
+    console.error('[Background] Failed to initialize sync queue:', error);
   }
 }
 

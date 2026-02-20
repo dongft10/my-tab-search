@@ -4,6 +4,10 @@ import i18n from './i18n.js';
 import { PINNED_TABS_CONFIG } from './config.js';
 // Import feature limit service
 import featureLimitService from './services/feature-limit.service.js';
+// Import sync queue service
+import syncQueueService from './services/sync-queue.service.js';
+// Import auth service
+import authService from './services/auth.service.js';
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -432,9 +436,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 添加标签页到固定列表
   async function pinTab(tab) {
     try {
-      // 获取固定标签页容量限制（缓存超过1天自动刷新）
-      const maxPinnedTabs = await featureLimitService.getFeatureLimit('pinnedTabs');
-      
       const result = await new Promise((resolve) => {
         chrome.storage.local.get('pinnedTabs', resolve);
       });
@@ -448,19 +449,53 @@ document.addEventListener("DOMContentLoaded", async () => {
       // 检查是否通过 URL 匹配到已固定的长期 tab（长期固定的 tab 重新打开的情况）
       const existingIndex = pinnedTabs.findIndex(t => t.url === tab.url);
       if (existingIndex !== -1) {
+        const existingTab = pinnedTabs[existingIndex];
         // 更新 tabId 为当前新打开的 tab
-        pinnedTabs[existingIndex].tabId = tab.id;
-        pinnedTabs[existingIndex].title = tab.title;
+        existingTab.tabId = tab.id;
+        existingTab.title = tab.title;
+        // 如果是长期固定tab，更新长期固定时间
+        if (existingTab.isLongTermPinned) {
+          existingTab.longTermPinnedAt = new Date().toISOString();
+        }
         // 保存到存储
         await new Promise((resolve) => {
           chrome.storage.local.set({ pinnedTabs }, resolve);
         });
+        
+        // 异步同步到服务器
+        syncQueueService.addOperation('updateTab', {
+          tabId: tab.id,
+          url: tab.url,
+          title: tab.title,
+          isLongTermPinned: existingTab.isLongTermPinned,
+          longTermPinnedAt: existingTab.longTermPinnedAt
+        }).catch(err => console.warn('Sync updateTab failed:', err));
+        
         return { success: true, message: '已重新固定' };
       }
 
+      // 检查用户是否已完成邮箱验证或OAuth登录
+      const isEmailVerified = await authService.isEmailVerified();
+      
       // 检查容量限制
-      if (pinnedTabs.length >= maxPinnedTabs) {
-        return { success: false, message: i18n.getMessage('pinnedTabsLimit', maxPinnedTabs.toString()) || `固定标签页数量超过${maxPinnedTabs}个的限制` };
+      // 静默注册用户（未完成邮箱验证）：限制5个
+      // 已完成注册用户（体验期/VIP）：限制100个
+      let limit = 5; // 默认静默用户限制
+      if (isEmailVerified) {
+        // 已完成注册用户，使用乐观模式获取限制（服务器异常时使用本地缓存）
+        try {
+          limit = await featureLimitService.getFeatureLimit('pinnedTabs', false, true);
+        } catch (e) {
+          console.warn('[pinTab] Failed to get feature limit, using default 100');
+          limit = 100;
+        }
+      }
+      
+      if (pinnedTabs.length >= limit) {
+        return { 
+          success: false, 
+          message: i18n.getMessage('pinnedTabsLimit', limit.toString()) || `固定标签页数量已达上限（最多${limit}个）` 
+        };
       }
 
       // 添加到固定列表
@@ -468,13 +503,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         tabId: tab.id,
         title: tab.title,
         url: tab.url,
-        icon: faviconURL(tab.url)
+        icon: faviconURL(tab.url),
+        pinnedAt: new Date().toISOString(),
+        synced: false // 标记为未同步
       });
 
       // 保存到存储
       await new Promise((resolve) => {
         chrome.storage.local.set({ pinnedTabs }, resolve);
       });
+
+      // 异步同步到服务器（不阻塞用户操作）
+      syncQueueService.addOperation('pinTab', {
+        tabId: tab.id,
+        title: tab.title,
+        url: tab.url,
+        icon: faviconURL(tab.url)
+      }).catch(err => console.warn('Sync pinTab failed:', err));
 
       return { success: true, message: '固定成功' };
     } catch (error) {
@@ -504,6 +549,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       await new Promise((resolve) => {
         chrome.storage.local.set({ pinnedTabs }, resolve);
       });
+
+      // 异步同步到服务器（不阻塞用户操作）
+      syncQueueService.addOperation('unpinTab', {
+        tabId: tabId
+      }).catch(err => console.warn('Sync unpinTab failed:', err));
 
       return { success: true, message: '取消固定成功' };
     } catch (error) {

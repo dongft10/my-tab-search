@@ -5,11 +5,12 @@
 
 import authApi from '../api/auth.js';
 import authService from './auth.service.js';
+import { getCacheTime } from '../config.js';
 
 class FeatureLimitService {
   constructor() {
     this.storageKey = 'featureLimits';
-    this.cacheTimeout = 60 * 60 * 1000; // 1小时缓存
+    this.cacheTimeout = getCacheTime(); // 根据环境配置缓存时间
     this.cachedLimits = null;
     this.cacheTime = null;
   }
@@ -25,6 +26,22 @@ class FeatureLimitService {
     } catch (error) {
       console.error('Get local limits error:', error);
       return null;
+    }
+  }
+
+  /**
+   * 清除功能限制缓存
+   * 在用户登录/注册后调用，确保获取最新的限制
+   * @returns {Promise} - 返回结果
+   */
+  async clearCache() {
+    try {
+      this.cachedLimits = null;
+      this.cacheTime = null;
+      await chrome.storage.local.remove(this.storageKey);
+      console.log('[FeatureLimit] Cache cleared');
+    } catch (error) {
+      console.error('Clear cache error:', error);
     }
   }
 
@@ -81,22 +98,58 @@ class FeatureLimitService {
    * 获取默认功能限制
    * @returns {object} - 返回默认功能限制
    */
-  getDefaultLimits() {
+  getDefaultLimits(isRegistered = false) {
+    // 静默注册用户（未完成邮箱验证）：固定tab限制5个
+    // 已完成注册用户（体验期/VIP）：固定tab限制100个
+    if (!isRegistered) {
+      return {
+        userType: 'anonymous',
+        userTypeName: '匿名用户',
+        limits: {
+          pinnedTabs: 5,      // 静默注册用户限制5个
+          searchHistory: -1,
+          theme: 0,           // 只有默认主题
+          cloudStorage: 0,
+          longTermPinned: 5,  // 静默注册用户限制5个
+          crossDeviceSync: 0,
+          contentSearch: 0,
+          syncDevices: 0,
+          vipPinnedTabs: 5
+        }
+      };
+    }
+    
+    // 已完成注册用户（体验期/VIP）的默认限制
     return {
-      userType: 'anonymous',
-      userTypeName: '匿名用户',
+      userType: 'registered',
+      userTypeName: '已注册用户',
       limits: {
-        pinnedTabs: 5,
+        pinnedTabs: 100,     // 限制100个
         searchHistory: -1,
         theme: 0,
         cloudStorage: 0,
-        longTermPinned: 0,
+        longTermPinned: 100, // 限制100个
         crossDeviceSync: 0,
         contentSearch: 0,
         syncDevices: 0,
         vipPinnedTabs: 100
       }
     };
+  }
+
+  /**
+   * 检查用户是否已完成注册（邮箱验证或OAuth登录）
+   * @returns {Promise<boolean>} - 是否已完成注册
+   */
+  async isUserRegistered() {
+    try {
+      // 检查是否有 registeredAt（完成邮箱验证或OAuth登录后设置）
+      const data = await chrome.storage.local.get('registeredAt');
+      return !!(data.registeredAt);
+    } catch (error) {
+      console.error('Check user registered error:', error);
+      return false;
+    }
   }
 
   /**
@@ -130,7 +183,9 @@ class FeatureLimitService {
       return await this.syncLimits();
     } catch (error) {
       console.error('Get limits error:', error);
-      return this.getDefaultLimits();
+      // 出错时根据用户注册状态返回默认限制
+      const isRegistered = await this.isUserRegistered();
+      return this.getDefaultLimits(isRegistered);
     }
   }
 
@@ -170,9 +225,18 @@ class FeatureLimitService {
    * 获取功能限制值
    * @param {string} feature - 功能ID
    * @param {boolean} forceRefresh - 是否强制从服务器刷新（默认false，缓存超过1天才刷新）
+   * @param {boolean} optimistic - 是否使用乐观模式（默认true，允许操作后再校验）
    * @returns {Promise<number>} - 限制值
    */
-  async getFeatureLimit(feature, forceRefresh = false) {
+  async getFeatureLimit(feature, forceRefresh = false, optimistic = true) {
+    // 乐观模式：直接返回本地限制或默认值，不阻塞用户操作
+    if (optimistic) {
+      const localLimit = await this.getLocalFeatureLimit(feature);
+      if (localLimit !== null) {
+        return localLimit;
+      }
+    }
+
     try {
       const limits = await this.getLimits();
       const featureLimits = limits.limits || {};
@@ -194,11 +258,10 @@ class FeatureLimitService {
         return -1;
       }
 
-      // 检查是否需要刷新（缓存超过1天或强制刷新）
+      // 检查是否需要刷新（缓存超时或强制刷新）
       if (!forceRefresh && this.cacheTime) {
         const cacheAge = Date.now() - this.cacheTime;
-        const oneDay = 24 * 60 * 60 * 1000;
-        if (cacheAge > oneDay) {
+        if (cacheAge > this.cacheTimeout) {
           // 缓存超过1天，强制刷新一次
           this.cachedLimits = null;
           this.cacheTime = null;
@@ -214,8 +277,89 @@ class FeatureLimitService {
       return featureLimits[limitKey] !== undefined ? featureLimits[limitKey] : 0;
     } catch (error) {
       console.error('Get feature limit error:', error);
-      return 0;
+      // 出错时返回本地限制或默认值
+      const localLimit = this.getLocalFeatureLimit(feature);
+      return localLimit !== null ? localLimit : 0;
     }
+  }
+
+  /**
+   * 获取本地保存的功能限制值
+   * @param {string} feature - 功能ID
+   * @returns {Promise<number|null>} - 限制值或null
+   */
+  async getLocalFeatureLimit(feature) {
+    const featureMap = {
+      pinnedTabs: 'pinnedTabs',
+      searchHistory: 'searchHistory',
+      theme: 'theme',
+      longTermPinned: 'longTermPinned',
+      cloudStorage: 'cloudStorage',
+      crossDeviceSync: 'crossDeviceSync',
+      contentSearch: 'contentSearch',
+      syncDevices: 'syncDevices'
+    };
+
+    const limitKey = featureMap[feature];
+    if (!limitKey) {
+      return null;
+    }
+
+    // 固定tab限制逻辑
+    if (feature === 'pinnedTabs' || feature === 'longTermPinned') {
+      // 检查用户是否已完成邮箱验证
+      const isRegistered = await this.isUserRegistered();
+      
+      if (!isRegistered) {
+        // 静默注册用户（未验证邮箱）：5个
+        return 5;
+      }
+      
+      // 已完成邮箱验证的用户，检查体验期和VIP状态
+      try {
+        // 尝试从本地缓存获取体验期状态
+        const trialData = await chrome.storage.local.get('trialStatus');
+        const trialStatus = trialData.trialStatus;
+        
+        // 检查是否在体验期内
+        let isInTrialPeriod = false;
+        if (trialStatus && trialStatus.trialEndsAt) {
+          const endsAt = new Date(trialStatus.trialEndsAt).getTime();
+          isInTrialPeriod = endsAt > Date.now();
+        }
+        
+        // 检查是否是VIP
+        const vipData = await chrome.storage.local.get('vipStatus');
+        const vipStatus = vipData.vipStatus;
+        const isVip = vipStatus && vipStatus.isVip;
+        
+        if (isInTrialPeriod || isVip) {
+          // 体验期内或VIP用户：100个
+          return 100;
+        } else {
+          // 体验期结束且非VIP的普通用户：5个（引导购买VIP）
+          return 5;
+        }
+      } catch (e) {
+        console.warn('[FeatureLimit] Failed to check trial/VIP status, using fallback');
+        // 获取状态失败时（服务器异常），fallback使用本地缓存
+        // 如果有缓存数据，使用乐观值100（不阻塞用户）
+        // 如果没有缓存数据，返回5个
+        try {
+          const trialData = await chrome.storage.local.get('trialStatus');
+          const vipData = await chrome.storage.local.get('vipStatus');
+          // 如果有任何缓存数据，使用乐观值
+          if (trialData.trialStatus || vipData.vipStatus) {
+            return 100;
+          }
+        } catch (e2) {
+          console.warn('[FeatureLimit] Failed to check cache:', e2);
+        }
+        return 5;
+      }
+    }
+
+    return null;
   }
 
   /**

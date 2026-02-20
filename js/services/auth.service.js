@@ -4,7 +4,7 @@
  */
 
 import authApi from '../api/auth.js';
-import fingerprintUtil from '../utils/fingerprint.js';
+import userDeviceUUID from '../utils/user-device-uuid.js';
 
 class AuthService {
   constructor() {
@@ -32,8 +32,8 @@ class AuthService {
         return await this.getUserInfo();
       }
 
-      // 生成设备指纹
-      const deviceFingerprint = await fingerprintUtil.generate();
+      // 获取或生成 user_device_uuid
+      const userDeviceUuid = await userDeviceUUID.getOrCreate();
 
       // 获取浏览器信息
       const browserInfo = this.getBrowserInfo();
@@ -43,16 +43,16 @@ class AuthService {
 
       // 发送注册请求
       const response = await authApi.silentRegister({
-        deviceFingerprint,
+        userDeviceUuid,
         browserInfo,
         extensionVersion
       });
 
-      // 存储用户信息
+      // 存储用户信息（静默注册不设置 registeredAt）
       await this.saveUserInfo({
         userId: response.data.userId,
-        deviceId: response.data.deviceId,
-        registeredAt: response.data.createdAt
+        deviceId: response.data.deviceId
+        // 注意：不设置 registeredAt，只有邮箱验证或OAuth登录后才设置
       });
 
       console.log('Silent registration successful:', response.data);
@@ -145,6 +145,16 @@ class AuthService {
     const accessToken = result[this.storageKey.accessToken];
     const registeredAt = result[this.storageKey.registeredAt];
     return !!(userId || accessToken || registeredAt);
+  }
+
+  /**
+   * 检查是否已完成邮箱验证或OAuth登录
+   * 区别于 isRegistered：静默注册用户 isRegistered=true 但 isEmailVerified=false
+   * @returns {Promise<boolean>} - 返回是否已完成验证
+   */
+  async isEmailVerified() {
+    const result = await chrome.storage.local.get(this.storageKey.registeredAt);
+    return !!(result[this.storageKey.registeredAt]);
   }
 
   /**

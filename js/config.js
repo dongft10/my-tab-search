@@ -3,6 +3,32 @@
 // 注意：此文件用于 ES6 模块环境，config.common.js 用于 Service Worker 环境
 
 /**
+ * 环境配置
+ * 开发环境: DEBUG = true, 缓存5分钟
+ * 生产环境: DEBUG = false, 缓存1天
+ */
+export const ENV_CONFIG = {
+  // 是否为开发环境
+  DEBUG: true,
+
+  // 缓存配置
+  CACHE: {
+    // 开发环境缓存时间（毫秒）：1分钟
+    DEV_CACHE_TIME: 1 * 60 * 1000,
+    // 生产环境缓存时间（毫秒）：1天
+    PROD_CACHE_TIME: 24 * 60 * 60 * 1000
+  }
+};
+
+/**
+ * 获取当前缓存时间
+ * @returns {number} - 缓存时间（毫秒）
+ */
+export function getCacheTime() {
+  return ENV_CONFIG.DEBUG ? ENV_CONFIG.CACHE.DEV_CACHE_TIME : ENV_CONFIG.CACHE.PROD_CACHE_TIME;
+}
+
+/**
  * API 相关配置
  */
 export const API_CONFIG = {
@@ -59,6 +85,14 @@ export const API_CONFIG = {
       LIST: '/devices',
       DELETE: '/devices',
       LOGOUT_ALL: '/devices/logout'
+    },
+    // 固定标签页相关
+    PINNED_TABS: {
+      SYNC: '/pinned-tabs/sync',
+      LIST: '/pinned-tabs',
+      ADD: '/pinned-tabs',
+      UPDATE: '/pinned-tabs',
+      DELETE: '/pinned-tabs'
     }
   }
 };
@@ -68,7 +102,9 @@ export const API_CONFIG = {
  */
 export const PINNED_TABS_CONFIG = {
   // 固定标签页容量限制（最大数量）
-  MAX_PINNED_TABS: 5,
+  // 静默注册用户：5个
+  // 已完成注册用户（体验期/VIP）：100个
+  MAX_PINNED_TABS: 100,
   
   // 固定标签页弹窗尺寸
   WINDOW_WIDTH: 384,
@@ -101,12 +137,12 @@ export const UI_CONFIG = {
  * 存储键名配置
  */
 export const STORAGE_KEYS = {
-  USER_ID: 'mytabsearch_user_id',
-  DEVICE_ID: 'mytabsearch_device_id',
-  ACCESS_TOKEN: 'mytabsearch_access_token',
-  TOKEN_EXPIRES_AT: 'mytabsearch_token_expires_at',
-  REGISTERED_AT: 'mytabsearch_registered_at',
-  DEVICE_FINGERPRINT: 'mytabsearch_device_fingerprint'
+  USER_ID: 'userId',
+  DEVICE_ID: 'deviceId',
+  ACCESS_TOKEN: 'accessToken',
+  TOKEN_EXPIRES_AT: 'tokenExpiresAt',
+  REGISTERED_AT: 'registeredAt',
+  USER_DEVICE_UUID: 'userDeviceUuid'
 };
 
 /**
@@ -125,5 +161,7 @@ export default {
   SEARCH_CONFIG,
   UI_CONFIG,
   STORAGE_KEYS,
-  getApiUrl
+  ENV_CONFIG,
+  getApiUrl,
+  getCacheTime
 };

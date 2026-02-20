@@ -5,12 +5,13 @@
 
 import authApi from '../api/auth.js';
 import authService from './auth.service.js';
+import { getCacheTime } from '../config.js';
 
 class VipService {
   constructor() {
     this.storageKey = 'vipStatus';
     this.syncInterval = 60 * 60 * 1000; // 1小时同步一次
-    this.cacheMaxAge = 24 * 60 * 60 * 1000; // 缓存最大有效期1天
+    this.cacheMaxAge = getCacheTime(); // 缓存时间：生产环境1天，开发环境1分钟
     this.lastSyncAt = null;
     this.syncTimer = null;
   }

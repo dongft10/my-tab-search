@@ -66,6 +66,39 @@
       color: #666;
       font-size: 0.9em;
     }
+    .shortcut-setup {
+      background-color: #e8f0fe;
+      border: 1px solid #d2e3fc;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .shortcut-setup h4 {
+      margin: 0 0 10px 0;
+      color: #1a73e8;
+    }
+    .shortcut-setup p {
+      margin: 8px 0;
+      font-size: 0.9em;
+      color: #444;
+    }
+    .shortcut-setup .shortcut-item {
+      font-weight: bold;
+      color: #1a73e8;
+    }
+    .btn-setup-shortcut {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .btn-setup-shortcut:hover {
+      background-color: #1557b0;
+    }
   </style>
 </head>
 <body>
@@ -102,16 +135,23 @@
       <ul id="shortcuts-list">
         <li class="shortcut-item"><strong>Ctrl+Shift+A</strong> (Cmd+Shift+A on Mac): <span id="open-popup-text">Open the tab search popup</span></li>
         <li class="shortcut-item"><strong>Ctrl+Shift+S</strong> (Cmd+Shift+S on Mac): <span id="switch-prev-text">Switch to the previous tab</span></li>
+        <li class="shortcut-item"><strong>Ctrl+Shift+D</strong> (Cmd+Shift+D on Mac): <span id="open-pinned-tabs-text">Open pinned tabs list</span></li>
         <li class="shortcut-item"><strong>Arrow Up/Down</strong>: <span id="nav-results-text">Navigate through search results</span></li>
         <li class="shortcut-item"><strong>Enter</strong>: <span id="switch-selected-text">Switch to the selected tab</span></li>
         <li class="shortcut-item"><strong>Delete</strong>: <span id="close-tab-text">Close the selected tab</span></li>
       </ul>
     </div>
+
+    <div class="shortcut-setup">
+      <h4 id="shortcut-setup-title">Keyboard Shortcuts Setup</h4>
+      <p id="shortcut-setup-desc">Due to Chrome security restrictions, keyboard shortcuts need to be manually confirmed after installation. Click the button below to set up:</p>
+      <p><span class="shortcut-item">Ctrl+Shift+A</span>: Open tab search | <span class="shortcut-item">Ctrl+Shift+S</span>: Switch to previous tab | <span class="shortcut-item">Ctrl+Shift+D</span>: Open pinned tabs</p>
+      <button class="btn-setup-shortcut" id="btn-setup-shortcut">Set Up Keyboard Shortcuts</button>
+    </div>
     
     <div class="info-section usage-tips">
       <h3 id="usage-tips-heading">Usage Tips:</h3>
       <ul id="usage-tips-list">
-        <li class="usage-tip-item"><span id="tip-prev-tab-shortcut">The shortcut key to quickly switch to the previously opened tab is Ctrl+Shift+S (since v1.6.0).</span></li>
         <li class="usage-tip-item"><span id="tip-shortcut-conflict">If the default shortcut keys fail to work, a key conflict may be the cause. You can adjust them manually in chrome://extensions/shortcuts.</span></li>
         <li class="usage-tip-item"><span id="tip-pin-extension">For a smoother user experience, it is recommended to pin the extension to the browser toolbar directly after installation.</span></li>
       </ul>

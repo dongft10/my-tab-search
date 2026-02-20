@@ -24,6 +24,7 @@ const elements = {
   vipStatusValue: document.getElementById('vip-status-value'),
   vipExpires: document.getElementById('vip-expires'),
   trialStatus: document.getElementById('trial-status'),
+  trialLabel: document.getElementById('trial-label'),
   trialDaysLeft: document.getElementById('trial-days-left'),
   btnExtendTrial: document.getElementById('btn-extend-trial'),
   btnLogin: document.getElementById('btn-login'),
@@ -211,6 +212,14 @@ async function loadVipStatus() {
 // 加载体验期状态
 async function loadTrialStatus() {
   try {
+    // 检查是否是匿名用户（未完成邮箱验证）
+    const isEmailVerified = await authService.isEmailVerified();
+    if (!isEmailVerified) {
+      // 匿名用户不显示体验期状态
+      elements.trialStatus.style.display = 'none';
+      return;
+    }
+
     let accessToken = null;
     try {
       accessToken = await authService.getValidAccessToken();
@@ -228,8 +237,21 @@ async function loadTrialStatus() {
       if (response.code === 0) {
         const trialData = response.data;
         
+        // 检查是否处于应用推广试用期（trial_enabled = false）
+        if (!trialData.trialEnabled) {
+          elements.trialStatus.style.display = 'block';
+          // 不显示"体验期剩余:"标签
+          elements.trialLabel.style.display = 'none';
+          elements.trialDaysLeft.textContent = i18n.getMessage('promotionPeriodMessage') || '应用推广试用期，全功能完全免费使用，欢迎提供宝贵的使用体验反馈';
+          // 隐藏延展按钮
+          elements.btnExtendTrial.style.display = 'none';
+          return;
+        }
+        
         if (trialData.isInTrialPeriod) {
           elements.trialStatus.style.display = 'block';
+          // 显示"体验期剩余:"标签
+          elements.trialLabel.style.display = 'inline';
           elements.trialDaysLeft.textContent = `${trialData.trialDaysLeft} days`;
           
           if (trialData.canExtend) {

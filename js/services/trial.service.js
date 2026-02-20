@@ -5,10 +5,21 @@
 
 import authApi from '../api/auth.js';
 import authService from './auth.service.js';
+import { getCacheTime } from '../config.js';
 
 class TrialService {
   constructor() {
     this.storageKey = 'trialStatus';
+    this.lastSyncAt = null;
+    this.syncTimer = null;
+  }
+
+  /**
+   * 获取缓存时间
+   * @returns {number} - 缓存时间（毫秒）
+   */
+  getCacheMaxAge() {
+    return getCacheTime();
   }
 
   /**
@@ -37,28 +48,20 @@ class TrialService {
   }
 
   /**
-   * 获取有效的访问令牌
-   * @returns {Promise<string|null>} - 返回访问令牌
-   */
-  async getValidAccessToken() {
-    return await authService.getValidAccessToken();
-  }
-
-  /**
    * 从服务器获取体验期状态
-   * @param {boolean} forceRefresh - 是否强制刷新（默认false，缓存超过1天才刷新）
+   * @param {boolean} forceRefresh - 是否强制刷新（默认false，缓存超过配置时间才刷新）
    * @returns {Promise<object>} - 返回体验期状态
    */
   async fetchTrialStatus(forceRefresh = false) {
     try {
       const localStatus = await this.getLocalTrialStatus();
-      const oneDay = 24 * 60 * 60 * 1000;
+      const cacheMaxAge = this.getCacheMaxAge();
       
-      // 检查缓存是否超过1天
+      // 检查缓存是否超过配置时间
       if (!forceRefresh && localStatus && localStatus.lastUpdateAt) {
         const cacheAge = Date.now() - new Date(localStatus.lastUpdateAt).getTime();
-        if (cacheAge < oneDay) {
-          // 缓存未超过1天，直接返回本地状态
+        if (cacheAge < cacheMaxAge) {
+          // 缓存未超过配置时间，直接返回本地状态
           // 检查是否过期
           if (localStatus.trialEndsAt) {
             const endsAt = new Date(localStatus.trialEndsAt).getTime();
@@ -67,12 +70,21 @@ class TrialService {
               localStatus.trialDaysLeft = 0;
             }
           }
+          // 即使缓存未过期，也检查 trialEndsAt 是否已过期
+          if (localStatus.trialEndsAt) {
+            const endsAt = new Date(localStatus.trialEndsAt).getTime();
+            if (endsAt < Date.now()) {
+              localStatus.isInTrialPeriod = false;
+              localStatus.trialDaysLeft = 0;
+              await this.saveTrialStatus(localStatus);
+            }
+          }
           console.log('[Trial] Using cached status, cache age:', Math.round(cacheAge / 1000 / 60), 'minutes');
           return localStatus;
         }
       }
 
-      // 缓存超过1天或没有缓存，从服务器获取
+      // 缓存超过配置时间或没有缓存，从服务器获取
       const accessToken = await this.getValidAccessToken();
       if (!accessToken) {
         throw new Error('No access token');
@@ -107,23 +119,33 @@ class TrialService {
   async getTrialStatus() {
     try {
       const localStatus = await this.getLocalTrialStatus();
+      const cacheMaxAge = this.getCacheMaxAge();
       
       // 如果本地没有状态，需要获取
       if (!localStatus) {
         return await this.fetchTrialStatus();
       }
 
-      // 检查是否过期
+      // 检查是否过期（根据 trialEndsAt 判断）
       if (localStatus.trialEndsAt) {
         const endsAt = new Date(localStatus.trialEndsAt).getTime();
         if (endsAt < Date.now()) {
+          // 已过期，更新本地状态为过期
           localStatus.isInTrialPeriod = false;
           localStatus.trialDaysLeft = 0;
+          await this.saveTrialStatus(localStatus);
+          return localStatus;
         }
       }
 
-      // 后台刷新状态
-      this.fetchTrialStatus();
+      // 检查缓存是否过期
+      if (localStatus.lastUpdateAt) {
+        const cacheAge = Date.now() - new Date(localStatus.lastUpdateAt).getTime();
+        if (cacheAge >= cacheMaxAge) {
+          // 缓存已过期，后台刷新状态（不阻塞UI）
+          this.fetchTrialStatus(true);
+        }
+      }
 
       return localStatus;
     } catch (error) {

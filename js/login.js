@@ -20,15 +20,16 @@ const elements = {
 
 // 动态加载模块
 async function loadModules() {
-  const [{ default: authApi }, { default: authService }, { default: i18n }] = await Promise.all([
+  const [{ default: authApi }, { default: authService }, { default: i18n }, { default: featureLimitService }] = await Promise.all([
     import('../js/api/auth.js'),
     import('../js/services/auth.service.js'),
-    import('../js/i18n.js')
+    import('../js/i18n.js'),
+    import('../js/services/feature-limit.service.js')
   ]);
-  return { authApi, authService, i18n };
+  return { authApi, authService, i18n, featureLimitService };
 }
 
-let authApi, authService, i18n;
+let authApi, authService, i18n, featureLimitService;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
@@ -37,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     authApi = modules.authApi;
     authService = modules.authService;
     i18n = modules.i18n;
+    featureLimitService = modules.featureLimitService;
     await i18n.initialize();
     // 更新页面国际化元素
     i18n.updatePageI18n();
@@ -141,16 +143,27 @@ async function handleVerify() {
     const userInfo = await authService.getUserInfo();
     const deviceId = userInfo?.[authService.storageKey.deviceId];
     
-    // 获取设备指纹和浏览器信息
+    // 获取 user_device_uuid 和浏览器信息
     let deviceInfo = null;
-    if (typeof fingerprintUtil !== 'undefined') {
-      const fingerprint = await fingerprintUtil.generate();
-      const browserInfo = await fingerprintUtil.getBrowserInfo();
+    try {
+      const uuidData = await chrome.storage.local.get('userDeviceUuid');
+      const userDeviceUuid = uuidData.userDeviceUuid || null;
+      
+      // 获取浏览器信息
+      const browserInfo = {
+        name: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Unknown',
+        version: navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || 'Unknown',
+        platform: navigator.platform,
+        language: navigator.language
+      };
+      
       deviceInfo = {
-        fingerprint,
+        userDeviceUuid,
         browserInfo,
         extensionVersion: chrome.runtime.getManifest().version
       };
+    } catch (e) {
+      console.warn('[login] Failed to get device info:', e);
     }
     
     const response = await authApi.verifyEmail(email, code, deviceId, deviceInfo);
@@ -180,6 +193,12 @@ async function handleVerify() {
       }
       
       await chrome.storage.local.set(storageData);
+      
+      // 清除功能限制缓存，确保获取最新的限制
+      if (featureLimitService) {
+        await featureLimitService.clearCache();
+        console.log('[Email] Feature limit cache cleared');
+      }
       
       showMessage(i18n?.getMessage('loginSuccess') || 'Login successful!', 'success');
       
@@ -295,8 +314,18 @@ async function handleOAuthToken(provider, accessToken) {
     
     if (userInfo && userInfo.email) {
       console.log('[OAuth] Calling backend to verify token...');
+      
+      // 获取 user_device_uuid
+      let userDeviceUuid = null;
+      try {
+        const uuidData = await chrome.storage.local.get('userDeviceUuid');
+        userDeviceUuid = uuidData.userDeviceUuid || null;
+      } catch (e) {
+        console.warn('[OAuth] Failed to get userDeviceUuid:', e);
+      }
+      
       // 发送给后端验证并创建账户
-      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo);
+      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo, userDeviceUuid);
       console.log('[OAuth] Backend response:', response);
       
       if (response.code === 0 || response.data?.success) {
@@ -309,6 +338,12 @@ async function handleOAuthToken(provider, accessToken) {
           [authService.storageKey.tokenExpiresAt]: data.expiresAt,
           [authService.storageKey.registeredAt]: new Date().toISOString()
         });
+        
+        // 清除功能限制缓存，确保获取最新的限制
+        if (featureLimitService) {
+          await featureLimitService.clearCache();
+          console.log('[OAuth] Feature limit cache cleared');
+        }
         
         showMessage('Login successful!', 'success');
         

@@ -225,6 +225,22 @@
     "message": "Open pinned tabs list",
     "description": "Description for the pinned tabs command"
   },
+  "shortcutSetupTitle": {
+    "message": "Keyboard Shortcuts Setup",
+    "description": "Title for the shortcut setup section"
+  },
+  "shortcutSetupDesc": {
+    "message": "Due to Chrome security restrictions, keyboard shortcuts need to be manually confirmed after installation. Click the button below to set up:",
+    "description": "Description for the shortcut setup section"
+  },
+  "btnSetupShortcut": {
+    "message": "Set Up Keyboard Shortcuts",
+    "description": "Button text to open shortcut settings"
+  },
+  "openPinnedTabsText": {
+    "message": "Open pinned tabs list",
+    "description": "Description for the pinned tabs shortcut"
+  },
   "pinnedTabsLimit": {
     "message": "Pinned tabs limit reached ($count$ tabs max)",
     "description": "Message shown when trying to pin more than the limit, $count$ will be replaced with the actual limit",
@@ -298,6 +314,10 @@
   "pinnedTabsLimitReached": {
     "message": "Pinned tabs limit reached",
     "description": "Toast message when pinned tabs limit reached"
+  },
+  "longTermPinnedLimitReached": {
+    "message": "Long-term pinned tabs limit reached. Upgrade to VIP for more",
+    "description": "Toast message when long term pinned limit reached"
   },
   "tabPinned": {
     "message": "Tab pinned",
@@ -474,6 +494,10 @@
   "extendTrial": {
     "message": "Extend Trial",
     "description": "Extend trial button text"
+  },
+  "promotionPeriodMessage": {
+    "message": "App Promotion Period: All features are completely free to use. Welcome to provide valuable feedback!",
+    "description": "Message shown during promotion period when trial is disabled"
   },
   "loginOrRegister": {
     "message": "Login / Register",
