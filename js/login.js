@@ -11,12 +11,18 @@ const elements = {
   verifySection: document.getElementById('verify-section'),
   codeInput: document.getElementById('code-input'),
   btnVerify: document.getElementById('btn-verify'),
+  btnResendCode: document.getElementById('btn-resend-code'),
   emailHint: document.getElementById('email-hint'),
   btnGoogle: document.getElementById('btn-google'),
   btnMicrosoft: document.getElementById('btn-microsoft'),
   btnSkip: document.getElementById('btn-skip'),
   statusMessage: document.getElementById('status-message')
 };
+
+// 重新发送倒计时相关
+let resendTimer = null;
+let resendSeconds = 0;
+const RESEND_COOLDOWN = 60; // 秒（前端显示60s，后端限制55s）
 
 // 动态加载模块
 async function loadModules() {
@@ -74,6 +80,16 @@ function setupEventListeners() {
   if (elements.btnVerify) {
     elements.btnVerify.addEventListener('click', handleVerify);
   }
+  if (elements.codeInput) {
+    elements.codeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        elements.btnVerify.click();
+      }
+    });
+  }
+  if (elements.btnResendCode) {
+    elements.btnResendCode.addEventListener('click', handleSendCode);
+  }
   if (elements.btnGoogle) {
     elements.btnGoogle.addEventListener('click', () => handleOAuth('google'));
   }
@@ -94,34 +110,97 @@ async function handleSendCode() {
     return;
   }
   
+  // 如果正在倒计时，不允许发送
+  if (resendSeconds > 0) {
+    showMessage(i18n?.getMessage('waitForResend') || `Please wait ${resendSeconds}s before resending`, 'error');
+    return;
+  }
+  
   elements.btnSendCode.disabled = true;
   elements.btnSendCode.textContent = i18n?.getMessage('sending') || 'Sending...';
+  if (elements.btnResendCode) {
+    elements.btnResendCode.disabled = true;
+    elements.btnResendCode.textContent = i18n?.getMessage('sending') || 'Sending...';
+  }
   
   try {
     const response = await authApi.sendVerificationCode(email);
-    console.log('[login] response.data:', response.data);
+    console.log('[login] response:', response);
     
-    // 兼容两种响应格式: {code: 0} 或 {success: true}
-    const isSuccess = response.code === 0 || response.data?.success === true;
-    
-    if (isSuccess) {
-      showMessage(i18n?.getMessage('verificationCodeSent') || 'Verification code sent to your email', 'success');
-      const verifySection = document.getElementById('verify-section');
-      const btnSendCode = document.getElementById('btn-send-code');
-      const emailInput = document.getElementById('email-input');
-      if (verifySection) verifySection.style.display = 'block';
-      if (btnSendCode) btnSendCode.style.display = 'none';
-      if (emailInput) emailInput.disabled = true;
-    } else {
-      showMessage(response.msg || i18n?.getMessage('sendFailed') || 'Failed to send', 'error');
+    // 检查是否有错误响应（后端返回 429 或其他错误时，apiClient 会抛出异常）
+    // 如果成功，response 应该是 {code: 0, data: {...}}
+    if (response.code !== 0) {
+      // 后端返回错误
+      const errorMsg = response.msg || response.data?.message || i18n?.getMessage('sendFailed') || 'Failed to send';
+      showMessage(errorMsg, 'error');
       elements.btnSendCode.disabled = false;
       elements.btnSendCode.textContent = i18n?.getMessage('sendCode') || 'Send verification code';
+      if (elements.btnResendCode) {
+        elements.btnResendCode.disabled = false;
+        elements.btnResendCode.textContent = i18n?.getMessage('resendCode') || 'Resend code';
+      }
+      return;
     }
+    
+    // 成功
+    showMessage(i18n?.getMessage('verificationCodeSent') || 'Verification code sent to your email', 'success');
+    const verifySection = document.getElementById('verify-section');
+    const btnSendCode = document.getElementById('btn-send-code');
+    const emailInput = document.getElementById('email-input');
+    if (verifySection) verifySection.style.display = 'block';
+    if (btnSendCode) btnSendCode.style.display = 'none';
+    if (emailInput) emailInput.disabled = true;
+    
+    // 启动倒计时
+    startResendCountdown();
   } catch (error) {
     console.error('Send code error:', error);
-    showMessage(i18n?.getMessage('sendFailed') || 'Failed to send, please try again', 'error');
+    // 显示错误消息
+    const errorMsg = error.message || i18n?.getMessage('sendFailed') || 'Failed to send, please try again';
+    showMessage(errorMsg, 'error');
     elements.btnSendCode.disabled = false;
     elements.btnSendCode.textContent = i18n?.getMessage('sendCode') || 'Send verification code';
+    if (elements.btnResendCode) {
+      elements.btnResendCode.disabled = false;
+      elements.btnResendCode.textContent = i18n?.getMessage('resendCode') || 'Resend code';
+    }
+  }
+}
+
+// 启动重新发送倒计时
+function startResendCountdown() {
+  resendSeconds = RESEND_COOLDOWN;
+  
+  if (elements.btnResendCode) {
+    elements.btnResendCode.style.display = 'inline-block';
+    updateResendButtonText();
+  }
+  
+  if (resendTimer) {
+    clearInterval(resendTimer);
+  }
+  
+  resendTimer = setInterval(() => {
+    resendSeconds--;
+    updateResendButtonText();
+    
+    if (resendSeconds <= 0) {
+      clearInterval(resendTimer);
+      resendTimer = null;
+      if (elements.btnResendCode) {
+        elements.btnResendCode.disabled = false;
+        elements.btnResendCode.textContent = i18n?.getMessage('resendCode') || 'Resend code';
+      }
+    }
+  }, 1000);
+}
+
+// 更新重新发送按钮文字
+function updateResendButtonText() {
+  if (elements.btnResendCode) {
+    elements.btnResendCode.textContent = i18n?.getMessage('resendCountdown') 
+      ? i18n?.getMessage('resendCountdown').replace('{seconds}', resendSeconds)
+      : `重新发送 (${resendSeconds}s)`;
   }
 }
 
@@ -141,7 +220,7 @@ async function handleVerify() {
   try {
     // 获取本地存储的 deviceId 和设备信息（如果有的话）
     const userInfo = await authService.getUserInfo();
-    const deviceId = userInfo?.[authService.storageKey.deviceId];
+    const existingDeviceId = userInfo?.[authService.storageKey.deviceId];
     
     // 获取 user_device_uuid 和浏览器信息
     let deviceInfo = null;
@@ -166,7 +245,7 @@ async function handleVerify() {
       console.warn('[login] Failed to get device info:', e);
     }
     
-    const response = await authApi.verifyEmail(email, code, deviceId, deviceInfo);
+    const response = await authApi.verifyEmail(email, code, existingDeviceId, deviceInfo);
     
     // 兼容两种响应格式: {code: 0} 或 {success: true}
     const isSuccess = response.code === 0 || response.data?.success === true;
@@ -174,6 +253,7 @@ async function handleVerify() {
     
     if (isSuccess) {
       const userId = data?.userId;
+      const deviceId = data?.deviceId;
       const accessToken = data?.accessToken;
       const expiresAt = data?.expiresAt;
       
@@ -332,12 +412,18 @@ async function handleOAuthToken(provider, accessToken) {
         const data = response.data;
         
         // 保存用户信息
-        await chrome.storage.local.set({
+        const storageData = {
           [authService.storageKey.userId]: data.userId,
           [authService.storageKey.accessToken]: data.accessToken,
           [authService.storageKey.tokenExpiresAt]: data.expiresAt,
           [authService.storageKey.registeredAt]: new Date().toISOString()
-        });
+        };
+        
+        if (data.deviceId) {
+          storageData[authService.storageKey.deviceId] = data.deviceId;
+        }
+        
+        await chrome.storage.local.set(storageData);
         
         // 清除功能限制缓存，确保获取最新的限制
         if (featureLimitService) {

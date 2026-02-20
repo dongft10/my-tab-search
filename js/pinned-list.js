@@ -113,7 +113,7 @@ function bindEvents() {
   
   // 窗口失去焦点时关闭窗口
   window.addEventListener('blur', () => {
-    // window.close();
+    window.close();
   });
   
   // 设置按钮

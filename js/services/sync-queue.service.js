@@ -4,6 +4,9 @@
  * 用户操作先存本地，后台定时同步到服务器
  */
 
+import authService from './auth.service.js';
+import authApi from '../api/auth.js';
+
 class SyncQueueService {
   constructor() {
     this.storageKey = 'syncQueue';
@@ -107,8 +110,7 @@ class SyncQueueService {
 
       console.log('[SyncQueue] Starting sync, queue length:', queue.length);
 
-      // 导入 auth 服务获取 token
-      const { authService } = await import('./auth.service.js');
+      // 获取 token
       const accessToken = await authService.getValidAccessToken();
 
       if (!accessToken) {
@@ -152,17 +154,23 @@ class SyncQueueService {
    * @returns {Promise} - 返回处理结果
    */
   async processOperation(item, accessToken) {
-    const { authApi } = await import('../api/auth.js');
+    const authApi = (await import('../api/auth.js')).default;
 
     switch (item.type) {
       case 'pinTab':
-        await authApi.syncPinnedTab(accessToken, item.data);
+        await authApi.syncPinnedTab(accessToken, {
+          ...item.data,
+          tabId: String(item.data.tabId)
+        });
         break;
       case 'unpinTab':
-        await authApi.syncUnpinTab(accessToken, item.data.tabId);
+        await authApi.syncUnpinTab(accessToken, String(item.data.tabId));
         break;
       case 'updateTab':
-        await authApi.syncUpdateTab(accessToken, item.data);
+        await authApi.syncUpdateTab(accessToken, {
+          ...item.data,
+          tabId: String(item.data.tabId)
+        });
         break;
       default:
         console.warn('[SyncQueue] Unknown operation type:', item.type);

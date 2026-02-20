@@ -367,6 +367,18 @@
     "message": "seconds to resend",
     "description": "Countdown button text"
   },
+  "resendCode": {
+    "message": "Resend code",
+    "description": "Button text to resend code"
+  },
+  "resendCountdown": {
+    "message": "Resend ({seconds}s)",
+    "description": "Button text during countdown"
+  },
+  "waitForResend": {
+    "message": "Please wait {seconds}s before resending",
+    "description": "Message when user tries to resend during countdown"
+  },
   "sendCode": {
     "message": "Send verification code",
     "description": "Button text to send code"
@@ -496,7 +508,7 @@
     "description": "Extend trial button text"
   },
   "promotionPeriodMessage": {
-    "message": "App Promotion Period: All features are completely free to use. Welcome to provide valuable feedback!",
+    "message": "✨App Promotion Period: All features are completely free to use. Welcome to provide valuable feedback!🎯😄",
     "description": "Message shown during promotion period when trial is disabled"
   },
   "loginOrRegister": {

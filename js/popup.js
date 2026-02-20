@@ -1,7 +1,5 @@
 // Import i18n manager
 import i18n from './i18n.js';
-// Import config
-import { PINNED_TABS_CONFIG } from './config.js';
 // Import feature limit service
 import featureLimitService from './services/feature-limit.service.js';
 // Import sync queue service
