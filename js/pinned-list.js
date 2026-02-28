@@ -816,7 +816,7 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
         await setLongTermPinned(tabId);
       }
       // 后台异步刷新状态
-      trialService.fetchTrialStatus();
+      trialService.fetchTrialStatus().catch(err => console.warn('[pinned-list] Failed to fetch trial status:', err));
       return;
     }
     

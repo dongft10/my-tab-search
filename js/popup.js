@@ -184,6 +184,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       pinnedMap.set(t.url, t);
     });
 
+    // URL 解析缓存
+    const urlCache = new Map();
+    function getCachedHostname(url) {
+      if (urlCache.has(url)) return urlCache.get(url);
+      const hostname = new URL(url).hostname;
+      urlCache.set(url, hostname);
+      return hostname;
+    }
+
     // 使用 Promise 包装 chrome.tabs.query
     const tabs = await new Promise((resolve) => {
       chrome.tabs.query({}, resolve);
@@ -214,6 +223,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     tabList.innerHTML = "";
     tabIdMap.clear();
 
+    // 使用 DocumentFragment 批量添加，减少回流
+    const fragment = document.createDocumentFragment();
+
     // populate the tab list with the filtered tabs
     for (let i = 0; i < filteredTabs.length; i++) {
       const tab = filteredTabs[i];
@@ -241,7 +253,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const urlHostNameDiv = document.createElement("div");
         urlHostNameDiv.classList.add("tab-url-hostname");
-        urlHostNameDiv.textContent = new URL(tab.url).hostname;
+        urlHostNameDiv.textContent = getCachedHostname(tab.url);
         const lastElement = tab.url.substring(tab.url.lastIndexOf('/') + 1);
         if (lastElement.length > 0) {
           urlHostNameDiv.textContent = urlHostNameDiv.textContent + "/.../" + lastElement;
@@ -328,13 +340,17 @@ document.addEventListener("DOMContentLoaded", async () => {
           });
         });
 
-        tabList.appendChild(li);
+        fragment.appendChild(li);
         tabIdMap.set(i, tab.id);
       } catch (error) {
         // 如果try块中抛出错误，这里将捕获到错误
         // console.error("An error occurred:", error.message);
       }
     }
+    
+    // 一次性添加所有元素到 DOM，只触发一次回流
+    tabList.appendChild(fragment);
+    
     lis = tabList.childNodes;
 
     // 默认选中，方便enter直接跳转
