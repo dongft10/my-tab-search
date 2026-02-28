@@ -5,6 +5,10 @@
 
 const SYNC_QUEUE_STORAGE_KEY = 'syncQueue';
 const SYNC_QUEUE_MAX_RETRIES = 3;
+const SYNC_QUEUE_DEBOUNCE_DELAY = 2000;
+
+let syncTimer = null;
+let isSyncing = false;
 
 /**
  * 获取同步队列
@@ -39,9 +43,12 @@ async function addToSyncQueue(type, data) {
   try {
     const queue = await getSyncQueue();
     
+    const normalizedTabId = String(data.tabId || '');
+    
     const exists = queue.some(item => 
       item.type === type && 
-      item.data.tabId === data.tabId
+      String(item.data.tabId || '') === normalizedTabId &&
+      item.status !== 'completed'
     );
 
     if (!exists) {
@@ -49,13 +56,13 @@ async function addToSyncQueue(type, data) {
         type,
         data,
         createdAt: new Date().toISOString(),
-        retryCount: 0
+        retryCount: 0,
+        status: 'pending'
       });
       await saveSyncQueue(queue);
       console.log('[SyncQueue] Added operation:', type, data);
     }
 
-    // 安排同步
     scheduleSync();
   } catch (error) {
     console.error('[SyncQueue] Add operation error:', error);
@@ -66,6 +73,12 @@ async function addToSyncQueue(type, data) {
  * 执行同步
  */
 async function performSyncQueue() {
+  if (isSyncing) {
+    console.log('[SyncQueue] Sync already in progress, skipping');
+    return;
+  }
+
+  isSyncing = true;
   try {
     const queue = await getSyncQueue();
     if (queue.length === 0) {
@@ -75,7 +88,6 @@ async function performSyncQueue() {
 
     console.log('[SyncQueue] Starting sync, queue length:', queue.length);
 
-    // 获取 token
     const storageData = await chrome.storage.local.get(['accessToken']);
     const accessToken = storageData.accessToken;
 
@@ -88,25 +100,27 @@ async function performSyncQueue() {
     for (const item of queue) {
       try {
         await processSyncOperation(item, accessToken);
-        processedIds.push(`${item.type}_${item.data.tabId}_${item.createdAt}`);
+        processedIds.push(`${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`);
       } catch (error) {
         console.error('[SyncQueue] Process operation error:', error);
         item.retryCount = (item.retryCount || 0) + 1;
         if (item.retryCount >= SYNC_QUEUE_MAX_RETRIES) {
           console.warn('[SyncQueue] Operation max retries reached, removing:', item.type);
-          processedIds.push(`${item.type}_${item.data.tabId}_${item.createdAt}`);
+          processedIds.push(`${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`);
         }
       }
     }
 
     const remainingQueue = queue.filter(item => 
-      !processedIds.includes(`${item.type}_${item.data.tabId}_${item.createdAt}`)
+      !processedIds.includes(`${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`)
     );
     await saveSyncQueue(remainingQueue);
 
     console.log('[SyncQueue] Sync completed, remaining:', remainingQueue.length);
   } catch (error) {
     console.error('[SyncQueue] Perform sync error:', error);
+  } finally {
+    isSyncing = false;
   }
 }
 
@@ -114,6 +128,12 @@ async function performSyncQueue() {
  * 处理单个同步操作
  */
 async function processSyncOperation(item, accessToken) {
+  // 数据校验
+  if (!item.data || !item.data.tabId) {
+    console.warn('[SyncQueue] Skip invalid operation: missing tabId', item);
+    return;
+  }
+  
   const apiUrl = 'http://localhost:41532/api/v1';
   
   const headers = {
@@ -171,9 +191,8 @@ async function processSyncOperation(item, accessToken) {
 }
 
 /**
- * 安排同步任务
+ * 安排同步任务（带防抖）
  */
-let syncTimer = null;
 function scheduleSync(delay = 0) {
   if (syncTimer) {
     clearTimeout(syncTimer);
@@ -181,23 +200,27 @@ function scheduleSync(delay = 0) {
   
   syncTimer = setTimeout(() => {
     performSyncQueue();
-  }, delay);
+  }, delay || SYNC_QUEUE_DEBOUNCE_DELAY);
 }
 
 /**
- * 启动定期同步
+ * 启动定期同步（合并触发源，避免重复）
  */
+let periodicSyncStarted = false;
 function startPeriodicSync(interval = 60000) {
-  scheduleSync(interval);
+  if (periodicSyncStarted) {
+    console.log('[SyncQueue] Periodic sync already started');
+    return;
+  }
   
-  chrome.alarms.create('syncQueue', { periodInMinutes: 1 });
-  chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'syncQueue') {
-      performSyncQueue();
-    }
-  });
+  periodicSyncStarted = true;
   
-  console.log('[SyncQueue] Periodic sync started');
+  // 只通过 setInterval 触发，不使用 chrome.alarms 避免重复
+  setInterval(() => {
+    performSyncQueue();
+  }, interval);
+  
+  console.log('[SyncQueue] Periodic sync started with interval:', interval);
 }
 
 // 导出全局函数

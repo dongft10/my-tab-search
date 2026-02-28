@@ -11,8 +11,10 @@ class SyncQueueService {
   constructor() {
     this.storageKey = 'syncQueue';
     this.maxRetries = 3;
-    this.retryDelay = 5000; // 5秒
+    this.retryDelay = 5000;
     this.syncTimer = null;
+    this.debounceDelay = 2000;
+    this.isSyncing = false;
   }
 
   /**
@@ -54,10 +56,12 @@ class SyncQueueService {
     try {
       const queue = await this.getQueue();
       
-      // 检查是否已存在相同操作（根据类型和关键字段去重）
+      const normalizedTabId = String(data.tabId || '');
+      
       const exists = queue.some(item => 
         item.type === type && 
-        item.data.tabId === data.tabId
+        String(item.data.tabId || '') === normalizedTabId &&
+        item.status !== 'completed'
       );
 
       if (!exists) {
@@ -65,13 +69,13 @@ class SyncQueueService {
           type,
           data,
           createdAt: new Date().toISOString(),
-          retryCount: 0
+          retryCount: 0,
+          status: 'pending'
         });
         await this.saveQueue(queue);
         console.log('[SyncQueue] Added operation:', type, data);
       }
 
-      // 尝试立即同步
       this.scheduleSync();
     } catch (error) {
       console.error('[SyncQueue] Add operation error:', error);
@@ -101,6 +105,12 @@ class SyncQueueService {
    * @returns {Promise} - 返回同步结果
    */
   async performSync() {
+    if (this.isSyncing) {
+      console.log('[SyncQueue] Sync already in progress, skipping');
+      return;
+    }
+
+    this.isSyncing = true;
     try {
       const queue = await this.getQueue();
       if (queue.length === 0) {
@@ -110,7 +120,6 @@ class SyncQueueService {
 
       console.log('[SyncQueue] Starting sync, queue length:', queue.length);
 
-      // 获取 token
       const accessToken = await authService.getValidAccessToken();
 
       if (!accessToken) {
@@ -118,7 +127,6 @@ class SyncQueueService {
         return;
       }
 
-      // 逐个处理队列中的操作
       const processedIds = [];
       for (const item of queue) {
         try {
@@ -126,7 +134,6 @@ class SyncQueueService {
           processedIds.push(this.getOperationId(item));
         } catch (error) {
           console.error('[SyncQueue] Process operation error:', error);
-          // 增加重试计数
           item.retryCount = (item.retryCount || 0) + 1;
           if (item.retryCount >= this.maxRetries) {
             console.warn('[SyncQueue] Operation max retries reached, removing:', item.type);
@@ -135,7 +142,6 @@ class SyncQueueService {
         }
       }
 
-      // 移除已处理的操作
       const remainingQueue = queue.filter(item => 
         !processedIds.includes(this.getOperationId(item))
       );
@@ -144,6 +150,8 @@ class SyncQueueService {
       console.log('[SyncQueue] Sync completed, remaining:', remainingQueue.length);
     } catch (error) {
       console.error('[SyncQueue] Perform sync error:', error);
+    } finally {
+      this.isSyncing = false;
     }
   }
 
@@ -154,6 +162,11 @@ class SyncQueueService {
    * @returns {Promise} - 返回处理结果
    */
   async processOperation(item, accessToken) {
+    if (!item.data || !item.data.tabId) {
+      console.warn('[SyncQueue] Skip invalid operation: missing tabId', item);
+      return;
+    }
+    
     const authApi = (await import('../api/auth.js')).default;
 
     switch (item.type) {
@@ -183,7 +196,7 @@ class SyncQueueService {
    * @returns {string} - 返回唯一标识
    */
   getOperationId(item) {
-    return `${item.type}_${item.data.tabId}_${item.createdAt}`;
+    return `${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`;
   }
 
   /**
@@ -197,7 +210,7 @@ class SyncQueueService {
     
     this.syncTimer = setTimeout(() => {
       this.performSync();
-    }, delay);
+    }, delay || this.debounceDelay);
   }
 
   /**
