@@ -242,7 +242,7 @@ async function loadTrialStatus() {
           elements.trialStatus.style.display = 'block';
           // 不显示"体验期剩余:"标签
           elements.trialLabel.style.display = 'none';
-          elements.trialDaysLeft.textContent = i18n.getMessage('promotionPeriodMessage') || '应用推广试用期，全功能完全免费使用，欢迎提供宝贵的使用体验反馈';
+          elements.trialDaysLeft.textContent = i18n.getMessage('promotionPeriodMessage') || '✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄';
           // 隐藏延展按钮
           elements.btnExtendTrial.style.display = 'none';
           return;

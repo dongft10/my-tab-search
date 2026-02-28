@@ -508,7 +508,7 @@
     "description": "Extend trial button text"
   },
   "promotionPeriodMessage": {
-    "message": "✨应用推广试用期，全功能完全免费使用，欢迎提供宝贵的使用体验反馈🎯😄",
+    "message": "✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄",
     "description": "Message shown during promotion period when trial is disabled"
   },
   "loginOrRegister": {

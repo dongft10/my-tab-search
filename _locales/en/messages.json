@@ -508,7 +508,7 @@
     "description": "Extend trial button text"
   },
   "promotionPeriodMessage": {
-    "message": "✨App Promotion Period: All features are completely free to use. Welcome to provide valuable feedback!🎯😄",
+    "message": "✨App Promotion Period: All features are free to use. Welcome to provide valuable feedback!🎯😄",
     "description": "Message shown during promotion period when trial is disabled"
   },
   "loginOrRegister": {
