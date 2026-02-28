@@ -131,7 +131,7 @@ async function processSyncOperation(item, accessToken) {
   // 数据校验
   if (!item.data || !item.data.tabId) {
     console.warn('[SyncQueue] Skip invalid operation: missing tabId', item);
-    return;
+    throw new Error('Invalid operation: missing tabId');
   }
   
   const apiUrl = 'http://localhost:41532/api/v1';

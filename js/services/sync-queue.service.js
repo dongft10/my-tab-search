@@ -164,7 +164,7 @@ class SyncQueueService {
   async processOperation(item, accessToken) {
     if (!item.data || !item.data.tabId) {
       console.warn('[SyncQueue] Skip invalid operation: missing tabId', item);
-      return;
+      throw new Error('Invalid operation: missing tabId');
     }
     
     const authApi = (await import('../api/auth.js')).default;
