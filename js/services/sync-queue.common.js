@@ -164,9 +164,10 @@ async function processSyncOperation(item, accessToken) {
       endpoint = '/pinned-tabs/sync';
       body = { 
         action: 'update', 
+        tabId: String(item.data?.tabId),
         tab: {
           ...item.data,
-          tabId: String(item.data.tabId)
+          tabId: String(item.data?.tabId)
         }
       };
       break;
