@@ -131,7 +131,7 @@
   },
   "loginSuccess": {
     "message": "Login successful",
-    "description": "Login success message"
+    "description": "Success message after login"
   },
   "versionLabel": {
     "message": "Version:",
@@ -351,10 +351,6 @@
     "message": "Please enter 6-digit verification code",
     "description": "Validation message for verification code"
   },
-  "loginSuccess": {
-    "message": "Login successful",
-    "description": "Success message after login"
-  },
   "codeError": {
     "message": "Verification code error",
     "description": "Error message for wrong verification code"
@@ -479,17 +475,9 @@
     "message": "Skip for now",
     "description": "Skip button text"
   },
-  "settingsTitle": {
-    "message": "Settings - MyTabSearch",
-    "description": "Settings page title"
-  },
   "accountInfoTitle": {
     "message": "Account Info",
     "description": "Account info section title"
-  },
-  "loadingText": {
-    "message": "Loading...",
-    "description": "Loading text"
   },
   "vipStatusLabel": {
     "message": "VIP Status:",
