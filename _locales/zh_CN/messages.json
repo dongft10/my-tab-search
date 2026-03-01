@@ -131,7 +131,7 @@
   },
   "loginSuccess": {
     "message": "登录成功",
-    "description": "Login success message"
+    "description": "Success message after login"
   },
   "versionLabel": {
     "message": "版本:",
@@ -351,10 +351,6 @@
     "message": "请输入6位验证码",
     "description": "Validation message for verification code"
   },
-  "loginSuccess": {
-    "message": "登录成功",
-    "description": "Success message after login"
-  },
   "codeError": {
     "message": "验证码错误",
     "description": "Error message for wrong verification code"
@@ -479,17 +475,9 @@
     "message": "暂时跳过",
     "description": "Skip button text"
   },
-  "settingsTitle": {
-    "message": "设置 - MyTabSearch",
-    "description": "Settings page title"
-  },
   "accountInfoTitle": {
     "message": "账户信息",
     "description": "Account info section title"
-  },
-  "loadingText": {
-    "message": "加载中...",
-    "description": "Loading text"
   },
   "vipStatusLabel": {
     "message": "VIP状态:",
