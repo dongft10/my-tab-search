@@ -8,6 +8,7 @@ import authService from './services/auth.service.js';
 import vipService from './services/vip.service.js';
 import trialService from './services/trial.service.js';
 import deviceService from './services/device.service.js';
+import featureLimitService from './services/feature-limit.service.js';
 import searchMatchService from './services/search-match.service.js';
 
 // Import i18n manager
@@ -291,6 +292,13 @@ async function loadDevices() {
 
     try {
       const devices = await deviceService.getDevices();
+      
+      // 触发feature-limit请求以更新设备最后活跃时间
+      try {
+        await featureLimitService.getFeatureLimit('pinnedTabs', true, false);
+      } catch (e) {
+        console.error('Refresh feature limits error:', e);
+      }
       
       if (!devices || devices.length === 0) {
         elements.deviceList.innerHTML = '<p class="empty-text">暂无设备</p>';

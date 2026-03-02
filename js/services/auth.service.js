@@ -76,14 +76,23 @@ class AuthService {
       }
 
       const response = await authApi.getToken(userInfo.userId, userInfo.deviceId);
-      const accessToken = response.data.accessToken;
-      const expiresAt = response.data.expiresAt;
+      const data = response.data;
+      const accessToken = data.accessToken;
+      const expiresAt = data.expiresAt;
 
       // 存储访问令牌和过期时间
-      await chrome.storage.local.set({
+      const storageData = {
         [this.storageKey.accessToken]: accessToken,
         [this.storageKey.tokenExpiresAt]: expiresAt
-      });
+      };
+
+      // 同步 userDeviceUuid（确保前端与后端数据库一致）
+      if (data.userDeviceUuid) {
+        storageData['userDeviceUuid'] = data.userDeviceUuid;
+        console.log('[getAccessToken] Synced userDeviceUuid:', data.userDeviceUuid);
+      }
+
+      await chrome.storage.local.set(storageData);
 
       return accessToken;
     } catch (error) {

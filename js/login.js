@@ -254,6 +254,7 @@ async function handleVerify() {
     if (isSuccess) {
       const userId = data?.userId;
       const deviceId = data?.deviceId;
+      const userDeviceUuid = data?.userDeviceUuid;
       const accessToken = data?.accessToken;
       const expiresAt = data?.expiresAt;
       
@@ -265,6 +266,12 @@ async function handleVerify() {
       
       if (deviceId) {
         storageData[authService.storageKey.deviceId] = deviceId;
+      }
+      
+      // 同步 userDeviceUuid（确保前端与后端数据库一致）
+      if (userDeviceUuid) {
+        storageData['userDeviceUuid'] = userDeviceUuid;
+        console.log('[Email] Synced userDeviceUuid:', userDeviceUuid);
       }
       
       if (accessToken) {
@@ -421,6 +428,12 @@ async function handleOAuthToken(provider, accessToken) {
         
         if (data.deviceId) {
           storageData[authService.storageKey.deviceId] = data.deviceId;
+        }
+        
+        // 同步 userDeviceUuid（确保前端与后端数据库一致）
+        if (data.userDeviceUuid) {
+          storageData['userDeviceUuid'] = data.userDeviceUuid;
+          console.log('[OAuth] Synced userDeviceUuid:', data.userDeviceUuid);
         }
         
         await chrome.storage.local.set(storageData);

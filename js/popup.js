@@ -66,8 +66,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return keywordIndex === keyword.length;
   }
 
-  // 高亮匹配的字符 - 高亮关键字中每个字符的所有出现位置
-  function highlightMatches(text, keywords) {
+  // 高亮匹配的字符 - 根据模式高亮
+  // @param text - 要高亮的文本
+  // @param keywords - 关键字数组
+  // @param matchMode - 搜索匹配模式 (1: 完整关键字匹配, 2: 子序列匹配)
+  function highlightMatches(text, keywords, matchMode = '1') {
     if (!keywords || keywords.length === 0) {
       return text;
     }
@@ -76,18 +79,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     const matched = new Array(text.length).fill(false);
     const lowerText = text.toLowerCase();
 
-    // 对每个关键字进行匹配，高亮关键字中每个字符的所有出现位置
-    keywords.forEach(keyword => {
-      // 对于关键字中的每个字符，在文本中找到所有出现位置
-      for (let k = 0; k < keyword.length; k++) {
-        const char = keyword[k];
-        for (let i = 0; i < text.length; i++) {
-          if (lowerText[i] === char) {
+    // 模式1：完整关键字包含匹配，高亮整个关键字
+    if (matchMode === '1' || matchMode === '3') {
+      keywords.forEach(keyword => {
+        const lowerKeyword = keyword.toLowerCase();
+        let startIndex = 0;
+        // 找到所有匹配位置
+        while (startIndex < lowerText.length) {
+          const idx = lowerText.indexOf(lowerKeyword, startIndex);
+          if (idx === -1) break;
+          // 标记整个关键字匹配的字符
+          for (let i = idx; i < idx + lowerKeyword.length; i++) {
             matched[i] = true;
           }
+          startIndex = idx + 1;
         }
-      }
-    });
+      });
+    } else {
+      // 模式2及其他的子序列匹配，高亮每个字符
+      keywords.forEach(keyword => {
+        for (let k = 0; k < keyword.length; k++) {
+          const char = keyword[k];
+          for (let i = 0; i < text.length; i++) {
+            if (lowerText[i] === char) {
+              matched[i] = true;
+            }
+          }
+        }
+      });
+    }
 
     // 构建高亮的 HTML
     let result = '';
@@ -256,7 +276,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // 高亮匹配的字符
         if (keywords.length > 0) {
-          titleDiv.innerHTML = highlightMatches(tab.title, keywords);
+          titleDiv.innerHTML = highlightMatches(tab.title, keywords, searchMatchMode);
         } else {
           titleDiv.textContent = tab.title;
         }

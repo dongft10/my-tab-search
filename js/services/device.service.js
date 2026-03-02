@@ -8,11 +8,12 @@ import authService from './auth.service.js';
 import vipService from './vip.service.js';
 import featureLimitService from './feature-limit.service.js';
 import pinnedTabsService from './pinned-tabs.service.js';
+import { getCacheTime } from '../config.js';
 
 class DeviceService {
   constructor() {
     this.storageKey = 'devices';
-    this.cacheTimeout = 5 * 60 * 1000; // 5分钟缓存
+    this.cacheTimeout = getCacheTime(); // 与 featureLimits 保持一致，1天
     this.cachedDevices = null;
     this.cacheTime = null;
   }
@@ -177,7 +178,7 @@ class DeviceService {
   /**
    * 当前设备登出
    * @returns {Promise<{success: boolean, message: string}>} - 返回登出结果
-   */
+    */
   async logout() {
     try {
       const accessToken = await authService.getValidAccessToken();
@@ -185,7 +186,11 @@ class DeviceService {
         throw new Error('No access token');
       }
 
-      const response = await authApi.logoutDevice(accessToken);
+      // 获取 userDeviceUuid 用于 logout 请求
+      const uuidData = await chrome.storage.local.get('userDeviceUuid');
+      const userDeviceUuid = uuidData.userDeviceUuid || null;
+
+      const response = await authApi.logoutDevice(accessToken, userDeviceUuid);
       
       // 兼容两种响应格式
       const isSuccess = response?.code === 0 || response?.success === true;
