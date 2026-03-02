@@ -261,7 +261,7 @@ async function loadPinnedTabs(targetTabId = null) {
       });
     }
     
-    renderPinnedTabs(pinnedTabs, targetTabId, keywords);
+    renderPinnedTabs(pinnedTabs, targetTabId, keywords, searchMatchMode);
   } catch (error) {
     console.error('Error loading pinned tabs:', error);
     renderEmptyState();
@@ -329,27 +329,48 @@ function calculateMatchScore(title, keywords) {
 }
 
 // 高亮匹配的关键字
-function highlightMatches(text, keywords) {
+// @param text - 要高亮的文本
+// @param keywords - 关键字数组
+// @param matchMode - 搜索匹配模式 (1: 完整关键字匹配, 2: 子序列匹配)
+function highlightMatches(text, keywords, matchMode = '1') {
   if (!keywords || keywords.length === 0 || !text) {
     return text;
   }
 
-  // 创建一个标记数组，记录每个字符是否被匹配
-  const matched = new Array(text.length).fill(false);
   const lowerText = text.toLowerCase();
 
-  // 对每个关键字进行匹配，高亮关键字中每个字符的所有出现位置
-  keywords.forEach(keyword => {
-    // 对于关键字中的每个字符，在文本中找到所有出现位置
-    for (let k = 0; k < keyword.length; k++) {
-      const char = keyword[k].toLowerCase();
-      for (let i = 0; i < text.length; i++) {
-        if (lowerText[i] === char) {
+  // 创建一个标记数组，记录每个字符是否被匹配
+  const matched = new Array(text.length).fill(false);
+
+  // 模式1：完整关键字包含匹配，高亮整个关键字
+  if (matchMode === '1' || matchMode === '3') {
+    keywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+      let startIndex = 0;
+      // 找到所有匹配位置
+      while (startIndex < lowerText.length) {
+        const idx = lowerText.indexOf(lowerKeyword, startIndex);
+        if (idx === -1) break;
+        // 标记整个关键字匹配的字符
+        for (let i = idx; i < idx + lowerKeyword.length; i++) {
           matched[i] = true;
         }
+        startIndex = idx + 1;
       }
-    }
-  });
+    });
+  } else {
+    // 模式2及其他的子序列匹配，高亮每个字符
+    keywords.forEach(keyword => {
+      for (let k = 0; k < keyword.length; k++) {
+        const char = keyword[k].toLowerCase();
+        for (let i = 0; i < text.length; i++) {
+          if (lowerText[i] === char) {
+            matched[i] = true;
+          }
+        }
+      }
+    });
+  }
 
   // 构建高亮的 HTML
   let result = '';
@@ -368,7 +389,8 @@ function highlightMatches(text, keywords) {
 // @param pinnedTabs 固定标签页列表
 // @param targetTabId 可选，指定要滚动到的标签页ID
 // @param keywords 可选，搜索关键字用于高亮
-function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = []) {
+// @param matchMode 可选，搜索匹配模式
+function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMode = '1') {
   pinnedTabList.innerHTML = '';
   
   // 更新数量显示
@@ -406,7 +428,7 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = []) {
       // 标题和 URL
       const titleDiv = document.createElement('div');
       titleDiv.classList.add('tab-title');
-      titleDiv.innerHTML = highlightMatches(tab.title, keywords);
+      titleDiv.innerHTML = highlightMatches(tab.title, keywords, matchMode);
       
       const urlHostNameDiv = document.createElement('div');
       urlHostNameDiv.classList.add('tab-url-hostname');
@@ -587,58 +609,42 @@ function renderEmptyState() {
 // 切换到标签页
 async function switchToTab(tabId) {
   try {
-    // 检查标签页是否存在
-    const tab = await chrome.tabs.get(tabId);
-    const tabUrl = tab.url; // 保存 URL 备用
-    if (!tab) {
-      // 标签页不存在，检查是否是长期固定的tab（通过tabId匹配）
-      const result = await chrome.storage.local.get('pinnedTabs');
-      const pinnedTabs = result.pinnedTabs || [];
-      const targetTab = pinnedTabs.find(t => t.isLongTermPinned && t.tabId === tabId);
-      
-      if (targetTab) {
-        // 长期固定的tab已被关闭，重新打开该网页
-        const newTab = await chrome.tabs.create({ url: targetTab.url });
-        // 更新pinnedTabList中记录的tabId（保留原标题）
-        const updatedTabs = pinnedTabs.map(t => {
-          if (t.isLongTermPinned && t.url === targetTab.url) {
-            return { 
-              ...t, 
-              tabId: newTab.id, 
-              longTermPinnedAt: new Date().toISOString()
-            };
-          }
-          return t;
-        });
-        await chrome.storage.local.set({ pinnedTabs: updatedTabs });
-        window.close();
-        return;
+    // 先尝试通过tabId直接获取标签页
+    let tab;
+    try {
+      tab = await chrome.tabs.get(tabId);
+    } catch (e) {
+      // tab不存在，后续处理
+    }
+    
+    // 如果标签页存在，直接切换
+    if (tab) {
+      await chrome.tabs.update(tabId, { active: true });
+      if (tab.windowId) {
+        await chrome.windows.update(tab.windowId, { focused: true });
       }
-      
-      // 非长期固定的tab，直接从列表中移除
-      await removeFromPinnedList(tabId);
+      window.close();
       return;
     }
     
-    // 激活标签页
-    await chrome.tabs.update(tabId, { active: true });
+    // 标签页不存在，检查是否是长期固定的tab
+    const result = await chrome.storage.local.get('pinnedTabs');
+    const pinnedTabs = result.pinnedTabs || [];
+    const targetTab = pinnedTabs.find(t => t.isLongTermPinned && t.tabId === tabId);
     
-    // 聚焦窗口
-    if (tab.windowId) {
-      await chrome.windows.update(tab.windowId, { focused: true });
-    }
-    
-    // 关闭弹窗
-    window.close();
-  } catch (error) {
-    if (error.message && error.message.includes('No tab with id')) {
-      // 标签页不存在，检查是否是长期固定的tab（通过tabId匹配）
-      const result = await chrome.storage.local.get('pinnedTabs');
-      const pinnedTabs = result.pinnedTabs || [];
-      const targetTab = pinnedTabs.find(t => t.isLongTermPinned && t.tabId === tabId);
+    if (targetTab) {
+      // 长期固定的tab：先查找当前浏览器中是否有相同URL的已打开标签页
+      const existingTabs = await chrome.tabs.query({ url: targetTab.url });
       
-      if (targetTab) {
-        // 长期固定的tab已被关闭，重新打开该网页
+      if (existingTabs.length > 0) {
+        // 找到已打开的标签页，切换到它
+        const existingTab = existingTabs[0];
+        await chrome.tabs.update(existingTab.id, { active: true });
+        if (existingTab.windowId) {
+          await chrome.windows.update(existingTab.windowId, { focused: true });
+        }
+      } else {
+        // 没有找到相同URL的标签页，创建新标签页
         const newTab = await chrome.tabs.create({ url: targetTab.url });
         // 更新pinnedTabList中记录的tabId（保留原标题）
         const updatedTabs = pinnedTabs.map(t => {
@@ -652,15 +658,15 @@ async function switchToTab(tabId) {
           return t;
         });
         await chrome.storage.local.set({ pinnedTabs: updatedTabs });
-        window.close();
-        return;
       }
-      
-      // 非长期固定的tab，直接从列表中移除
-      await removeFromPinnedList(tabId);
-    } else {
-      console.error('Switch to tab error:', error);
+      window.close();
+      return;
     }
+    
+    // 非长期固定的tab，直接从列表中移除
+    await removeFromPinnedList(tabId);
+  } catch (error) {
+    console.error('Switch to tab error:', error);
   }
 }
 

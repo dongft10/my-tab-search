@@ -238,9 +238,6 @@ class FeatureLimitService {
     }
 
     try {
-      const limits = await this.getLimits();
-      const featureLimits = limits.limits || {};
-      
       // 功能到限制key的映射
       const featureMap = {
         pinnedTabs: 'pinnedTabs',
@@ -258,18 +255,38 @@ class FeatureLimitService {
         return -1;
       }
 
-      // 检查是否需要刷新（缓存超时或强制刷新）
+      // 强制刷新时，先尝试从服务器获取，成功后再更新缓存，失败则使用旧缓存
+      if (forceRefresh) {
+        try {
+          const freshLimits = await this.syncLimits();
+          if (freshLimits) {
+            console.log('[FeatureLimit] Force refreshed limit for', feature, ':', freshLimits.limits?.[limitKey], 'UserType:', freshLimits.userType);
+            return freshLimits.limits?.[limitKey] !== undefined ? freshLimits.limits[limitKey] : 0;
+          }
+        } catch (e) {
+          console.warn('[FeatureLimit] Force refresh failed, using cached data:', e.message);
+        }
+      }
+
+      // 正常流程：从缓存或服务器获取
+      const limits = await this.getLimits();
+      const featureLimits = limits.limits || {};
+
+      // 检查缓存是否过期（非强制刷新时）
       if (!forceRefresh && this.cacheTime) {
         const cacheAge = Date.now() - this.cacheTime;
         if (cacheAge > this.cacheTimeout) {
-          // 缓存超过1天，强制刷新一次
-          this.cachedLimits = null;
-          this.cacheTime = null;
-          await chrome.storage.local.remove(this.storageKey);
-          const freshLimits = await this.getLimits();
-          const freshFeatureLimits = freshLimits.limits || {};
-          console.log('[FeatureLimit] Cache expired, refreshed limit for', feature, ':', freshFeatureLimits[limitKey], 'UserType:', freshLimits.userType);
-          return freshFeatureLimits[limitKey] !== undefined ? freshFeatureLimits[limitKey] : 0;
+          // 缓存超过1天，尝试刷新
+          try {
+            const freshLimits = await this.syncLimits();
+            if (freshLimits) {
+              const freshFeatureLimits = freshLimits.limits || {};
+              console.log('[FeatureLimit] Cache expired, refreshed limit for', feature, ':', freshFeatureLimits[limitKey], 'UserType:', freshLimits.userType);
+              return freshFeatureLimits[limitKey] !== undefined ? freshFeatureLimits[limitKey] : 0;
+            }
+          } catch (e) {
+            console.warn('[FeatureLimit] Cache refresh failed, using cached data:', e.message);
+          }
         }
       }
 

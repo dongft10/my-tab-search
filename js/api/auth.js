@@ -206,11 +206,15 @@ class AuthApi {
    * 当前设备登出
    * @param {string} accessToken - 访问令牌
    * @returns {Promise} - 返回登出结果
-   */
-  async logoutDevice(accessToken) {
-    return apiClient.post(ENDPOINTS.DEVICES.LOGOUT_ALL, {}, {
+    */
+  async logoutDevice(accessToken, userDeviceUuid = null) {
+    const headers = {
       'Authorization': `Bearer ${accessToken}`
-    });
+    };
+    if (userDeviceUuid) {
+      headers['X-UserDeviceUUID'] = userDeviceUuid;
+    }
+    return apiClient.post(ENDPOINTS.DEVICES.LOGOUT_ALL, {}, headers);
   }
 
   /**
