@@ -10,6 +10,8 @@ import trialService from './services/trial.service.js';
 import vipService from './services/vip.service.js';
 // Import sync queue service
 import syncQueueService from './services/sync-queue.service.js';
+// Import search match service
+import searchMatchService from './services/search-match.service.js';
 
 // DOM elements
 let pinnedTabList;
@@ -237,12 +239,18 @@ async function loadPinnedTabs(targetTabId = null) {
     const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
     const keywords = query ? query.split(/\s+/).filter(kw => kw.length > 0) : [];
     
+    // 获取当前搜索匹配模式
+    const searchMatchMode = await searchMatchService.getSearchMatchMode();
+    
     // 如果有搜索关键字，对标签页进行过滤
     if (keywords.length > 0) {
-      // 使用子序列匹配过滤标题
+      // 根据当前搜索匹配模式过滤标题
       pinnedTabs = pinnedTabs.filter((tab) => {
         const lowerTitle = (tab.title || '').toLowerCase();
-        return keywords.every(keyword => subsequenceMatch(keyword, lowerTitle));
+        // 多关键字时，所有关键字都必须满足匹配条件（AND逻辑）
+        return keywords.every(keyword => {
+          return searchMatchService.matchSync(keyword, lowerTitle, searchMatchMode);
+        });
       });
       
       // 根据匹配度排序

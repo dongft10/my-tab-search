@@ -8,6 +8,7 @@ import authService from './services/auth.service.js';
 import vipService from './services/vip.service.js';
 import trialService from './services/trial.service.js';
 import deviceService from './services/device.service.js';
+import searchMatchService from './services/search-match.service.js';
 
 // Import i18n manager
 import i18n from './i18n.js';
@@ -31,6 +32,7 @@ const elements = {
   btnLogout: document.getElementById('btn-logout'),
   deviceList: document.getElementById('device-list'),
   languageSelect: document.getElementById('language-select'),
+  searchMatchModeSelect: document.getElementById('search-match-mode'),
   appVersion: document.getElementById('app-version'),
   statusMessage: document.getElementById('status-message')
 };
@@ -60,17 +62,15 @@ function applyI18n() {
   // Update page title
   document.title = i18n.getMessage('settingsTitle') || 'Settings - MyTabSearch';
   
-  // Update section titles
+  // Update section titles - 动态获取data-i18n属性
   const sections = document.querySelectorAll('.settings-section h2');
-  const titles = [
-    i18n.getMessage('accountInfo') || '账户信息',
-    i18n.getMessage('deviceManagement') || '设备管理',
-    i18n.getMessage('languageSettings') || '语言设置',
-    i18n.getMessage('about') || '关于'
-  ];
-  sections.forEach((section, index) => {
-    if (titles[index]) {
-      section.textContent = titles[index];
+  sections.forEach((section) => {
+    const i18nKey = section.getAttribute('data-i18n');
+    if (i18nKey) {
+      const message = i18n.getMessage(i18nKey);
+      if (message) {
+        section.textContent = message;
+      }
     }
   });
   
@@ -89,11 +89,17 @@ function applyI18n() {
 async function loadSettings() {
   try {
     // 加载语言设置（从 sync 存储读取，与 i18n 初始化保持一致）
-    const settings = await chrome.storage.sync.get(['language']);
-    if (settings.language) {
-      elements.languageSelect.value = settings.language;
-    } else {
-      elements.languageSelect.value = chrome.i18n.getUILanguage() || 'en';
+    // 使用 i18n 实例中已保存的语言，确保一致性
+    const currentLang = i18n.language;
+    elements.languageSelect.value = currentLang;
+
+    // 加载搜索匹配模式（从 local 存储读取，如果没有保存过则根据当前语言设置默认值）
+    let searchMode = await searchMatchService.getSearchMatchMode();
+    if (!searchMode) {
+      searchMode = '1';
+    }
+    if (elements.searchMatchModeSelect) {
+      elements.searchMatchModeSelect.value = searchMode;
     }
 
     // 获取扩展版本（如果元素存在）
@@ -379,6 +385,10 @@ function formatLastSeen(lastSeenAt) {
 function setupEventListeners() {
   elements.languageSelect.addEventListener('change', handleLanguageChange);
   
+  if (elements.searchMatchModeSelect) {
+    elements.searchMatchModeSelect.addEventListener('change', handleSearchMatchModeChange);
+  }
+  
   if (elements.btnLogin) {
     elements.btnLogin.addEventListener('click', handleLogin);
   }
@@ -414,6 +424,59 @@ async function handleLanguageChange(e) {
   } catch (error) {
     console.error('Save language error:', error);
     showMessage('Failed to save settings', 'error');
+  }
+}
+
+// 处理搜索匹配模式变更
+async function handleSearchMatchModeChange(e) {
+  const mode = e.target.value;
+  
+  // 模式3和4需要VIP或体验期用户才能使用
+  if (mode === '3' || mode === '4') {
+    const isEligible = await checkUserEligibilityForAdvancedMode();
+    if (!isEligible) {
+      showMessage(i18n.getMessage('searchMatchModeVIPRequired') || '该模式需要VIP身份或体验期用户才能使用', 'error');
+      // 恢复为之前的选中值
+      const currentMode = await searchMatchService.getSearchMatchMode();
+      elements.searchMatchModeSelect.value = currentMode;
+      return;
+    }
+    // 即使有权限，模式3/4目前仍在开发中，不允许使用
+    showMessage(i18n.getMessage('searchMatchModeDeveloping') || '功能持续迭代开发中，敬请期待！', 'info');
+    // 恢复为之前的选中值
+    const currentMode = await searchMatchService.getSearchMatchMode();
+    elements.searchMatchModeSelect.value = currentMode;
+    return;
+  }
+  
+  try {
+    await searchMatchService.setSearchMatchMode(mode);
+    showMessage(i18n.getMessage('settingsSaved') || 'Settings saved', 'success');
+  } catch (error) {
+    console.error('Save search match mode error:', error);
+    showMessage('Failed to save settings', 'error');
+  }
+}
+
+// 检查用户是否有资格使用高级模式（模式3/4）
+async function checkUserEligibilityForAdvancedMode() {
+  try {
+    // 检查是否是VIP用户
+    const vipStatus = await vipService.getLocalVipStatus();
+    if (vipStatus && vipStatus.isVip) {
+      return true;
+    }
+    
+    // 检查是否在体验期
+    const trialStatus = await trialService.getLocalTrialStatus();
+    if (trialStatus && trialStatus.isInTrialPeriod) {
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('[SearchMatch] Check eligibility error:', error);
+    return false;
   }
 }
 

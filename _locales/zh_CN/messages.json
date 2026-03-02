@@ -566,5 +566,41 @@
   "andText": {
     "message": "和",
     "description": "And text for connecting terms and privacy"
+  },
+  "searchRuleSettingsTitle": {
+    "message": "搜索规则设置",
+    "description": "Title for search rule settings section"
+  },
+  "selectSearchMatchModeLabel": {
+    "message": "选择搜索匹配模式:",
+    "description": "Label for search match mode selection"
+  },
+  "mode1Title": {
+    "message": "模式1：标题关键字前缀匹配",
+    "description": "Mode 1: Title keyword prefix match (default)"
+  },
+  "mode2Title": {
+    "message": "模式2：标题子序列匹配",
+    "description": "Mode 2: Title subsequence match"
+  },
+  "mode3Title": {
+    "message": "模式3：标题关键字快速匹配+网页内容匹配",
+    "description": "Mode 3: Title keyword + page content match"
+  },
+  "mode4Title": {
+    "message": "模式4：标题子序列匹配+网页内容匹配",
+    "description": "Mode 4: Title subsequence + page content match"
+  },
+  "searchMatchModeDesc": {
+    "message": "不同的搜索模式会影响标签页的匹配规则和排序方式",
+    "description": "Description for search match mode settings"
+  },
+  "searchMatchModeVIPRequired": {
+    "message": "该模式需要VIP身份或体验期用户才能使用",
+    "description": "Message when VIP required for search match mode"
+  },
+  "searchMatchModeDeveloping": {
+    "message": "功能持续迭代开发中，敬请期待！",
+    "description": "Message when feature is developing"
   }
 }

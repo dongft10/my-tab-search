@@ -566,5 +566,41 @@
   "andText": {
     "message": "and",
     "description": "And text for connecting terms and privacy"
+  },
+  "searchRuleSettingsTitle": {
+    "message": "Search Rule Settings",
+    "description": "Title for search rule settings section"
+  },
+  "selectSearchMatchModeLabel": {
+    "message": "Select Search Match Mode:",
+    "description": "Label for search match mode selection"
+  },
+  "mode1Title": {
+    "message": "Mode 1: Title Keyword Prefix Match",
+    "description": "Mode 1: Title keyword prefix match (default)"
+  },
+  "mode2Title": {
+    "message": "Mode 2: Title Subsequence Match",
+    "description": "Mode 2: Title subsequence match"
+  },
+  "mode3Title": {
+    "message": "Mode 3: Title Keyword + Page Content Match",
+    "description": "Mode 3: Title keyword + page content match"
+  },
+  "mode4Title": {
+    "message": "Mode 4: Title Subsequence + Page Content Match",
+    "description": "Mode 4: Title subsequence + page content match"
+  },
+  "searchMatchModeDesc": {
+    "message": "Different search modes affect tab matching rules and sorting",
+    "description": "Description for search match mode settings"
+  },
+  "searchMatchModeVIPRequired": {
+    "message": "This mode requires VIP status or trial user",
+    "description": "Message when VIP required for search match mode"
+  },
+  "searchMatchModeDeveloping": {
+    "message": "Feature under development, stay tuned!",
+    "description": "Message when feature is developing"
   }
 }

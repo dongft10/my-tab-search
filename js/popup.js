@@ -6,6 +6,8 @@ import featureLimitService from './services/feature-limit.service.js';
 import syncQueueService from './services/sync-queue.service.js';
 // Import auth service
 import authService from './services/auth.service.js';
+// Import search match service
+import searchMatchService from './services/search-match.service.js';
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -197,6 +199,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tabs = await new Promise((resolve) => {
       chrome.tabs.query({}, resolve);
     });
+    
+    // 获取当前搜索匹配模式
+    const searchMatchMode = await searchMatchService.getSearchMatchMode();
+    
     let filteredTabs;
 
     // 按空格分割查询字符串，得到多个关键字
@@ -206,10 +212,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       // 如果查询为空或没有有效关键字，则返回所有标签页
       filteredTabs = tabs;
     } else {
-      // 过滤标签页，确保标题包含所有关键字（使用子序列匹配）
+      // 根据当前搜索匹配模式过滤标签页
       filteredTabs = tabs.filter((tab) => {
         const lowerTitle = tab.title.toLowerCase();
-        return keywords.every(keyword => subsequenceMatch(keyword, lowerTitle));
+        
+        // 多关键字时，所有关键字都必须满足匹配条件（AND逻辑）
+        return keywords.every(keyword => {
+          return searchMatchService.matchSync(keyword, lowerTitle, searchMatchMode);
+        });
       });
 
       // 根据匹配度对过滤后的标签页进行排序（匹配度高的排在前面）
