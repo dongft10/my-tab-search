@@ -251,6 +251,18 @@
       }
     }
   },
+  "pinnedTabsLimitUnverified": {
+    "message": "固定标签页数量已达上限（最多5个）~ 快去完成邮箱验证，解锁更多功能吧！",
+    "description": "Toast message when unverified user reaches pinned tabs limit"
+  },
+  "pinnedTabsLimitExpired": {
+    "message": "固定标签页数量已达上限（最多5个）~ 体验期已结束，升级VIP会员即可继续使用更多功能哦！",
+    "description": "Toast message when expired trial non-VIP user reaches pinned tabs limit"
+  },
+  "pinnedTabsLimitNoTrial": {
+    "message": "固定标签页数量已达上限（最多5个）~ 升级VIP会员即可继续使用更多功能！",
+    "description": "Toast message when non-VIP user reaches limit (no trial enabled)"
+  },
   "pinTab": {
     "message": "固定标签页",
     "description": "Tooltip for the pin tab button"
@@ -318,6 +330,18 @@
   "longTermPinnedLimitReached": {
     "message": "长期固定标签页数量已达上限，升级VIP可解锁更多",
     "description": "Toast message when long term pinned limit reached"
+  },
+  "longTermPinnedLimitUnverified": {
+    "message": "长期固定标签页数量已达上限（最多5个）~ 快去完成邮箱验证，解锁更多功能吧！",
+    "description": "Toast message when unverified user reaches long term pinned limit"
+  },
+  "longTermPinnedLimitExpired": {
+    "message": "长期固定标签页数量已达上限（最多5个）~ 体验期已结束，升级VIP会员即可继续使用更多功能哦！",
+    "description": "Toast message when expired trial non-VIP user reaches long term pinned limit"
+  },
+  "longTermPinnedLimitNoTrial": {
+    "message": "长期固定标签页数量已达上限（最多5个）~ 升级VIP会员即可继续使用更多功能！",
+    "description": "Toast message when non-VIP user reaches limit (no trial enabled)"
   },
   "tabPinned": {
     "message": "标签页已固定",
