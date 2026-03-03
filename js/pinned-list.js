@@ -786,7 +786,7 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
       
       if (!isCurrentlyLongTermPinned && longTermCount >= 5) {
-        showToast(i18n.getMessage('pinnedTabsLimit', '5') || `长期固定标签页数量已达上限（最多5个），请完成邮箱验证解锁更多功能`);
+        showToast(i18n.getMessage('longTermPinnedLimitUnverified') || `长期固定标签页数量已达上限（最多5个），请完成邮箱验证解锁更多功能`);
         return;
       }
       
@@ -891,7 +891,12 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
     const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
     
     if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
-      showToast(i18n.getMessage('longTermPinnedLimitReached') || `长期固定标签页数量已达上限（最多${limit}个），升级VIP可解锁更多`);
+      const trialEnabled = localTrialStatus && localTrialStatus.trialEnabled;
+      const messageKey = trialEnabled ? 'longTermPinnedLimitExpired' : 'longTermPinnedLimitNoTrial';
+      const fallbackMessage = trialEnabled 
+        ? `长期固定标签页数量已达上限（最多${limit}个），体验期已结束，升级VIP会员即可继续使用更多功能哦！`
+        : `长期固定标签页数量已达上限（最多${limit}个），升级VIP会员即可继续使用更多功能！`;
+      showToast(i18n.getMessage(messageKey) || fallbackMessage);
       return;
     }
     

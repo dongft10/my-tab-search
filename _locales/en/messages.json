@@ -251,6 +251,18 @@
       }
     }
   },
+  "pinnedTabsLimitUnverified": {
+    "message": "Pinned tabs limit reached (max 5). Complete email verification to unlock more features!",
+    "description": "Toast message when unverified user reaches pinned tabs limit"
+  },
+  "pinnedTabsLimitExpired": {
+    "message": "Pinned tabs limit reached (max 5). Trial period ended. Upgrade to VIP to continue using more features!",
+    "description": "Toast message when expired trial non-VIP user reaches pinned tabs limit"
+  },
+  "pinnedTabsLimitNoTrial": {
+    "message": "Pinned tabs limit reached (max 5). Upgrade to VIP to continue using more features!",
+    "description": "Toast message when non-VIP user reaches limit (no trial enabled)"
+  },
   "pinTab": {
     "message": "Pin tab",
     "description": "Tooltip for the pin tab button"
@@ -318,6 +330,18 @@
   "longTermPinnedLimitReached": {
     "message": "Long-term pinned tabs limit reached. Upgrade to VIP for more",
     "description": "Toast message when long term pinned limit reached"
+  },
+  "longTermPinnedLimitUnverified": {
+    "message": "Long-term pinned tabs limit reached (max 5). Complete email verification to unlock more features!",
+    "description": "Toast message when unverified user reaches long term pinned limit"
+  },
+  "longTermPinnedLimitExpired": {
+    "message": "Long-term pinned tabs limit reached (max 5). Trial period ended. Upgrade to VIP to continue using more features!",
+    "description": "Toast message when expired trial non-VIP user reaches long term pinned limit"
+  },
+  "longTermPinnedLimitNoTrial": {
+    "message": "Long-term pinned tabs limit reached (max 5). Upgrade to VIP to continue using more features!",
+    "description": "Toast message when non-VIP user reaches limit (no trial enabled)"
   },
   "tabPinned": {
     "message": "Tab pinned",

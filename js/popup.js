@@ -6,6 +6,8 @@ import featureLimitService from './services/feature-limit.service.js';
 import syncQueueService from './services/sync-queue.service.js';
 // Import auth service
 import authService from './services/auth.service.js';
+// Import trial service
+import trialService from './services/trial.service.js';
 // Import search match service
 import searchMatchService from './services/search-match.service.js';
 
@@ -536,10 +538,32 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       
       if (pinnedTabs.length >= limit) {
-        return { 
-          success: false, 
-          message: i18n.getMessage('pinnedTabsLimit', limit.toString()) || `固定标签页数量已达上限（最多${limit}个）` 
-        };
+        let message;
+        if (!isEmailVerified) {
+          message = i18n.getMessage('pinnedTabsLimitUnverified') || `固定标签页数量已达上限（最多5个），请完成邮箱验证解锁更多功能`;
+        } else {
+          // 已验证用户，检查体验期状态
+          let localTrialStatus = null;
+          try {
+            localTrialStatus = await trialService.getTrialStatus();
+          } catch (e) {
+            console.warn('[pinTab] Failed to get trial status:', e);
+          }
+          
+          const trialEnabled = localTrialStatus && localTrialStatus.trialEnabled;
+          const isInTrial = localTrialStatus && localTrialStatus.isInTrialPeriod;
+          
+          if (isInTrial) {
+            message = i18n.getMessage('pinnedTabsLimit', limit.toString()) || `固定标签页数量已达上限（最多${limit}个）`;
+          } else {
+            // 体验期已结束或无体验期
+            const messageKey = trialEnabled ? 'pinnedTabsLimitExpired' : 'pinnedTabsLimitNoTrial';
+            message = i18n.getMessage(messageKey) || (trialEnabled 
+              ? `固定标签页数量已达上限（最多${limit}个），体验期已结束，升级VIP会员即可继续使用更多功能哦！`
+              : `固定标签页数量已达上限（最多${limit}个），升级VIP会员即可继续使用更多功能！`);
+          }
+        }
+        return { success: false, message };
       }
 
       // 添加到固定列表
