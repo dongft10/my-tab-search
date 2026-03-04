@@ -8,9 +8,19 @@
 
 // 检查是否已经定义过，避免重复声明
 if (typeof CONFIG_COMMON === 'undefined') {
+  // 环境类型：dev（本地开发）、qa（线上QA）、prod（生产环境）
+  const ENV_TYPE = 'dev'; // 默认使用本地开发环境
+  
+  // 各环境后端服务地址
+  const API_BASE_URLS = {
+    dev: 'http://localhost:8080', // 本地开发环境
+    qa: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com', // 线上QA环境
+    prod: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com' // 生产环境
+  };
+  
   const API_CONFIG = {
     // 后端服务基础地址
-    BASE_URL: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com',
+    BASE_URL: API_BASE_URLS[ENV_TYPE],
     
     // API 版本前缀
     API_VERSION: '/api/v1',

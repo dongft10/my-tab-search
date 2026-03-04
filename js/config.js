@@ -7,9 +7,12 @@
  * 开发环境: DEBUG = true, 缓存5分钟
  * 生产环境: DEBUG = false, 缓存1天
  */
+// 环境类型：dev（本地开发）、qa（线上QA）、prod（生产环境）
+export const ENV_TYPE = 'dev'; // 默认使用本地开发环境
+
 export const ENV_CONFIG = {
   // 是否为开发环境
-  DEBUG: true,
+  DEBUG: ENV_TYPE === 'dev',
 
   // 缓存配置
   CACHE: {
@@ -31,9 +34,16 @@ export function getCacheTime() {
 /**
  * API 相关配置
  */
+// 各环境后端服务地址
+const API_BASE_URLS = {
+  dev: 'http://localhost:41532', // 本地开发环境
+  qa: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com', // 线上QA环境
+  prod: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com' // 生产环境
+};
+
 export const API_CONFIG = {
   // 后端服务基础地址
-  BASE_URL: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com',
+  BASE_URL: API_BASE_URLS[ENV_TYPE],
   
   // API 版本前缀
   API_VERSION: '/api/v1',
