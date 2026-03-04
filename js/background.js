@@ -663,11 +663,22 @@ chrome.commands.onCommand.addListener(async (command) => {
       let screenWidth = 1920;
       let screenHeight = 1080;
       try {
-        const screenInfo = await chrome.windows.getCurrent();
-        screenWidth = screenInfo.width || 1920;
-        screenHeight = screenInfo.height || 1080;
+        // 使用 chrome.system.display 获取真实屏幕尺寸
+        const displays = await chrome.system.display.getInfo();
+        if (displays && displays.length > 0) {
+          const primaryDisplay = displays.find(display => display.isPrimary) || displays[0];
+          screenWidth = primaryDisplay.workArea.width || 1920;
+          screenHeight = primaryDisplay.workArea.height || 1080;
+        }
       } catch (error) {
-        // 使用默认值
+        //  fallback to current window size if system.display API fails
+        try {
+          const screenInfo = await chrome.windows.getCurrent();
+          screenWidth = screenInfo.width || 1920;
+          screenHeight = screenInfo.height || 1080;
+        } catch (innerError) {
+          // 使用默认值
+        }
       }
 
       const left = Math.round((screenWidth - windowWidth) / 2);
@@ -887,11 +898,22 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       let screenWidth = 1920;
       let screenHeight = 1080;
       try {
-        const screenInfo = await chrome.windows.getCurrent();
-        screenWidth = screenInfo.width || 1920;
-        screenHeight = screenInfo.height || 1080;
+        // 使用 chrome.system.display 获取真实屏幕尺寸
+        const displays = await chrome.system.display.getInfo();
+        if (displays && displays.length > 0) {
+          const primaryDisplay = displays.find(display => display.isPrimary) || displays[0];
+          screenWidth = primaryDisplay.workArea.width || 1920;
+          screenHeight = primaryDisplay.workArea.height || 1080;
+        }
       } catch (error) {
-        // 使用默认值
+        //  fallback to current window size if system.display API fails
+        try {
+          const screenInfo = await chrome.windows.getCurrent();
+          screenWidth = screenInfo.width || 1920;
+          screenHeight = screenInfo.height || 1080;
+        } catch (innerError) {
+          // 使用默认值
+        }
       }
 
       const left = Math.round((screenWidth - windowWidth) / 2);

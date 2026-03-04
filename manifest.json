@@ -21,7 +21,8 @@
     "storage",
     "activeTab",
     "alarms",
-    "identity"
+    "identity",
+    "system.display"
   ],
   "host_permissions": [
     "http://localhost:41532/*",
