@@ -298,7 +298,7 @@ async function handleVerify() {
 // OAuth 登录 - Google
 async function handleOAuthGoogle() {
   try {
-    const clientId = '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'; // 生产环境替换为实际 Client ID
+    const clientId = '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com';
     const redirectUri = chrome.identity.getRedirectURL();
     
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
