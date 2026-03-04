@@ -10,7 +10,7 @@
 if (typeof CONFIG_COMMON === 'undefined') {
   const API_CONFIG = {
     // 后端服务基础地址
-    BASE_URL: 'http://localhost:41532',
+    BASE_URL: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com',
     
     // API 版本前缀
     API_VERSION: '/api/v1',

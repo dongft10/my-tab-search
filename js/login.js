@@ -309,7 +309,7 @@ async function handleVerify() {
 // OAuth 登录
 async function handleOAuth(provider) {
   try {
-    const clientId = provider === 'google' 
+const clientId = provider === 'google' 
       ? '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'
       : 'YOUR_MICROSOFT_CLIENT_ID';
     const redirectUri = chrome.identity.getRedirectURL();
