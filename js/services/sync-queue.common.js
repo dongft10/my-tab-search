@@ -134,8 +134,6 @@ async function processSyncOperation(item, accessToken) {
     throw new Error('Invalid operation: missing tabId');
   }
   
-  const apiUrl = 'http://localhost:41532/api/v1';
-  
   const headers = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${accessToken}`
@@ -178,7 +176,7 @@ async function processSyncOperation(item, accessToken) {
 
   console.log('[SyncQueue] Sending sync request:', item.type, body);
 
-  const response = await fetch(apiUrl + endpoint, {
+  const response = await fetch(CONFIG_COMMON.getApiUrl(endpoint), {
     method,
     headers,
     body: JSON.stringify(body)

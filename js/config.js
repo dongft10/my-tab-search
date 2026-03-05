@@ -8,11 +8,11 @@
  * 生产环境: DEBUG = false, 缓存1天
  */
 // 环境类型：dev（本地开发）、qa（线上QA）、prod（生产环境）
-export const ENV_TYPE = 'dev'; // 默认使用本地开发环境
+export const ENV_TYPE = 'qa'; // 默认使用本地开发环境
 
 export const ENV_CONFIG = {
   // 是否为开发环境
-  DEBUG: ENV_TYPE === 'dev',
+  DEBUG: ENV_TYPE === 'qa',
 
   // 缓存配置
   CACHE: {
