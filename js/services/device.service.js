@@ -207,10 +207,8 @@ class DeviceService {
       throw new Error(response?.data?.msg || response?.msg || 'Failed to logout');
     } catch (error) {
       console.error('Logout error:', error);
-      return {
-        success: false,
-        message: error.message
-      };
+      // 抛出异常，让调用者处理
+      throw error;
     }
   }
 
