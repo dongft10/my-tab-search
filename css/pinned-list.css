@@ -1,3 +1,92 @@
+:root {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #ec4899;
+  --accent: #14b8a6;
+  
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: #252540;
+  --bg-hover: #2a2a45;
+  --bg-selected: rgba(99, 102, 241, 0.3);
+  
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.06);
+  
+  --highlight-bg: rgba(99, 102, 241, 0.4);
+  --highlight-text: #ffffff;
+  
+  --longterm-bg: rgba(167, 139, 250, 0.2);
+  --longterm-hover: rgba(167, 139, 250, 0.3);
+  --longterm-selected: rgba(167, 139, 250, 0.4);
+  
+  --btn-primary: #6366f1;
+  --btn-hover: rgba(255, 255, 255, 0.1);
+  --btn-danger: #ef4444;
+  --btn-success: #a78bfa;
+  
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  
+  --toast-bg: #1f1f3a;
+  --toast-text: #ffffff;
+  
+  --empty-color: rgba(255, 255, 255, 0.5);
+  --empty-icon-opacity: 0.5;
+}
+
+[data-theme="light"] {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #ec4899;
+  
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-hover: #e2e8f0;
+  --bg-selected: #dbeafe;
+  
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  --border-color: #e2e8f0;
+  --border-light: rgba(0, 0, 0, 0.05);
+  
+  --highlight-bg: #fef08a;
+  --highlight-text: #000;
+  
+  --longterm-bg: #f3e8fd;
+  --longterm-hover: #e4d8f9;
+  --longterm-selected: #d4c4f2;
+  
+  --btn-primary: #3b82f6;
+  --btn-hover: #f1f5f9;
+  --btn-danger: #ef4444;
+  --btn-success: #22c55e;
+  
+  --scrollbar-track: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  
+  --toast-bg: #1f2937;
+  --toast-text: #ffffff;
+  
+  --empty-color: #64748b;
+  --empty-icon-opacity: 0.5;
+}
+
 body {
   min-width: 400px;
   max-width: 400px;
@@ -10,8 +99,8 @@ body {
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 4px 12px rgba(0, 0, 0, 0.15),
     0 10px 30px rgba(0, 0, 0, 0.1);
-  background-color: #C9CBCD;
-  color: #333333;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   position: relative;
   overflow-x: hidden; /* 隐藏水平方向溢出 */
   overflow-y: auto; /* 垂直方向可滚动 */
@@ -27,10 +116,10 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 10px 0 10px 5px;
-  background-color: white;
+  background-color: var(--glass-bg);
   backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--glass-shadow);
+  border: 1px solid var(--glass-border);
   flex-shrink: 0; /* 固定高度，不随内容变化 */
   z-index: 2; /* 确保搜索框始终在最上层 */
 }
@@ -58,13 +147,14 @@ body {
   outline: none;
   background-color: transparent;
   font-size: 14px;
+  color: var(--text-primary);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #tab-count {
   margin-right: 10px;
   font-weight: bold;
-  color: #4285f4;
+  color: var(--btn-primary);
   font-size: 14px;
   text-align: right;
 }
@@ -87,7 +177,7 @@ body {
   margin: 0;
   overflow-y: auto; /* 垂直滚动 */
   flex: 1; /* 占据容器全部空间 */
-  background-color: white;
+  background-color: var(--bg-secondary);
   width: 100%; /* 确保不超出父容器宽度 */
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
 }
@@ -97,12 +187,12 @@ body {
 }
 
 #pinned-tab-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 
 #pinned-tab-list::-webkit-scrollbar-thumb {
-  background: rgba(136, 136, 136, 0.4);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
@@ -117,7 +207,7 @@ body {
   cursor: pointer;
   padding: 10px 5px 10px 10px;
   margin: 0;
-  background-color: white;
+  background-color: var(--bg-secondary);
   transition: all 0.3s ease;
   backdrop-filter: blur(5px);
   width: 100%; /* 确保不超出父容器宽度 */
@@ -128,25 +218,25 @@ body {
 }
 
 #pinned-tab-list li:hover {
-  background-color: #E6E6E6;
+  background-color: var(--bg-hover);
 }
 
 #pinned-tab-list li.selected {
-  background-color: #D3E3FD;
+  background-color: var(--bg-selected);
 }
 
 /* 长期固定Tab的底色 */
 #pinned-tab-list li.long-term-pinned {
-  background-color: #E8E0F0;
+  background-color: var(--longterm-bg);
 }
 
 #pinned-tab-list li.long-term-pinned:hover {
-  background-color: #DDD5E8;
+  background-color: var(--longterm-hover);
 }
 
 /* 长期固定Tab被选中时的底色（更深的紫色） */
 #pinned-tab-list li.long-term-pinned.selected {
-  background-color: #D0C4E3;
+  background-color: var(--longterm-selected);
 }
 
 /* 操作按钮容器 */
@@ -190,7 +280,7 @@ body {
   height: 24px;
   display: flex;
   align-items: center;
-  color: #5f6368;
+  color: var(--text-secondary);
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -198,6 +288,38 @@ body {
   flex-shrink: 0;
   background: none;
   position: absolute;
+}
+
+/* 操作按钮悬停效果 */
+#pinned-tab-list .action-btn:hover {
+  background-color: var(--btn-hover);
+}
+
+/* 取消固定按钮特殊样式 */
+#pinned-tab-list .action-btn.unpin-btn {
+  color: var(--btn-danger);
+}
+
+#pinned-tab-list .action-btn.unpin-btn:hover {
+  color: var(--btn-danger);
+}
+
+/* 关闭按钮特殊样式 */
+#pinned-tab-list .action-btn.close-btn:hover {
+  color: var(--btn-danger);
+}
+
+/* 长期固定按钮样式 */
+#pinned-tab-list .action-btn.longterm-btn {
+  color: var(--text-secondary);
+}
+
+#pinned-tab-list .action-btn.longterm-btn:hover {
+  color: var(--btn-success);
+}
+
+#pinned-tab-list .action-btn.longterm-btn.active {
+  color: var(--btn-success);
 }
 
 /* 三横菜单按钮 - 默认显示 */
@@ -284,7 +406,7 @@ body {
   width: auto;
   white-space: normal; /* 允许文本换行 */
   font-size: 14px;
-  color: #202124;
+  color: var(--text-primary);
   flex: 1; /* 占据可用空间，但不超过容器 */
   min-width: 0; /* 允许flex项目收缩到内容的固有大小以下 */
   word-wrap: break-word; /* 允许长单词换行 */
@@ -292,14 +414,14 @@ body {
 }
 
 .tab-title .highlight {
-  background-color: #FFE792;
-  color: #000;
+  background-color: var(--highlight-bg);
+  color: var(--highlight-text);
   padding: 0 1px;
   border-radius: 2px;
 }
 
 .tab-url-hostname {
-  color: #5f6368;
+  color: var(--text-secondary);
   font-size: 12px;
   margin-top: 3px;
   white-space: nowrap; /* 不换行 */
@@ -326,8 +448,8 @@ body {
   justify-content: flex-end;
   gap: 15px;
   padding: 2px 20px;
-  background-color: white;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -341,11 +463,11 @@ body {
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
-  color: #5f6368;
+  color: var(--text-secondary);
 }
 
 .icon-btn:hover {
-  background-color: #f0f0f0;
+  background-color: var(--btn-hover);
 }
 
 .icon-btn:focus {
@@ -357,13 +479,13 @@ body {
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #666;
+  color: var(--empty-color);
 }
 
 .empty-state-icon {
   font-size: 48px;
   margin-bottom: 16px;
-  opacity: 0.5;
+  opacity: var(--empty-icon-opacity);
 }
 
 .empty-state-text {
@@ -382,8 +504,8 @@ body {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #323232;
-  color: white;
+  background-color: var(--toast-bg);
+  color: var(--toast-text);
   padding: 12px 24px;
   border-radius: 4px;
   font-size: 14px;

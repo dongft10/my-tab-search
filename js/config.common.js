@@ -9,7 +9,7 @@
 // 检查是否已经定义过，避免重复声明
 if (typeof CONFIG_COMMON === 'undefined') {
   // 环境类型：dev（本地开发）、qa（线上QA）、prod（生产环境）
-  const ENV_TYPE = 'dev'; // 默认使用本地开发环境
+  const ENV_TYPE = 'qa'; // 默认使用本地开发环境
   
   // 各环境后端服务地址
   const API_BASE_URLS = {

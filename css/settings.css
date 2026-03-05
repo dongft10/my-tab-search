@@ -1,3 +1,92 @@
+:root {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #ec4899;
+  --accent: #14b8a6;
+  
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: #252540;
+  --bg-hover: #2a2a45;
+  --bg-input: #1a1a2e;
+  
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.06);
+  
+  --card-bg: #1a1a2e;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  --btn-primary: #6366f1;
+  --btn-primary-hover: #818cf8;
+  --btn-danger: #ef4444;
+  --btn-warning: #f59e0b;
+  --btn-text: #ffffff;
+  
+  --vip-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --vip-bg: #667eea;
+  
+  --trial-bg: rgba(245, 158, 11, 0.15);
+  --trial-border: rgba(245, 158, 11, 0.3);
+  --trial-text: #fbbf24;
+  
+  --select-bg: #1a1a2e;
+  --select-border: rgba(255, 255, 255, 0.2);
+  --select-hover: #6366f1;
+  
+  --toast-bg: #1f1f3a;
+  --toast-text: #ffffff;
+  
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(99, 102, 241, 0.3);
+  --shadow-lg: 0 8px 24px rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-hover: #e2e8f0;
+  --bg-input: #ffffff;
+  
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  --border-color: #e2e8f0;
+  --border-light: #e2e8f0;
+  
+  --card-bg: #ffffff;
+  --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  
+  --btn-primary: #3b82f6;
+  --btn-primary-hover: #2563eb;
+  --btn-danger: #ef4444;
+  --btn-warning: #f59e0b;
+  --btn-text: #1e293b;
+  
+  --vip-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --vip-bg: #667eea;
+  
+  --trial-bg: #fefce8;
+  --trial-border: #fef08a;
+  --trial-text: #a16207;
+  
+  --select-bg: #ffffff;
+  --select-border: #cbd5e1;
+  --select-hover: #3b82f6;
+  
+  --toast-bg: #1e293b;
+  --toast-text: #ffffff;
+  
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(59, 130, 246, 0.25);
+  --shadow-lg: 0 8px 24px rgba(59, 130, 246, 0.35);
+}
+
 /* 设置页面样式 */
 
 * {
@@ -8,8 +97,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -21,20 +110,20 @@ body {
 }
 
 .settings-section {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--card-shadow);
 }
 
 .settings-section h2 {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* 账户信息 */
@@ -53,7 +142,7 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--vip-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,13 +158,13 @@ body {
 .account-email {
   font-size: 16px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .account-status {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 /* VIP 徽章 */
@@ -122,8 +211,8 @@ body {
 
 /* 体验期状态 */
 .trial-status {
-  background: #fff7e6;
-  border: 1px solid #ffd591;
+  background: var(--trial-bg);
+  border: 1px solid var(--trial-border);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
@@ -142,20 +231,20 @@ body {
 
 .trial-label {
   font-size: 14px;
-  color: #d46b08;
+  color: var(--trial-text);
 }
 
 .trial-value {
   font-size: 14px;
   font-weight: 600;
-  color: #d46b08;
+  color: var(--trial-text);
 }
 
 /* 登录/注册按钮 */
 .btn-login {
   width: 100%;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: var(--btn-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -163,25 +252,25 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-login:hover {
-  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+  background: var(--btn-primary-hover);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-1px);
 }
 
 .btn-login:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-trial-extend {
   width: 100%;
   padding: 10px;
   margin-top: 12px;
-  background: #fa8c16;
+  background: var(--btn-warning);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -236,7 +325,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: #fafafa;
+  background: var(--bg-tertiary);
   border-radius: 8px;
 }
 
@@ -258,12 +347,12 @@ body {
 .device-name {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .device-meta {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .device-meta span {
@@ -285,7 +374,7 @@ body {
   height: 28px;
   border: none;
   background: transparent;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   border-radius: 4px;
   display: flex;
@@ -295,25 +384,25 @@ body {
 }
 
 .btn-remove-device:hover {
-  background: #ff4d4f;
+  background: var(--btn-danger);
   color: white;
 }
 
 .empty-text {
   text-align: center;
-  color: #999;
+  color: var(--text-muted);
   padding: 20px;
 }
 
 .error-text {
   text-align: center;
-  color: #ff4d4f;
+  color: var(--btn-danger);
   padding: 20px;
 }
 
 .loading-text {
   text-align: center;
-  color: #999;
+  color: var(--text-muted);
   padding: 20px;
 }
 
@@ -331,39 +420,40 @@ body {
 
 .setting-item label {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .setting-item select {
   padding: 8px 12px;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--select-border);
   border-radius: 6px;
   font-size: 14px;
   min-width: 200px;
   max-width: 280px;
   cursor: pointer;
-  background: #fff;
+  background: var(--select-bg);
+  color: var(--text-primary);
   transition: all 0.2s;
 }
 
 .setting-item select:hover {
-  border-color: #40a9ff;
+  border-color: var(--select-hover);
 }
 
 .setting-item select:focus {
   outline: none;
-  border-color: #40a9ff;
+  border-color: var(--select-hover);
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
 }
 
 .setting-description {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   line-height: 1.6;
   margin-top: 8px;
   padding: 10px 12px;
-  background: #fafafa;
+  background: var(--bg-tertiary);
   border-radius: 6px;
 }
 
@@ -375,13 +465,13 @@ body {
 
 .about-info p {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .about-desc {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 /* 状态消息 */
@@ -408,12 +498,12 @@ body {
 }
 
 .status-message.error {
-  background: #ff4d4f;
+  background: var(--btn-danger);
   color: #fff;
 }
 
 .status-message.info {
-  background: #1890ff;
+  background: var(--btn-primary);
   color: #fff;
 }
 
@@ -426,4 +516,88 @@ body {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+}
+
+/* 主题设置样式 */
+.theme-options {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.theme-option {
+  cursor: pointer;
+  flex: 1;
+  min-width: 180px;
+  max-width: 220px;
+}
+
+.theme-option input[type="radio"] {
+  display: none;
+}
+
+.theme-card {
+  border: 2px solid var(--border-light);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  transition: all 0.3s ease;
+  background: var(--bg-secondary);
+}
+
+.theme-option input[type="radio"]:checked + .theme-card {
+  border-color: var(--btn-primary);
+  box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.2);
+}
+
+.theme-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-preview {
+  width: 100%;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.theme-dark-preview {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.theme-light-preview {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+}
+
+.theme-preview-header {
+  height: 16px;
+  background: rgba(128, 128, 128, 0.2);
+}
+
+.theme-preview-content {
+  display: flex;
+  height: calc(100% - 16px);
+  padding: 4px;
+  gap: 4px;
+}
+
+.theme-preview-sidebar {
+  width: 30%;
+  background: rgba(128, 128, 128, 0.15);
+  border-radius: 2px;
+}
+
+.theme-preview-main {
+  flex: 1;
+  background: rgba(128, 128, 128, 0.1);
+  border-radius: 2px;
+}
+
+.theme-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
 }

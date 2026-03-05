@@ -74,6 +74,39 @@
       </div>
     </section>
 
+    <!-- 主题设置 -->
+    <section class="settings-section" id="theme-section">
+      <h2 data-i18n="themeSettingsTitle">主题设置</h2>
+      <div class="theme-options">
+        <label class="theme-option">
+          <input type="radio" name="theme" value="dark" id="theme-dark">
+          <div class="theme-card theme-dark-card">
+            <div class="theme-preview theme-dark-preview">
+              <div class="theme-preview-header"></div>
+              <div class="theme-preview-content">
+                <div class="theme-preview-sidebar"></div>
+                <div class="theme-preview-main"></div>
+              </div>
+            </div>
+            <span class="theme-label" data-i18n="darkThemeLabel">深色主题</span>
+          </div>
+        </label>
+        <label class="theme-option">
+          <input type="radio" name="theme" value="light" id="theme-light">
+          <div class="theme-card theme-light-card">
+            <div class="theme-preview theme-light-preview">
+              <div class="theme-preview-header"></div>
+              <div class="theme-preview-content">
+                <div class="theme-preview-sidebar"></div>
+                <div class="theme-preview-main"></div>
+              </div>
+            </div>
+            <span class="theme-label" data-i18n="lightThemeLabel">浅色主题</span>
+          </div>
+        </label>
+      </div>
+    </section>
+
     <!-- 搜索规则设置 -->
     <section class="settings-section">
       <h2 data-i18n="searchRuleSettingsTitle">搜索规则设置</h2>
@@ -96,5 +129,7 @@
   </div>
 
   <script type="module" src="../js/settings.js"></script>
+  <script src="../js/utils/theme.js"></script>
+  <script src="../js/utils/theme-settings.js"></script>
 </body>
 </html>

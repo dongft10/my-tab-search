@@ -1,3 +1,123 @@
+:root {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #ec4899;
+  --accent: #14b8a6;
+  
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: #252540;
+  --bg-hover: #2a2a45;
+  --bg-selected: rgba(99, 102, 241, 0.3);
+  
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.06);
+  
+  --highlight-bg: rgba(99, 102, 241, 0.4);
+  --highlight-text: #ffffff;
+  
+  --pinned-tab-bg: rgba(255, 165, 0, 0.2);
+  --pinned-tab-hover: rgba(255, 165, 0, 0.3);
+  --pinned-tab-selected: rgba(255, 165, 0, 0.4);
+  
+  --btn-primary: #6366f1;
+  --btn-hover: rgba(255, 255, 255, 0.1);
+  --btn-danger: #ef4444;
+  --btn-success: #22c55e;
+  
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  
+  --toast-bg: #1f1f3a;
+  --toast-text: #ffffff;
+}
+
+[data-theme="light"] {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #ec4899;
+  
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-hover: #e2e8f0;
+  --bg-selected: #dbeafe;
+  
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  --border-color: #e2e8f0;
+  --border-light: rgba(0, 0, 0, 0.05);
+  
+  --highlight-bg: #fef08a;
+  --highlight-text: #000;
+  
+  --pinned-tab-bg: rgba(251, 191, 36, 0.15);
+  --pinned-tab-hover: rgba(251, 191, 36, 0.25);
+  --pinned-tab-selected: rgba(251, 191, 36, 0.35);
+  
+  --btn-primary: #3b82f6;
+  --btn-hover: #f1f5f9;
+  --btn-danger: #ef4444;
+  --btn-success: #22c55e;
+  
+  --scrollbar-track: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  
+  --toast-bg: #1f2937;
+  --toast-text: #ffffff;
+}
+
+[data-theme="light"] {
+  --bg-primary: #e8e9eb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f4;
+  --bg-hover: #f8f9fa;
+  --bg-selected: #e8f0fe;
+  
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #80868b;
+  
+  --border-color: #dadce0;
+  --border-light: rgba(0, 0, 0, 0.06);
+  
+  --highlight-bg: #ea4335;
+  --highlight-text: #ffffff;
+  
+  --pinned-tab-bg: rgba(251, 188, 4, 0.15);
+  --pinned-tab-hover: rgba(251, 188, 4, 0.25);
+  --pinned-tab-selected: rgba(251, 188, 4, 0.35);
+  
+  --btn-primary: #1a73e8;
+  --btn-hover: #f1f3f4;
+  --btn-danger: #d93025;
+  --btn-success: #188038;
+  
+  --scrollbar-track: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  
+  --toast-bg: #323232;
+  --toast-text: #ffffff;
+}
+
 body {
   width: 400px;
   /*min-height: 600px;*/
@@ -9,8 +129,8 @@ body {
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 4px 12px rgba(0, 0, 0, 0.15),
     0 10px 30px rgba(0, 0, 0, 0.1);
-  background-color: #C9CBCD;
-  color: #333333;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   position: relative;
   overflow-x: hidden; /* 隐藏水平方向溢出 */
   overflow-y: auto; /* 垂直方向可滚动 */
@@ -26,10 +146,10 @@ body {
   justify-content: space-between;
   padding: 10px 0 10px 5px;
   /*margin: 10px 0 10px 0;*/
-  background-color: white;
+  background-color: var(--glass-bg);
   backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--glass-shadow);
+  border: 1px solid var(--glass-border);
   flex-shrink: 0; /* 固定高度，不随内容变化 */
   z-index: 2; /* 确保搜索框始终在最上层 */
 }
@@ -57,13 +177,14 @@ body {
   outline: none;
   background-color: transparent;
   font-size: 14px;
+  color: var(--text-primary);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #tab-count {
   margin-right: 10px;
   font-weight: bold;
-  color: #4285f4;
+  color: var(--btn-primary);
   font-size: 14px;
   text-align: right;
 }
@@ -89,7 +210,7 @@ body {
   overflow-y: auto; /* 垂直滚动 */
   flex: 1; /* 占据容器全部空间 */
   /*border-radius: 12px;*/
-  background-color: white;
+  background-color: var(--bg-secondary);
   width: 100%; /* 确保不超出父容器宽度 */
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
 }
@@ -99,12 +220,12 @@ body {
 }
 
 #tab-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 
 #tab-list::-webkit-scrollbar-thumb {
-  background: rgba(136, 136, 136, 0.4);
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
@@ -119,7 +240,7 @@ body {
   cursor: pointer;
   padding: 10px 5px 10px 10px;
   margin: 0;
-  background-color: white;
+  background-color: var(--bg-secondary);
   transition: all 0.3s ease;
   backdrop-filter: blur(5px);
   width: 100%; /* 确保不超出父容器宽度 */
@@ -196,51 +317,51 @@ body {
 
 /* 操作按钮悬停效果 */
 .action-btn:hover {
-  background-color: #f0f0f0;
+  background-color: var(--btn-hover);
 }
 
 /* 固定按钮特殊样式 */
 .action-btn.pin-btn {
-  color: #9aa0a6; /* 未固定状态：灰色 */
+  color: var(--text-muted); /* 未固定状态：灰色 */
 }
 
 .action-btn.pin-btn:hover {
-  color: #188038; /* 悬停时：绿色 */
+  color: var(--btn-success); /* 悬停时：绿色 */
 }
 
 /* 已固定状态的固定按钮 */
 .action-btn.pin-btn.pinned {
-  color: #d93025; /* 已固定状态：红色 */
+  color: var(--btn-danger); /* 已固定状态：红色 */
 }
 
 .action-btn.pin-btn.pinned:hover {
-  color: #d93025; /* 悬停时保持红色 */
+  color: var(--btn-danger); /* 悬停时保持红色 */
 }
 
 /* 关闭按钮特殊样式 */
 .action-btn.close-btn:hover {
-  color: #d93025;
+  color: var(--btn-danger);
 }
 
 #tab-list li:hover {
-  background-color: #E6E6E6;
+  background-color: var(--bg-hover);
 }
 
 #tab-list li.selected {
-  background-color: #D3E3FD;
+  background-color: var(--bg-selected);
 }
 
 /* 已固定的标签页条目样式 - 淡淡的橙色底色 */
 #tab-list li.pinned-tab {
-  background-color: rgba(255, 165, 0, 0.15); /* 淡橙色背景 */
+  background-color: var(--pinned-tab-bg);
 }
 
 #tab-list li.pinned-tab:hover {
-  background-color: rgba(255, 165, 0, 0.25); /* 悬停时稍微深一点的橙色 */
+  background-color: var(--pinned-tab-hover);
 }
 
 #tab-list li.pinned-tab.selected {
-  background-color: rgba(255, 165, 0, 0.35); /* 选中时的橙色 */
+  background-color: var(--pinned-tab-selected);
 }
 
 .li-icon {
@@ -253,7 +374,7 @@ body {
   width: auto;
   white-space: normal; /* 允许文本换行 */
   font-size: 14px;
-  color: #202124;
+  color: var(--text-primary);
   flex: 1; /* 占据可用空间，但不超过容器 */
   min-width: 0; /* 允许flex项目收缩到内容的固有大小以下 */
   word-wrap: break-word; /* 允许长单词换行 */
@@ -261,14 +382,14 @@ body {
 }
 
 .tab-title .highlight {
-  background-color: #FFE792;
-  color: #000;
+  background-color: var(--highlight-bg);
+  color: var(--highlight-text);
   padding: 0;
   border-radius: 2px;
 }
 
 .tab-url-hostname {
-  color: #5f6368;
+  color: var(--text-secondary);
   font-size: 12px;
   margin-top: 3px;
   white-space: nowrap; /* 不换行 */
@@ -295,8 +416,8 @@ body {
   justify-content: flex-end;
   gap: 15px;
   padding: 2px 20px;
-  background-color: white;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -310,11 +431,11 @@ body {
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
-  color: #5f6368;
+  color: var(--text-secondary);
 }
 
 .icon-btn:hover {
-  background-color: #f0f0f0;
+  background-color: var(--btn-hover);
 }
 
 .icon-btn:focus {
@@ -328,8 +449,8 @@ body {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #323232;
-  color: white;
+  background-color: var(--toast-bg);
+  color: var(--toast-text);
   padding: 12px 24px;
   border-radius: 4px;
   font-size: 14px;
