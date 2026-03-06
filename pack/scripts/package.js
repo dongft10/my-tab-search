@@ -83,7 +83,21 @@ function copySourceFiles(srcDir, destDir) {
 async function main() {
   const sourceDir = process.argv[2] || '.';
   let outputDir = process.argv[3];
-  const skipCompression = process.argv[4] === '--skip-compression'; // 新增参数控制是否跳过压缩
+  let skipCompression = false;
+  
+  // 检查 --skip-compression 参数
+  if (process.argv[4] === '--skip-compression') {
+    skipCompression = true;
+  }
+  
+  // 检查 --compress=false 参数
+  const compressArg = process.argv.find(arg => arg.startsWith('--compress='));
+  if (compressArg) {
+    const compressValue = compressArg.split('=')[1];
+    if (compressValue && compressValue.toLowerCase() === 'false') {
+      skipCompression = true;
+    }
+  }
 
   // 如果没有指定输出目录，则默认为项目根目录下的 pack/out
   if (!outputDir) {

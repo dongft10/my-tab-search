@@ -267,7 +267,7 @@ class AuthService {
     ]);
 
     if (!accessToken || !tokenExpiresAt) {
-      return true;
+      return false;
     }
 
     const expiresAt = new Date(tokenExpiresAt).getTime();

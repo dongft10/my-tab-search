@@ -24,6 +24,47 @@ npm run build
    - 如果安装了 crx 工具：`my-tab-search-v{version}.crx` 文件（其中 {version} 是 manifest.json 中定义的版本号）
    - 如果未安装 crx 工具：`my-tab-search-v{version}.zip` 文件（作为备选方案，其中 {version} 是 manifest.json 中定义的版本号）
 
+## 开发调试模式（不压缩）
+
+在开发和测试阶段，为了方便调试，可以跳过代码压缩步骤：
+
+### 方式 1：使用批处理文件（Windows，推荐）
+
+双击运行以下批处理文件：
+
+```batch
+# 生产版本（压缩）- 直接双击 pack.bat
+.\pack\pack.bat
+
+# 开发版本（不压缩）- 直接双击 pack-no-compress.bat
+.\pack\pack-no-compress.bat
+```
+
+### 方式 2：使用 npm 脚本
+
+```bash
+# 开发模式（不压缩）
+npm run build:dev
+
+# 或使用 compress=false 参数
+npm run build:compress=false
+
+# 生产模式（压缩）
+npm run build
+```
+
+### 方式 3：直接传递参数
+
+```bash
+# 使用 --compress=false 参数
+node pack/scripts/build.js --compress=false
+
+# 或使用 --skip-compress 参数
+node pack/scripts/build.js --skip-compress
+```
+
+**注意**：开发模式下打包的文件未经压缩，便于调试，但文件体积会较大。生产环境部署请使用默认的压缩打包。
+
 ## 目录结构
 
 - `run-packaging.ps1` - 主要打包脚本，用于通过 Node.js 工具链压缩和打包扩展

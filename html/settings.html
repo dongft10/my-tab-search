@@ -79,19 +79,6 @@
       <h2 data-i18n="themeSettingsTitle">主题设置</h2>
       <div class="theme-options">
         <label class="theme-option">
-          <input type="radio" name="theme" value="dark" id="theme-dark">
-          <div class="theme-card theme-dark-card">
-            <div class="theme-preview theme-dark-preview">
-              <div class="theme-preview-header"></div>
-              <div class="theme-preview-content">
-                <div class="theme-preview-sidebar"></div>
-                <div class="theme-preview-main"></div>
-              </div>
-            </div>
-            <span class="theme-label" data-i18n="darkThemeLabel">深色主题</span>
-          </div>
-        </label>
-        <label class="theme-option">
           <input type="radio" name="theme" value="light" id="theme-light">
           <div class="theme-card theme-light-card">
             <div class="theme-preview theme-light-preview">
@@ -102,6 +89,19 @@
               </div>
             </div>
             <span class="theme-label" data-i18n="lightThemeLabel">浅色主题</span>
+          </div>
+        </label>
+        <label class="theme-option">
+          <input type="radio" name="theme" value="dark" id="theme-dark">
+          <div class="theme-card theme-dark-card">
+            <div class="theme-preview theme-dark-preview">
+              <div class="theme-preview-header"></div>
+              <div class="theme-preview-content">
+                <div class="theme-preview-sidebar"></div>
+                <div class="theme-preview-main"></div>
+              </div>
+            </div>
+            <span class="theme-label" data-i18n="darkThemeLabel">深色主题</span>
           </div>
         </label>
       </div>
@@ -126,6 +126,56 @@
 
     <!-- 状态消息 -->
     <div class="status-message" id="status-message"></div>
+
+    <!-- 登录弹窗 -->
+    <div class="login-modal" id="login-modal" style="display: none;">
+      <div class="login-modal-overlay"></div>
+      <div class="login-modal-content">
+        <button class="login-modal-close" id="login-modal-close">&times;</button>
+        <h2 data-i18n="loginOrRegister">登录 / 注册</h2>
+        
+        <!-- 邮箱登录 -->
+        <div class="login-section" id="login-email-section">
+          <div class="input-group">
+            <input type="email" id="login-email-input" data-i18n-placeholder="enterEmailPlaceholder" placeholder="请输入邮箱地址">
+          </div>
+          <button class="btn-primary" id="login-btn-send-code" data-i18n="sendVerificationCode">发送验证码</button>
+          
+          <div class="verify-section" id="login-verify-section" style="display: none;">
+            <div class="input-group">
+              <input type="text" id="login-code-input" data-i18n-placeholder="enterCodePlaceholder" placeholder="请输入验证码" maxlength="6">
+            </div>
+            <button class="btn-primary" id="login-btn-verify" data-i18n="verifyAndLogin">验证并登录</button>
+            <button class="btn-secondary" id="login-btn-resend-code" style="display: none;" disabled>重新发送 (60s)</button>
+          </div>
+        </div>
+        
+        <!-- 分割线 -->
+        <div class="divider">
+          <span data-i18n="orText">或</span>
+        </div>
+        
+        <!-- OAuth 登录 -->
+        <div class="oauth-buttons">
+          <button class="btn-oauth btn-google" id="login-btn-google">
+            <span class="oauth-icon">G</span>
+            <span data-i18n="loginWithGoogle">使用 Google 账号登录</span>
+          </button>
+          <button class="btn-oauth btn-microsoft" id="login-btn-microsoft">
+            <span class="oauth-icon">M</span>
+            <span data-i18n="loginWithMicrosoft">使用 Microsoft 账号登录</span>
+          </button>
+        </div>
+        
+        <!-- 跳过登录 -->
+        <div class="skip-section">
+          <button class="btn-link" id="login-btn-skip" data-i18n="skipForNow">暂时跳过</button>
+        </div>
+        
+        <!-- 状态消息 -->
+        <div class="status-message" id="login-status-message"></div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="../js/settings.js"></script>

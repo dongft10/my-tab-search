@@ -499,7 +499,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // 更新 tabId 为当前新打开的 tab
         existingTab.tabId = tab.id;
         existingTab.title = tab.title;
-        // 如果是长期固定tab，更新长期固定时间
+        // 如果是长期固定 tab，更新长期固定时间
         if (existingTab.isLongTermPinned) {
           existingTab.longTermPinnedAt = new Date().toISOString();
         }
@@ -508,14 +508,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           chrome.storage.local.set({ pinnedTabs }, resolve);
         });
         
-        // 异步同步到服务器
-        syncQueueService.addOperation('updateTab', {
-          tabId: tab.id,
-          url: tab.url,
-          title: tab.title,
-          isLongTermPinned: existingTab.isLongTermPinned,
-          longTermPinnedAt: existingTab.longTermPinnedAt
-        }).catch(err => console.warn('Sync updateTab failed:', err));
+        // 异步同步到服务器（仅在 tab.id 存在时）
+        if (tab.id) {
+          syncQueueService.addOperation('updateTab', {
+            tabId: tab.id,
+            url: tab.url,
+            title: tab.title,
+            isLongTermPinned: existingTab.isLongTermPinned,
+            longTermPinnedAt: existingTab.longTermPinnedAt
+          }).catch(err => console.warn('Sync updateTab failed:', err));
+        }
         
         return { success: true, message: '已重新固定' };
       }

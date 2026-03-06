@@ -930,12 +930,14 @@ async function setLongTermPinned(tabId) {
     
     await chrome.storage.local.set({ pinnedTabs: updatedTabs });
     
-    // 异步同步到服务器
-    syncQueueService.addOperation('updateTab', {
-      tabId,
-      isLongTermPinned: true,
-      longTermPinnedAt: new Date().toISOString()
-    }).catch(err => console.warn('Sync updateTab failed:', err));
+    // 异步同步到服务器（仅在 tabId 存在时）
+    if (tabId) {
+      syncQueueService.addOperation('updateTab', {
+        tabId,
+        isLongTermPinned: true,
+        longTermPinnedAt: new Date().toISOString()
+      }).catch(err => console.warn('Sync updateTab failed:', err));
+    }
     
     showToast(i18n.getMessage('longTermPinnedSuccess'));
     
@@ -966,12 +968,14 @@ async function cancelLongTermPinned(tabId) {
     
     await chrome.storage.local.set({ pinnedTabs: updatedTabs });
     
-    // 异步同步到服务器
-    syncQueueService.addOperation('updateTab', {
-      tabId,
-      isLongTermPinned: false,
-      longTermPinnedAt: null
-    }).catch(err => console.warn('Sync updateTab failed:', err));
+    // 异步同步到服务器（仅在 tabId 存在时）
+    if (tabId) {
+      syncQueueService.addOperation('updateTab', {
+        tabId,
+        isLongTermPinned: false,
+        longTermPinnedAt: null
+      }).catch(err => console.warn('Sync updateTab failed:', err));
+    }
     
     showToast(i18n.getMessage('cancelLongTermSuccess'));
     
