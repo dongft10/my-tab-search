@@ -268,6 +268,8 @@ async function loadTrialStatus() {
       }
     } catch (e) {
       console.error('Load trial status API error:', e);
+      // 不显示体验期状态（错误情况下隐藏）
+      elements.trialStatus.style.display = 'none';
     }
   } catch (error) {
     console.error('Load trial status error:', error);
@@ -413,6 +415,9 @@ function setupEventListeners() {
   if (saveButton) {
     saveButton.addEventListener('click', handleLanguageChange);
   }
+  
+  // 设置登录弹窗事件
+  setupLoginModalEvents();
 }
 
 // 处理语言变更
@@ -488,10 +493,363 @@ async function checkUserEligibilityForAdvancedMode() {
   }
 }
 
-// 处理登录 - 打开登录页面
+// 处理登录 - 显示登录弹窗
 function handleLogin() {
-  // 打开登录页面
-  chrome.tabs.create({ url: chrome.runtime.getURL('html/login.html') });
+  const modal = document.getElementById('login-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+// 关闭登录弹窗
+function closeLoginModal() {
+  const modal = document.getElementById('login-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  // 重置表单
+  document.getElementById('login-email-input').value = '';
+  document.getElementById('login-code-input').value = '';
+  document.getElementById('login-verify-section').style.display = 'none';
+  document.getElementById('login-status-message').textContent = '';
+  document.getElementById('login-status-message').className = 'status-message';
+}
+
+// 设置登录弹窗事件
+function setupLoginModalEvents() {
+  // 关闭按钮
+  const closeBtn = document.getElementById('login-modal-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeLoginModal);
+  }
+  
+  // 点击遮罩关闭
+  const overlay = document.querySelector('#login-modal .login-modal-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', closeLoginModal);
+  }
+  
+  // 发送验证码
+  const btnSendCode = document.getElementById('login-btn-send-code');
+  if (btnSendCode) {
+    btnSendCode.addEventListener('click', handleLoginSendCode);
+  }
+  
+  // 验证登录
+  const btnVerify = document.getElementById('login-btn-verify');
+  if (btnVerify) {
+    btnVerify.addEventListener('click', handleLoginVerify);
+  }
+  
+  // 重新发送
+  const btnResendCode = document.getElementById('login-btn-resend-code');
+  if (btnResendCode) {
+    btnResendCode.addEventListener('click', handleLoginSendCode);
+  }
+  
+  // Google OAuth
+  const btnGoogle = document.getElementById('login-btn-google');
+  if (btnGoogle) {
+    btnGoogle.addEventListener('click', () => handleLoginOAuth('google'));
+  }
+  
+  // Microsoft OAuth
+  const btnMicrosoft = document.getElementById('login-btn-microsoft');
+  if (btnMicrosoft) {
+    btnMicrosoft.addEventListener('click', () => handleLoginOAuth('microsoft'));
+  }
+  
+  // 跳过
+  const btnSkip = document.getElementById('login-btn-skip');
+  if (btnSkip) {
+    btnSkip.addEventListener('click', closeLoginModal);
+  }
+}
+
+// 登录弹窗 - 发送验证码
+let loginResendTimer = null;
+let loginResendSeconds = 0;
+
+async function handleLoginSendCode() {
+  const emailInput = document.getElementById('login-email-input');
+  const email = emailInput.value.trim();
+  
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showLoginMessage('请输入有效的邮箱地址', 'error');
+    return;
+  }
+  
+  if (loginResendSeconds > 0) {
+    showLoginMessage(`请等待 ${loginResendSeconds}s 后重试`, 'error');
+    return;
+  }
+  
+  const btnSendCode = document.getElementById('login-btn-send-code');
+  const btnResendCode = document.getElementById('login-btn-resend-code');
+  
+  btnSendCode.disabled = true;
+  btnSendCode.textContent = '发送中...';
+  
+  try {
+    const { default: authApi } = await import('./api/auth.js');
+    const response = await authApi.sendVerificationCode(email);
+    
+    if (response.code === 0) {
+      showLoginMessage('验证码已发送到您的邮箱', 'success');
+      document.getElementById('login-verify-section').style.display = 'block';
+      btnSendCode.style.display = 'none';
+      emailInput.disabled = true;
+      startLoginResendCountdown();
+    } else {
+      showLoginMessage(response.msg || '发送失败', 'error');
+      btnSendCode.disabled = false;
+      btnSendCode.textContent = '发送验证码';
+    }
+  } catch (error) {
+    console.error('Send code error:', error);
+    showLoginMessage('发送失败，请重试', 'error');
+    btnSendCode.disabled = false;
+    btnSendCode.textContent = '发送验证码';
+  }
+}
+
+function startLoginResendCountdown() {
+  loginResendSeconds = 60;
+  const btnResendCode = document.getElementById('login-btn-resend-code');
+  
+  if (btnResendCode) {
+    btnResendCode.style.display = 'inline-block';
+    updateLoginResendButton();
+  }
+  
+  if (loginResendTimer) clearInterval(loginResendTimer);
+  
+  loginResendTimer = setInterval(() => {
+    loginResendSeconds--;
+    updateLoginResendButton();
+    
+    if (loginResendSeconds <= 0) {
+      clearInterval(loginResendTimer);
+      loginResendTimer = null;
+      if (btnResendCode) {
+        btnResendCode.disabled = false;
+        btnResendCode.textContent = '重新发送';
+      }
+    }
+  }, 1000);
+}
+
+function updateLoginResendButton() {
+  const btnResendCode = document.getElementById('login-btn-resend-code');
+  if (btnResendCode) {
+    btnResendCode.textContent = `重新发送 (${loginResendSeconds}s)`;
+    btnResendCode.disabled = true;
+  }
+}
+
+// 登录弹窗 - 验证登录
+async function handleLoginVerify() {
+  const email = document.getElementById('login-email-input').value.trim();
+  const code = document.getElementById('login-code-input').value.trim();
+  
+  if (!code || code.length !== 6) {
+    showLoginMessage('请输入6位验证码', 'error');
+    return;
+  }
+  
+  const btnVerify = document.getElementById('login-btn-verify');
+  btnVerify.disabled = true;
+  btnVerify.textContent = '验证中...';
+  
+  try {
+    const { default: authApi } = await import('./api/auth.js');
+    const { default: authService } = await import('./services/auth.service.js');
+    const { default: featureLimitService } = await import('./services/feature-limit.service.js');
+    
+    const response = await authApi.verifyEmail(email, code);
+    
+    if (response.code === 0 || response.data?.success) {
+      const data = response.data;
+      
+      const storageData = {
+        [authService.storageKey.userId]: data.userId,
+        [authService.storageKey.registeredAt]: new Date().toISOString()
+      };
+      
+      if (data.deviceId) {
+        storageData[authService.storageKey.deviceId] = data.deviceId;
+      }
+      
+      if (data.userDeviceUuid) {
+        storageData['userDeviceUuid'] = data.userDeviceUuid;
+      }
+      
+      if (data.accessToken) {
+        storageData[authService.storageKey.accessToken] = data.accessToken;
+        storageData[authService.storageKey.tokenExpiresAt] = data.expiresAt;
+      }
+      
+      await chrome.storage.local.set(storageData);
+      
+      if (featureLimitService) {
+        await featureLimitService.clearCache();
+      }
+      
+      showLoginMessage('登录成功！', 'success');
+      
+      setTimeout(() => {
+        closeLoginModal();
+        loadAccountInfo();
+        loadVipStatus();
+        loadTrialStatus();
+        loadDevices();
+        showMessage('登录成功！', 'success');
+      }, 1000);
+    } else {
+      showLoginMessage(response.msg || '登录失败', 'error');
+      btnVerify.disabled = false;
+      btnVerify.textContent = '验证并登录';
+    }
+  } catch (error) {
+    console.error('Verify error:', error);
+    showLoginMessage('登录失败，请重试', 'error');
+    btnVerify.disabled = false;
+    btnVerify.textContent = '验证并登录';
+  }
+}
+
+// 登录弹窗 - OAuth 登录
+async function handleLoginOAuth(provider) {
+  try {
+    const clientId = provider === 'google' 
+      ? '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'
+      : 'YOUR_MICROSOFT_CLIENT_ID';
+    
+    const extensionId = chrome.runtime.id;
+    const redirectBase = `https://${extensionId}.chromiumapp.org`;
+    const redirectUri = `${redirectBase}/${provider}`;
+    
+    let authUrl;
+    if (provider === 'google') {
+      authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      authUrl.searchParams.set('client_id', clientId);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('response_type', 'token');
+      authUrl.searchParams.set('scope', 'openid email profile');
+      authUrl.searchParams.set('state', 'google');
+      authUrl.searchParams.set('access_type', 'online');
+    } else {
+      authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
+      authUrl.searchParams.set('client_id', clientId);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('response_type', 'token');
+      authUrl.searchParams.set('scope', 'openid email profile User.read');
+      authUrl.searchParams.set('state', 'microsoft');
+    }
+    
+    showLoginMessage('正在跳转...', 'info');
+    
+    const responseUrl = await chrome.identity.launchWebAuthFlow({
+      url: authUrl.toString(),
+      interactive: true
+    });
+    
+    if (responseUrl) {
+      const url = new URL(responseUrl);
+      const hashParams = new URLSearchParams(url.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const error = url.searchParams.get('error');
+      
+      if (accessToken) {
+        await handleLoginOAuthToken(provider, accessToken);
+      } else if (error) {
+        showLoginMessage(decodeURIComponent(error), 'error');
+      } else {
+        showLoginMessage('未收到授权令牌', 'error');
+      }
+    }
+  } catch (error) {
+    console.error('OAuth error:', error);
+    showLoginMessage('授权失败，请重试', 'error');
+  }
+}
+
+async function handleLoginOAuthToken(provider, accessToken) {
+  try {
+    showLoginMessage('处理中...', 'info');
+    
+    const { default: authApi } = await import('./api/auth.js');
+    const { default: authService } = await import('./services/auth.service.js');
+    const { default: featureLimitService } = await import('./services/feature-limit.service.js');
+    
+    let userInfo;
+    if (provider === 'google') {
+      const resp = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      userInfo = await resp.json();
+    }
+    
+    if (userInfo && userInfo.email) {
+      const uuidData = await chrome.storage.local.get('userDeviceUuid');
+      const userDeviceUuid = uuidData.userDeviceUuid || null;
+      
+      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo, userDeviceUuid);
+      
+      if (response.code === 0 || response.data?.success) {
+        const data = response.data;
+        
+        const storageData = {
+          [authService.storageKey.userId]: data.userId,
+          [authService.storageKey.accessToken]: data.accessToken,
+          [authService.storageKey.tokenExpiresAt]: data.expiresAt,
+          [authService.storageKey.registeredAt]: new Date().toISOString()
+        };
+        
+        if (data.deviceId) {
+          storageData[authService.storageKey.deviceId] = data.deviceId;
+        }
+        
+        if (data.userDeviceUuid) {
+          storageData['userDeviceUuid'] = data.userDeviceUuid;
+        }
+        
+        await chrome.storage.local.set(storageData);
+        
+        if (featureLimitService) {
+          await featureLimitService.clearCache();
+        }
+        
+        showLoginMessage('登录成功！', 'success');
+        
+        setTimeout(() => {
+          closeLoginModal();
+          loadAccountInfo();
+          loadVipStatus();
+          loadTrialStatus();
+          loadDevices();
+          showMessage('登录成功！', 'success');
+        }, 1000);
+      } else {
+        showLoginMessage(response.msg || '登录失败', 'error');
+      }
+    } else {
+      showLoginMessage('获取用户信息失败', 'error');
+    }
+  } catch (error) {
+    console.error('OAuth token error:', error);
+    showLoginMessage('登录失败: ' + error.message, 'error');
+  }
+}
+
+function showLoginMessage(message, type = 'info') {
+  const statusEl = document.getElementById('login-status-message');
+  if (statusEl) {
+    statusEl.textContent = message;
+    statusEl.className = `status-message status-${type}`;
+    statusEl.classList.add('show');
+    setTimeout(() => statusEl.classList.remove('show'), 3000);
+  }
 }
 
 // 处理退出登录

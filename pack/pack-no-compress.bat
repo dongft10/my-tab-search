@@ -1,9 +1,10 @@
 @echo off
-REM Chrome Extension Packaging Script for Windows
-REM This script packages the Chrome extension for distribution (with compression)
+REM Chrome Extension Packaging Script for Windows (Development Build - No Compression)
+REM This script packages the Chrome extension without compression for easier debugging
 
 echo ========================================
 echo Chrome Extension Packaging Script
+echo (Development Build - No Compression)
 echo ========================================
 echo.
 
@@ -35,9 +36,9 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Dependencies installed
 echo.
 
-REM Build and package (with compression)
-echo [2/2] Building and packaging extension...
-call npm run build
+REM Build and package (without compression)
+echo [2/2] Building and packaging extension (no compression)...
+call npm run build:dev
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed
     pause
@@ -53,5 +54,7 @@ echo.
 echo Output files are in: pack\out
 echo   - my-tab-search-v{version}.crx (for local installation)
 echo   - my-tab-search-v{version}.zip (for Chrome Web Store)
+echo.
+echo [NOTE] Development build: Files are NOT compressed for easier debugging
 echo.
 pause

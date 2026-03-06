@@ -535,6 +535,18 @@
     "message": "语言设置",
     "description": "Language settings section title"
   },
+  "themeSettingsTitle": {
+    "message": "主题设置",
+    "description": "Theme settings section title"
+  },
+  "lightThemeLabel": {
+    "message": "浅色主题",
+    "description": "Light theme label"
+  },
+  "darkThemeLabel": {
+    "message": "深色主题",
+    "description": "Dark theme label"
+  },
   "selectLanguageLabel": {
     "message": "选择语言:",
     "description": "Select language label"

@@ -15,16 +15,27 @@ try {
 }
 
 // 从全局配置中获取配置
-const { API_CONFIG, PINNED_TABS_CONFIG, STORAGE_KEYS } = CONFIG_COMMON;
+var API_CONFIG = null;
+var PINNED_TABS_CONFIG = null;
+var STORAGE_KEYS = null;
+
+if (typeof CONFIG_COMMON !== 'undefined') {
+  var { API_CONFIG: _apiConfig, PINNED_TABS_CONFIG: _pinnedConfig, STORAGE_KEYS: _storageKeys } = CONFIG_COMMON;
+  API_CONFIG = _apiConfig;
+  PINNED_TABS_CONFIG = _pinnedConfig;
+  STORAGE_KEYS = _storageKeys;
+} else {
+  console.error('[background] CONFIG_COMMON is not defined after importScripts');
+}
 
 // 存储键名常量（转换为小写驼峰格式以兼容现有代码）
 const STORAGE_KEYS_LOCAL = {
-  userId: STORAGE_KEYS.USER_ID,
-  deviceId: STORAGE_KEYS.DEVICE_ID,
-  accessToken: STORAGE_KEYS.ACCESS_TOKEN,
-  tokenExpiresAt: STORAGE_KEYS.TOKEN_EXPIRES_AT,
-  registeredAt: STORAGE_KEYS.REGISTERED_AT,
-  userDeviceUuid: STORAGE_KEYS.USER_DEVICE_UUID
+  userId: STORAGE_KEYS ? STORAGE_KEYS.USER_ID : 'userId',
+  deviceId: STORAGE_KEYS ? STORAGE_KEYS.DEVICE_ID : 'deviceId',
+  accessToken: STORAGE_KEYS ? STORAGE_KEYS.ACCESS_TOKEN : 'accessToken',
+  tokenExpiresAt: STORAGE_KEYS ? STORAGE_KEYS.TOKEN_EXPIRES_AT : 'tokenExpiresAt',
+  registeredAt: STORAGE_KEYS ? STORAGE_KEYS.REGISTERED_AT : 'registeredAt',
+  userDeviceUuid: STORAGE_KEYS ? STORAGE_KEYS.USER_DEVICE_UUID : 'userDeviceUuid'
 };
 
 // 使用 chrome.storage 持久化固定标签页弹窗的窗口 ID
@@ -656,12 +667,12 @@ chrome.commands.onCommand.addListener(async (command) => {
       }
 
       // 如果没有 popup 窗口，则创建新的（位置在屏幕正中间）
-      const windowWidth = PINNED_TABS_CONFIG.WINDOW_WIDTH;
-      const windowHeight = PINNED_TABS_CONFIG.WINDOW_HEIGHT;
+      var windowWidth = PINNED_TABS_CONFIG ? PINNED_TABS_CONFIG.WINDOW_WIDTH : 400;
+      var windowHeight = PINNED_TABS_CONFIG ? PINNED_TABS_CONFIG.WINDOW_HEIGHT : 600;
 
       // 获取屏幕信息
-      let screenWidth = 1920;
-      let screenHeight = 1080;
+      var screenWidth = 1920;
+      var screenHeight = 1080;
       try {
         // 使用 chrome.system.display 获取真实屏幕尺寸
         const displays = await chrome.system.display.getInfo();
@@ -671,14 +682,7 @@ chrome.commands.onCommand.addListener(async (command) => {
           screenHeight = primaryDisplay.workArea.height || 1080;
         }
       } catch (error) {
-        //  fallback to current window size if system.display API fails
-        try {
-          const screenInfo = await chrome.windows.getCurrent();
-          screenWidth = screenInfo.width || 1920;
-          screenHeight = screenInfo.height || 1080;
-        } catch (innerError) {
-          // 使用默认值
-        }
+        console.warn('[background] Failed to get screen info:', error);
       }
 
       const left = Math.round((screenWidth - windowWidth) / 2);
@@ -891,12 +895,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       }
 
       // 如果没有 popup 窗口，则创建新的（位置在屏幕正中间）
-      const windowWidth = PINNED_TABS_CONFIG.WINDOW_WIDTH;
-      const windowHeight = PINNED_TABS_CONFIG.WINDOW_HEIGHT;
+      var windowWidth = PINNED_TABS_CONFIG ? PINNED_TABS_CONFIG.WINDOW_WIDTH : 400;
+      var windowHeight = PINNED_TABS_CONFIG ? PINNED_TABS_CONFIG.WINDOW_HEIGHT : 600;
 
       // 获取屏幕信息
-      let screenWidth = 1920;
-      let screenHeight = 1080;
+      var screenWidth = 1920;
+      var screenHeight = 1080;
       try {
         // 使用 chrome.system.display 获取真实屏幕尺寸
         const displays = await chrome.system.display.getInfo();
@@ -1035,10 +1039,10 @@ chrome.runtime.onStartup.addListener(async () => {
  */
 class ApiClient {
   constructor() {
-    this.baseUrl = API_CONFIG.BASE_URL;
-    this.apiVersion = API_CONFIG.API_VERSION;
-    this.maxRetries = API_CONFIG.REQUEST.MAX_RETRIES;
-    this.retryDelay = API_CONFIG.REQUEST.RETRY_DELAY;
+    this.baseUrl = API_CONFIG ? API_CONFIG.BASE_URL : 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com';
+    this.apiVersion = API_CONFIG ? API_CONFIG.API_VERSION : '/api/v1';
+    this.maxRetries = API_CONFIG ? API_CONFIG.REQUEST.MAX_RETRIES : 3;
+    this.retryDelay = API_CONFIG ? API_CONFIG.REQUEST.RETRY_DELAY : 1000;
   }
 
   /**
@@ -1091,7 +1095,8 @@ class ApiClient {
     }
 
     // 如果是静默注册请求，返回模拟数据以允许扩展继续工作
-    if (endpoint === API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER && method === 'POST') {
+    const silentRegisterEndpoint = API_CONFIG ? API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER : '/auth/silent-register';
+    if (endpoint === silentRegisterEndpoint && method === 'POST') {
       console.log('Backend service unavailable, using mock registration data');
       return {
         data: {
@@ -1183,7 +1188,8 @@ class AuthService {
       const extensionVersion = chrome.runtime.getManifest().version;
 
       // 发送注册请求
-      const response = await this.apiClient.post(API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER, {
+      const silentRegEndpoint = API_CONFIG ? API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER : '/auth/silent-register';
+      const response = await this.apiClient.post(silentRegEndpoint, {
         userDeviceUuid,
         browserInfo,
         extensionVersion
@@ -1273,7 +1279,8 @@ class AuthService {
         throw new Error('User not registered');
       }
 
-      const response = await this.apiClient.post(API_CONFIG.ENDPOINTS.AUTH.GET_TOKEN, {
+      const getTokenEndpoint = API_CONFIG ? API_CONFIG.ENDPOINTS.AUTH.GET_TOKEN : '/auth/token';
+      const response = await this.apiClient.post(getTokenEndpoint, {
         userId: userInfo[STORAGE_KEYS_LOCAL.userId],
         deviceId: userInfo[STORAGE_KEYS_LOCAL.deviceId]
       });
@@ -1371,7 +1378,8 @@ async function refreshAccessToken() {
       return false;
     }
 
-    const response = await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.REFRESH_TOKEN, {
+    const refreshTokenEndpoint = API_CONFIG ? API_CONFIG.ENDPOINTS.AUTH.REFRESH_TOKEN : '/auth/refresh';
+    const response = await apiClient.post(refreshTokenEndpoint, {
       accessToken
     });
 

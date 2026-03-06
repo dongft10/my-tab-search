@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node pack/scripts/build.js",
     "build": "npm run sync-version && node pack/scripts/build.js",
-    "build-dev": "npm run sync-version && node pack/scripts/build.js --skip-compress",
+    "build:dev": "npm run sync-version && node pack/scripts/build.js --skip-compress",
+    "build:compress=false": "npm run sync-version && node pack/scripts/build.js --skip-compress",
     "compress": "node pack/scripts/compress.js",
     "package": "npm run sync-version && node pack/scripts/package.js",
     "package-dev": "npm run sync-version && node pack/scripts/package.js . ./pack/out --skip-compression",

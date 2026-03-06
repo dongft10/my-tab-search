@@ -19,10 +19,59 @@ const elements = {
   statusMessage: document.getElementById('status-message')
 };
 
+// 刷新原来的 settings 页面
+async function refreshOriginalSettingsPage() {
+  const settingsUrl = chrome.runtime.getURL('html/settings.html');
+  
+  // 如果有 sourceTabId，优先刷新该标签页
+  if (sourceTabId) {
+    try {
+      const tab = await chrome.tabs.get(sourceTabId);
+      if (tab && tab.url && tab.url.includes('settings.html')) {
+        await chrome.tabs.reload(sourceTabId);
+        console.log('[login] Reloaded source settings page, tab ID:', sourceTabId);
+        return;
+      }
+    } catch (e) {
+      console.log('[login] Source tab not found or invalid:', e.message);
+    }
+  }
+  
+  // 否则查找其他 settings 页面
+  const allTabs = await chrome.tabs.query({});
+  let settingsTab = null;
+  
+  for (const tab of allTabs) {
+    if (tab.url && tab.url.includes('settings.html')) {
+      settingsTab = tab;
+      break;
+    }
+  }
+  
+  console.log('[login] Found settings tabs:', allTabs.filter(t => t.url && t.url.includes('settings.html')).map(t => ({id: t.id, url: t.url})));
+  
+  if (settingsTab) {
+    try {
+      await chrome.tabs.reload(settingsTab.id);
+      console.log('[login] Reloaded existing settings page, tab ID:', settingsTab.id);
+    } catch (e) {
+      console.log('[login] Tab reload error, creating new:', e.message);
+      await chrome.tabs.create({ url: settingsUrl });
+    }
+  } else {
+    // 没有找到 settings 页面，创建新页面
+    await chrome.tabs.create({ url: settingsUrl });
+    console.log('[login] Created new settings page');
+  }
+}
+
 // 重新发送倒计时相关
 let resendTimer = null;
 let resendSeconds = 0;
 const RESEND_COOLDOWN = 60; // 秒（前端显示60s，后端限制55s）
+
+// 来源 tab ID（用于登录成功后刷新原页面）
+let sourceTabId = null;
 
 // 动态加载模块
 async function loadModules() {
@@ -53,6 +102,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   
   setupEventListeners();
+  
+  // 解析 URL 参数，获取来源 tab ID
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabId = urlParams.get('sourceTabId');
+    if (tabId) {
+      sourceTabId = parseInt(tabId, 10);
+      console.log('[login] Source tab ID:', sourceTabId);
+    }
+  } catch (e) {
+    console.warn('[login] Failed to parse sourceTabId:', e);
+  }
   
   // 检查是否已登录
   try {
@@ -289,8 +350,8 @@ async function handleVerify() {
       
       showMessage(i18n?.getMessage('loginSuccess') || 'Login successful!', 'success');
       
-      setTimeout(() => {
-        chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
+      setTimeout(async () => {
+        await refreshOriginalSettingsPage();
         window.close();
       }, 1000);
     } else {
@@ -446,8 +507,8 @@ async function handleOAuthToken(provider, accessToken) {
         
         showMessage('Login successful!', 'success');
         
-        setTimeout(() => {
-          chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
+        setTimeout(async () => {
+          await refreshOriginalSettingsPage();
           window.close();
         }, 1000);
       } else {
@@ -464,8 +525,8 @@ async function handleOAuthToken(provider, accessToken) {
 }
 
 // 跳过登录
-function handleSkip() {
-  chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
+async function handleSkip() {
+  await refreshOriginalSettingsPage();
   window.close();
 }
 
