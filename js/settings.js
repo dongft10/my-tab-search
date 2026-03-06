@@ -219,14 +219,6 @@ async function loadVipStatus() {
 // 加载体验期状态
 async function loadTrialStatus() {
   try {
-    // 检查是否是匿名用户（未完成邮箱验证）
-    const isEmailVerified = await authService.isEmailVerified();
-    if (!isEmailVerified) {
-      // 匿名用户不显示体验期状态
-      elements.trialStatus.style.display = 'none';
-      return;
-    }
-
     let accessToken = null;
     try {
       accessToken = await authService.getValidAccessToken();
@@ -252,6 +244,14 @@ async function loadTrialStatus() {
           elements.trialDaysLeft.textContent = i18n.getMessage('promotionPeriodMessage') || '✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄';
           // 隐藏延展按钮
           elements.btnExtendTrial.style.display = 'none';
+          return;
+        }
+        
+        // 对于正式体验期（trial_enabled = true），只有已验证邮箱的用户才显示
+        const isEmailVerified = await authService.isEmailVerified();
+        if (!isEmailVerified) {
+          // 未验证邮箱的用户不显示正式体验期状态
+          elements.trialStatus.style.display = 'none';
           return;
         }
         
