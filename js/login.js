@@ -463,13 +463,22 @@ async function handleOAuthToken(provider, accessToken) {
     if (userInfo && userInfo.email) {
       console.log('[OAuth] Calling backend to verify token...');
       
-      // 获取 user_device_uuid
+      // 获取 user_device_uuid（必填）
       let userDeviceUuid = null;
       try {
         const uuidData = await chrome.storage.local.get('userDeviceUuid');
         userDeviceUuid = uuidData.userDeviceUuid || null;
+        
+        // 强制 user_device_uuid 必填
+        if (!userDeviceUuid) {
+          console.error('[OAuth] userDeviceUuid is required but not found in storage');
+          showMessage('Error: Device identifier not found, please refresh and try again', 'error');
+          return;
+        }
       } catch (e) {
-        console.warn('[OAuth] Failed to get userDeviceUuid:', e);
+        console.error('[OAuth] Failed to get userDeviceUuid:', e);
+        showMessage('Error: Failed to get device identifier', 'error');
+        return;
       }
       
       // 发送给后端验证并创建账户
