@@ -1,11 +1,10 @@
 @echo off
-REM Chrome Extension Packaging Script for Windows
-REM This script packages the Chrome extension for distribution (with compression)
-REM Default target environment: dev (local development)
+REM Chrome Extension Packaging Script for QA Environment
+REM This script packages the Chrome extension for QA testing
 
 echo ========================================
 echo Chrome Extension Packaging Script
-echo Target Environment: DEV (Local Development)
+echo Target Environment: QA (Online QA)
 echo ========================================
 echo.
 
@@ -27,7 +26,7 @@ echo Current directory: %CD%
 echo.
 
 REM Set environment variable for target environment
-set EXTENSION_ENV=dev
+set EXTENSION_ENV=qa
 echo [OK] Target environment: %EXTENSION_ENV%
 echo.
 
@@ -61,4 +60,7 @@ echo Output files are in: pack\out
 echo   - my-tab-search-v{version}.crx (for local installation)
 echo   - my-tab-search-v{version}.zip (for Chrome Web Store)
 echo.
+echo Note: This package is configured for QA environment
+echo.
+
 pause
