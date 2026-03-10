@@ -101,6 +101,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('[login] Module load error:', e);
   }
   
+  // 监听 OAuth 登录成功消息
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'AUTH_SUCCESS') {
+      console.log('[Login] OAuth login success, refreshing page...');
+      // 重新加载页面以更新 Token
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+    sendResponse({ success: true });
+    return true;
+  });
+  
   setupEventListeners();
   
   // 解析 URL 参数，获取来源 tab ID

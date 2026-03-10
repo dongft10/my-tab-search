@@ -49,6 +49,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Apply internationalization
   applyI18n();
   
+  // 监听 OAuth 登录成功消息
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'AUTH_SUCCESS') {
+      console.log('[Settings] OAuth login success, refreshing page...');
+      // 重新加载页面以更新 Token
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+    sendResponse({ success: true });
+    return true;
+  });
+  
   // 加载设置
   await loadSettings();
   
@@ -150,17 +163,25 @@ async function loadAccountInfo() {
       // 忽略错误，继续判断
     }
     
-    // 根据是否已绑定邮箱来区分显示
-    // 有邮箱 = 已绑定邮箱的正式用户（显示退出按钮）
-    // 无邮箱 = 匿名用户（显示登录按钮）
-    if (userId && profileEmail) {
-      // 已绑定邮箱的正式用户
+    // 根据是否有 userId 来判断是否登录
+    // 优先使用 userId，邮箱只是额外信息
+    if (userId) {
+      // 已登录
       if (elements.btnLogout) elements.btnLogout.style.display = 'block';
       if (elements.btnLogin) elements.btnLogin.style.display = 'none';
-      elements.accountEmail.textContent = profileEmail;
-      elements.avatarLetter.textContent = profileEmail.charAt(0).toUpperCase();
+      
+      // 如果有邮箱则显示邮箱，否则显示 userId 的一部分
+      if (profileEmail) {
+        elements.accountEmail.textContent = profileEmail;
+        elements.avatarLetter.textContent = profileEmail.charAt(0).toUpperCase();
+      } else {
+        // 显示 userId 的前 8 位
+        const shortUserId = userId.substring(0, 8);
+        elements.accountEmail.textContent = `User: ${shortUserId}`;
+        elements.avatarLetter.textContent = 'U';
+      }
     } else {
-      // 未绑定邮箱（匿名用户或未注册），显示未登录
+      // 未登录
       elements.accountEmail.textContent = i18n.getMessage('notLoggedIn') || '未登录';
       elements.avatarLetter.textContent = '?';
       if (elements.btnLogout) elements.btnLogout.style.display = 'none';
@@ -309,20 +330,21 @@ async function loadDevices() {
 
       // 渲染设备列表
       elements.deviceList.innerHTML = devices.map(device => `
-        <div class="device-item" data-device-id="${device.id}">
+        <div class="device-item" data-device-id="${escapeHtml(device.id)}">
           <div class="device-icon">${getDeviceIcon(device.browserName)}</div>
           <div class="device-info">
             <div class="device-name">
-              ${device.browserName || 'Unknown'} ${device.browserVersion || ''}
+              ${escapeHtml(device.browserName || 'Unknown')} ${escapeHtml(device.browserVersion || '')}
+              ${device.userDeviceUuid ? `<span class="device-uuid" title="设备标识符：${escapeHtml(device.userDeviceUuid)}">(...${escapeHtml(device.userDeviceUuid).slice(-4)})</span>` : ''}
               ${device.isCurrentDevice ? '<span class="current-badge">当前设备</span>' : ''}
             </div>
             <div class="device-meta">
-              <span class="device-platform">${device.platform || 'Unknown'}</span>
-              <span class="device-last-seen">最后活跃: ${formatLastSeen(device.lastSeenAt)}</span>
+              <span class="device-platform">${escapeHtml(device.platform || 'Unknown')}</span>
+              <span class="device-last-seen">最后活跃：${formatLastSeen(device.lastSeenAt)}</span>
             </div>
           </div>
           ${!device.isCurrentDevice ? `
-            <button class="btn-remove-device" data-device-id="${device.id}" title="移除设备">
+            <button class="btn-remove-device" data-device-id="${escapeHtml(device.id)}" title="移除设备">
               ✕
             </button>
           ` : ''}
@@ -353,6 +375,14 @@ async function loadDevices() {
     console.error('Load devices error:', error);
     elements.deviceList.innerHTML = '<p class="error-text">加载设备失败</p>';
   }
+}
+
+// 转义 HTML 防止 XSS 攻击
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // 获取设备图标
@@ -791,8 +821,16 @@ async function handleLoginOAuthToken(provider, accessToken) {
     }
     
     if (userInfo && userInfo.email) {
-      const uuidData = await chrome.storage.local.get('userDeviceUuid');
-      const userDeviceUuid = uuidData.userDeviceUuid || null;
+      // 获取或生成 userDeviceUuid
+      let uuidData = await chrome.storage.local.get('userDeviceUuid');
+      let userDeviceUuid = uuidData.userDeviceUuid;
+      
+      // 如果没有，生成一个新的
+      if (!userDeviceUuid) {
+        userDeviceUuid = crypto.randomUUID();
+        await chrome.storage.local.set({ userDeviceUuid });
+        console.log('[OAuth] Generated new userDeviceUuid:', userDeviceUuid);
+      }
       
       const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo, userDeviceUuid);
       
@@ -822,13 +860,11 @@ async function handleLoginOAuthToken(provider, accessToken) {
         
         showLoginMessage('登录成功！', 'success');
         
+        // 刷新页面以更新 UI (确保 Token 被正确加载)
+        console.log('[OAuth] Login successful, will reload page in 1 second...');
         setTimeout(() => {
-          closeLoginModal();
-          loadAccountInfo();
-          loadVipStatus();
-          loadTrialStatus();
-          loadDevices();
-          showMessage('登录成功！', 'success');
+          console.log('[OAuth] Reloading page now...');
+          window.location.reload();
         }, 1000);
       } else {
         showLoginMessage(response.msg || '登录失败', 'error');

@@ -5,6 +5,7 @@
 
 import apiClient from './client.js';
 import { API_CONFIG } from '../config.js';
+import { versionManager } from '../utils/version-manager.js';
 
 const { ENDPOINTS } = API_CONFIG;
 
@@ -235,7 +236,7 @@ class AuthApi {
    * @param {string} provider - OAuth 提供商 (google/microsoft)
    * @param {string} accessToken - OAuth access token
    * @param {object} userInfo - 用户信息
-   * @param {string} userDeviceUuid - 设备UUID（可选）
+   * @param {string} userDeviceUuid - 设备 UUID（可选）
    * @returns {Promise} - 返回验证结果
    */
   async verifyOAuthToken(provider, accessToken, userInfo, userDeviceUuid = null) {
@@ -249,7 +250,83 @@ class AuthApi {
     if (userDeviceUuid) {
       data.userDeviceUuid = userDeviceUuid;
     }
-    return apiClient.post(ENDPOINTS.AUTH.OAUTH_TOKEN_LOGIN, data);
+    
+    // 获取浏览器信息并添加到 headers
+    const userAgent = navigator.userAgent;
+    const browserInfo = this.parseUserAgent(userAgent);
+    
+    const headers = {
+      'X-Browser-Name': browserInfo.name,
+      'X-Browser-Version': browserInfo.version,
+      'X-Platform': browserInfo.platform,
+      'X-Language': navigator.language,
+      'X-Extension-Version': await versionManager.getVersion()
+    };
+    
+    return apiClient.post(ENDPOINTS.AUTH.OAUTH_TOKEN_LOGIN, data, headers);
+  }
+
+  /**
+   * 解析 User-Agent 获取浏览器信息
+   * @param {string} userAgent - User-Agent 字符串
+   * @returns {object} - 返回浏览器信息 {name, version, platform}
+   */
+  parseUserAgent(userAgent) {
+    let name = 'Chrome';
+    let version = '';
+    let platform = 'Unknown';
+    
+    // 更精确的浏览器检测顺序（避免误判）
+    // Edge 必须在 Chrome 之前检测（因为 Edge 也包含 Chrome）
+    if (userAgent.includes('Edg/')) {
+      name = 'Edge';
+      const match = userAgent.match(/Edg\/([\d.]+)/);
+      if (match) version = match[1];
+    } 
+    // Firefox
+    else if (userAgent.includes('Firefox/')) {
+      name = 'Firefox';
+      const match = userAgent.match(/Firefox\/([\d.]+)/);
+      if (match) version = match[1];
+    } 
+    // Opera (包含 OPR/ 或 Opera)
+    else if (userAgent.includes('OPR/')) {
+      name = 'Opera';
+      const match = userAgent.match(/OPR\/([\d.]+)/);
+      if (match) version = match[1];
+    } 
+    else if (userAgent.includes('Opera')) {
+      name = 'Opera';
+      const match = userAgent.match(/Version\/([\d.]+)/);
+      if (match) version = match[1];
+    }
+    // Safari (必须在 Chrome 之前检测，因为 Safari 不包含 Chrome 但可能被误判)
+    else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+      name = 'Safari';
+      const match = userAgent.match(/Version\/([\d.]+)/);
+      if (match) version = match[1];
+    }
+    // Chrome
+    else if (userAgent.includes('Chrome')) {
+      name = 'Chrome';
+      const match = userAgent.match(/Chrome\/([\d.]+)/);
+      if (match) version = match[1];
+    }
+    
+    // 检测操作系统（更精确的匹配）
+    if (userAgent.includes('Windows NT')) {
+      platform = 'Windows';
+    } else if (userAgent.includes('Mac OS X')) {
+      platform = 'macOS';
+    } else if (userAgent.includes('Linux')) {
+      platform = 'Linux';
+    } else if (userAgent.includes('Android')) {
+      platform = 'Android';
+    } else if (userAgent.includes('iPhone') || userAgent.includes('iPad') || userAgent.includes('iPod')) {
+      platform = 'iOS';
+    }
+    
+    return { name, version, platform };
   }
 
   /**

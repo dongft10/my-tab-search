@@ -40,6 +40,19 @@ function showToast(message, duration = 3000) {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
+  // 监听 OAuth 登录成功消息
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'AUTH_SUCCESS') {
+      console.log('[Popup] OAuth login success, refreshing page...');
+      // 重新加载页面以更新 Token
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+    sendResponse({ success: true });
+    return true;
+  });
+
   const searchInput = document.getElementById("search-input");
   const tabList = document.getElementById("tab-list");
   let tabCount = document.getElementById("tab-count");
