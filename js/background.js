@@ -1022,8 +1022,20 @@ async function handleSwitchToTab(targetTabId, windowId) {
 }
 
 // 扩展安装或更新时初始化状态
-chrome.runtime.onInstalled.addListener(async () => {
-  // console.log('[TabSearch] Extension installed/updated');
+chrome.runtime.onInstalled.addListener(async (details) => {
+  const { reason } = details;
+  
+  if (reason === 'install') {
+    console.log('[TabSearch] Extension newly installed');
+    // 全新安装，清除所有旧的存储数据（防止卸载后重装保留数据）
+    await clearAllStorage();
+  } else if (reason === 'update') {
+    console.log('[TabSearch] Extension updated');
+    // 更新时不清除数据，保留用户状态
+  } else if (reason === 'chrome_update') {
+    console.log('[TabSearch] Chrome updated');
+  }
+  
   await initializeAll();
 });
 
@@ -1469,6 +1481,32 @@ async function initializeSyncQueue() {
     }
   } catch (error) {
     console.error('[Background] Failed to initialize sync queue:', error);
+  }
+}
+
+/**
+ * 清除所有本地存储数据
+ * 用于扩展卸载后重新安装时重置状态
+ * 注意：保留 userDeviceUuid，因为它是设备的唯一标识符
+ */
+async function clearAllStorage() {
+  try {
+    // 先获取 userDeviceUuid
+    const result = await chrome.storage.local.get(STORAGE_KEYS_LOCAL.userDeviceUuid);
+    const userDeviceUuid = result[STORAGE_KEYS_LOCAL.userDeviceUuid];
+    
+    // 清除所有数据
+    await chrome.storage.local.clear();
+    
+    // 恢复 userDeviceUuid
+    if (userDeviceUuid) {
+      await chrome.storage.local.set({ [STORAGE_KEYS_LOCAL.userDeviceUuid]: userDeviceUuid });
+      console.log('[Background] Storage cleared but userDeviceUuid preserved:', userDeviceUuid);
+    } else {
+      console.log('[Background] All storage cleared (no existing userDeviceUuid)');
+    }
+  } catch (error) {
+    console.error('[Background] Failed to clear storage:', error);
   }
 }
 

@@ -415,17 +415,6 @@ body::after {
   color: var(--text-primary);
 }
 
-.device-uuid {
-  display: inline-block;
-  padding: 2px 6px;
-  background: rgba(99, 102, 241, 0.2);
-  color: var(--primary-light);
-  border-radius: 4px;
-  font-size: 11px;
-  margin-left: 8px;
-  font-family: monospace;
-}
-
 .device-meta {
   font-size: 12px;
   color: var(--text-muted);

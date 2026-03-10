@@ -335,7 +335,7 @@ async function loadDevices() {
           <div class="device-info">
             <div class="device-name">
               ${escapeHtml(device.browserName || 'Unknown')} ${escapeHtml(device.browserVersion || '')}
-              ${device.userDeviceUuid ? `<span class="device-uuid" title="设备标识符：${escapeHtml(device.userDeviceUuid)}">(...${escapeHtml(device.userDeviceUuid).slice(-4)})</span>` : ''}
+              ${device.userDeviceUuid ? `<span class="device-uuid">(${escapeHtml(device.userDeviceUuid).slice(-4)})</span>` : ''}
               ${device.isCurrentDevice ? '<span class="current-badge">当前设备</span>' : ''}
             </div>
             <div class="device-meta">
