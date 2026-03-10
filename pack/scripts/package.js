@@ -4,6 +4,51 @@ const { execSync } = require('child_process');
 const archiver = require('archiver');
 
 /**
+ * 替换文件中的环境变量占位符
+ * @param {string} filePath - 文件路径
+ * @param {string} placeholder - 占位符
+ * @param {string} value - 替换值
+ */
+function replaceEnvPlaceholder(filePath, placeholder, value) {
+  try {
+    let content = fs.readFileSync(filePath, 'utf8');
+    if (content.includes(placeholder)) {
+      content = content.replace(new RegExp(placeholder, 'g'), value);
+      fs.writeFileSync(filePath, content, 'utf8');
+      console.log(`  Replaced ${placeholder} with '${value}' in: ${path.basename(filePath)}`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error(`  Error replacing placeholder in ${filePath}:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * 替换构建目录中所有环境变量占位符
+ * @param {string} buildDir - 构建目录
+ * @param {string} envType - 环境类型
+ */
+function replaceEnvPlaceholders(buildDir, envType) {
+  const placeholder = '<!--EXTENSION_ENV-->';
+  
+  // 替换 config.common.js
+  const configCommonPath = path.join(buildDir, 'js', 'config.common.js');
+  if (fs.existsSync(configCommonPath)) {
+    replaceEnvPlaceholder(configCommonPath, placeholder, envType);
+  }
+  
+  // 替换 config.js（如果存在）
+  const configPath = path.join(buildDir, 'js', 'config.js');
+  if (fs.existsSync(configPath)) {
+    replaceEnvPlaceholder(configPath, placeholder, envType);
+  }
+  
+  console.log(`  Environment replaced: ${envType}`);
+}
+
+/**
  * 创建 ZIP 文件
  */
 function createZipFile(sourceDir, outputPath) {
@@ -120,6 +165,11 @@ async function main() {
     // 复制源文件到构建目录
     console.log('Copying source files...');
     copySourceFiles(sourceDir, buildDir);
+
+    // 替换环境变量占位符
+    const envType = process.env.EXTENSION_ENV || 'dev';
+    console.log(`Target environment: ${envType}`);
+    replaceEnvPlaceholders(buildDir, envType);
 
     // 如果未指定跳过压缩，则压缩文件
     if (!skipCompression) {

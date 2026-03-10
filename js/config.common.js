@@ -4,12 +4,16 @@
  * 
  * 使用方式：
  * importScripts('./config.common.js'); 然后使用全局变量 CONFIG_COMMON
+ * 
+ * 注意：ENV_TYPE 会在打包时被替换为实际的环境值
+ * 可选值：dev, qa, prod
  */
 
 // 检查是否已经定义过，避免重复声明
 if (typeof CONFIG_COMMON === 'undefined') {
   // 环境类型：dev（本地开发）、qa（线上QA）、prod（生产环境）
-  const ENV_TYPE = 'qa'; // 默认使用本地开发环境
+  // 【打包时替换此处】请勿手动修改，打包脚本会自动替换为实际环境值
+  const ENV_TYPE = '<!--EXTENSION_ENV-->'; // 默认使用本地开发环境
   
   // 各环境后端服务地址
   const API_BASE_URLS = {

@@ -7,12 +7,13 @@
  * 开发环境: DEBUG = true, 缓存5分钟
  * 生产环境: DEBUG = false, 缓存1天
  */
-// 环境类型：dev(本地开发)、qa(线上 QA)、prod(生产环境)
-export const ENV_TYPE = 'qa'; // 默认使用本地开发环境
+// 环境类型：dev(本地开发)、qa(线上QA)、prod(生产环境)
+// 【打包时替换此处】请勿手动修改，打包脚本会自动替换为实际环境值
+export const ENV_TYPE = '<!--EXTENSION_ENV-->';
 
 export const ENV_CONFIG = {
   // 是否为开发环境
-  DEBUG: ENV_TYPE === 'qa',
+  DEBUG: ENV_TYPE !== 'prod',
 
   // 缓存配置
   CACHE: {
