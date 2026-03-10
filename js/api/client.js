@@ -4,6 +4,7 @@
  */
 
 import { API_CONFIG, getApiUrl } from '../config.js';
+import { versionManager } from '../utils/version-manager.js';
 
 class ApiClient {
   /**
@@ -15,6 +16,20 @@ class ApiClient {
     this.apiVersion = API_CONFIG.API_VERSION;
     this.maxRetries = API_CONFIG.REQUEST.MAX_RETRIES;
     this.retryDelay = API_CONFIG.REQUEST.RETRY_DELAY;
+    this.versionHeaders = null;
+    this._initHeaders(); // 异步初始化
+  }
+
+  /**
+   * 异步初始化 headers
+   */
+  async _initHeaders() {
+    try {
+      this.versionHeaders = await versionManager.getHeaders();
+    } catch (error) {
+      console.error('[ApiClient] Failed to initialize headers:', error);
+      this.versionHeaders = {};
+    }
   }
 
   /**
@@ -26,10 +41,22 @@ class ApiClient {
    * @returns {Promise} - 返回响应
    */
   async request(endpoint, method = 'GET', data = null, headers = {}) {
+    // 等待 headers 初始化完成（最多等待 5 秒）
+    const startTime = Date.now();
+    while (!this.versionHeaders) {
+      if (Date.now() - startTime > 5000) {
+        console.warn('[ApiClient] Timeout waiting for headers, using empty headers');
+        this.versionHeaders = {};
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    
     const url = getApiUrl(endpoint);
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
+      ...this.versionHeaders, // 使用缓存的版本信息（性能优化）
       ...headers
     };
 
