@@ -31,6 +31,7 @@ const elements = {
   btnExtendTrial: document.getElementById('btn-extend-trial'),
   btnLogin: document.getElementById('btn-login'),
   btnLogout: document.getElementById('btn-logout'),
+  devicesSection: document.getElementById('devices-section'),
   deviceList: document.getElementById('device-list'),
   languageSelect: document.getElementById('language-select'),
   searchMatchModeSelect: document.getElementById('search-match-mode'),
@@ -163,9 +164,9 @@ async function loadAccountInfo() {
       // 忽略错误，继续判断
     }
     
-    // 根据是否有 userId 来判断是否登录
-    // 优先使用 userId，邮箱只是额外信息
-    if (userId) {
+    // 根据是否有 userId 和 accessToken 来判断是否登录
+    // 静默注册后只有 userId，但没有 accessToken，不算已登录
+    if (userId && accessToken) {
       // 已登录
       if (elements.btnLogout) elements.btnLogout.style.display = 'block';
       if (elements.btnLogin) elements.btnLogin.style.display = 'none';
@@ -181,7 +182,7 @@ async function loadAccountInfo() {
         elements.avatarLetter.textContent = 'U';
       }
     } else {
-      // 未登录
+      // 未登录（包括静默注册但未登录的情况）
       elements.accountEmail.textContent = i18n.getMessage('notLoggedIn') || '未登录';
       elements.avatarLetter.textContent = '?';
       if (elements.btnLogout) elements.btnLogout.style.display = 'none';
@@ -301,72 +302,76 @@ async function loadTrialStatus() {
 async function loadDevices() {
   try {
     let accessToken = null;
+    let userId = null;
+    
+    // 获取用户信息和 token
     try {
+      const userInfo = await authService.getUserInfo();
+      userId = userInfo[authService.storageKey.userId];
       accessToken = await authService.getValidAccessToken();
     } catch (e) {
-      elements.deviceList.innerHTML = '<p class="empty-text">请先登录</p>';
+      // 未登录，隐藏设备管理区块
+      if (elements.devicesSection) {
+        elements.devicesSection.style.display = 'none';
+      }
       return;
     }
     
-    if (!accessToken) {
-      elements.deviceList.innerHTML = '<p class="empty-text">请先登录</p>';
+    // 检查是否有设备管理权限（需要同时有 userId 和 accessToken）
+    if (!userId || !accessToken) {
+      if (elements.devicesSection) {
+        elements.devicesSection.style.display = 'none';
+      }
       return;
+    }
+    
+    // 已登录，显示设备管理区块
+    if (elements.devicesSection) {
+      elements.devicesSection.style.display = 'block';
     }
 
     try {
-      const devices = await deviceService.getDevices();
-      
+      // 获取当前设备的 deviceId
+      const userInfo = await authService.getUserInfo();
+      const currentDeviceId = userInfo?.[authService.storageKey.deviceId];
+
+      if (!currentDeviceId) {
+        elements.deviceList.innerHTML = '<p class="empty-text">暂无设备信息</p>';
+        return;
+      }
+
       // 触发feature-limit请求以更新设备最后活跃时间
       try {
         await featureLimitService.getFeatureLimit('pinnedTabs', true, false);
       } catch (e) {
         console.error('Refresh feature limits error:', e);
       }
-      
-      if (!devices || devices.length === 0) {
-        elements.deviceList.innerHTML = '<p class="empty-text">暂无设备</p>';
+
+      // 获取当前设备详情
+      const devices = await deviceService.getDevices();
+      const currentDevice = devices?.find(d => d.id === currentDeviceId);
+
+      if (!currentDevice) {
+        elements.deviceList.innerHTML = '<p class="empty-text">当前设备信息不可用</p>';
         return;
       }
 
-      // 渲染设备列表
-      elements.deviceList.innerHTML = devices.map(device => `
-        <div class="device-item" data-device-id="${escapeHtml(device.id)}">
-          <div class="device-icon">${getDeviceIcon(device.browserName)}</div>
+      // 只渲染当前设备
+      elements.deviceList.innerHTML = `
+        <div class="device-item" data-device-id="${escapeHtml(currentDevice.id)}">
+          <div class="device-icon">${getDeviceIcon(currentDevice.browserName)}</div>
           <div class="device-info">
             <div class="device-name">
-              ${escapeHtml(device.browserName || 'Unknown')} ${escapeHtml(device.browserVersion || '')}
-              ${device.userDeviceUuid ? `<span class="device-uuid">(${escapeHtml(device.userDeviceUuid).slice(-4)})</span>` : ''}
-              ${device.isCurrentDevice ? '<span class="current-badge">当前设备</span>' : ''}
+              ${escapeHtml(currentDevice.browserName || 'Unknown')} ${escapeHtml(currentDevice.browserVersion || '')}
+              <span class="current-badge">当前设备</span>
             </div>
             <div class="device-meta">
-              <span class="device-platform">${escapeHtml(device.platform || 'Unknown')}</span>
-              <span class="device-last-seen">最后活跃：${formatLastSeen(device.lastSeenAt)}</span>
+              <span class="device-platform">${escapeHtml(currentDevice.platform || 'Unknown')}</span>
+              <span class="device-last-seen">最后活跃：${formatLastSeen(currentDevice.lastSeenAt)}</span>
             </div>
           </div>
-          ${!device.isCurrentDevice ? `
-            <button class="btn-remove-device" data-device-id="${escapeHtml(device.id)}" title="移除设备">
-              ✕
-            </button>
-          ` : ''}
         </div>
-      `).join('');
-
-      // 绑定删除设备事件
-      document.querySelectorAll('.btn-remove-device').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const deviceId = btn.dataset.deviceId;
-          if (confirm('确定要移除此设备吗？')) {
-            const result = await deviceService.deleteDevice(deviceId);
-            if (result.success) {
-              showMessage(i18n?.getMessage('deviceRemoved') || 'Device removed', 'success');
-              await loadDevices();
-            } else {
-              showMessage(result.message || '移除设备失败', 'error');
-            }
-          }
-        });
-      });
+      `;
     } catch (e) {
       console.error('Load devices API error:', e);
       elements.deviceList.innerHTML = '<p class="error-text">加载设备失败</p>';
@@ -696,7 +701,30 @@ async function handleLoginVerify() {
     const { default: authService } = await import('./services/auth.service.js');
     const { default: featureLimitService } = await import('./services/feature-limit.service.js');
     
-    const response = await authApi.verifyEmail(email, code);
+    // 获取本地存储的设备信息
+    const userInfo = await authService.getUserInfo();
+    const deviceId = userInfo[authService.storageKey.deviceId];
+    
+    // 获取浏览器信息
+    let deviceInfo = null;
+    try {
+      const browserInfo = authService.getBrowserInfo();
+      const extensionVersion = chrome.runtime.getManifest().version;
+      deviceInfo = {
+        browserInfo,
+        extensionVersion
+      };
+    } catch (e) {
+      console.warn('Failed to get device info:', e);
+    }
+
+    // 必须传递 deviceId，否则提示升级
+    if (!deviceId) {
+      showMessage('请升级扩展到最新版本', 'error');
+      return;
+    }
+
+    const response = await authApi.verifyEmail(email, code, deviceId, deviceInfo);
     
     if (response.code === 0 || response.data?.success) {
       const data = response.data;
@@ -708,10 +736,6 @@ async function handleLoginVerify() {
       
       if (data.deviceId) {
         storageData[authService.storageKey.deviceId] = data.deviceId;
-      }
-      
-      if (data.userDeviceUuid) {
-        storageData['userDeviceUuid'] = data.userDeviceUuid;
       }
       
       if (data.accessToken) {
@@ -821,18 +845,8 @@ async function handleLoginOAuthToken(provider, accessToken) {
     }
     
     if (userInfo && userInfo.email) {
-      // 获取或生成 userDeviceUuid
-      let uuidData = await chrome.storage.local.get('userDeviceUuid');
-      let userDeviceUuid = uuidData.userDeviceUuid;
-      
-      // 如果没有，生成一个新的
-      if (!userDeviceUuid) {
-        userDeviceUuid = crypto.randomUUID();
-        await chrome.storage.local.set({ userDeviceUuid });
-        console.log('[OAuth] Generated new userDeviceUuid:', userDeviceUuid);
-      }
-      
-      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo, userDeviceUuid);
+      // 直接发送 OAuth 登录请求（不再需要 userDeviceUuid）
+      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo);
       
       if (response.code === 0 || response.data?.success) {
         const data = response.data;
@@ -846,10 +860,6 @@ async function handleLoginOAuthToken(provider, accessToken) {
         
         if (data.deviceId) {
           storageData[authService.storageKey.deviceId] = data.deviceId;
-        }
-        
-        if (data.userDeviceUuid) {
-          storageData['userDeviceUuid'] = data.userDeviceUuid;
         }
         
         await chrome.storage.local.set(storageData);
