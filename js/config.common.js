@@ -17,7 +17,7 @@ if (typeof CONFIG_COMMON === 'undefined') {
   
   // 各环境后端服务地址
   const API_BASE_URLS = {
-    dev: 'http://localhost:8080', // 本地开发环境
+    dev: 'http://localhost:41532', // 本地开发环境
     qa: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com', // 线上QA环境
     prod: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com' // 生产环境
   };

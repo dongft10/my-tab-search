@@ -262,13 +262,38 @@ async function handleVerify() {
     setLoading(true);
     elements.btnVerify.disabled = true;
     
-    const response = await authApi.verifyEmail(state.email, state.code);
+    // 获取本地存储的设备信息
+    const userInfo = await authService.getUserInfo();
+    const deviceId = userInfo[authService.storageKey.deviceId];
+    
+    // 获取浏览器信息
+    let deviceInfo = null;
+    try {
+      const browserInfo = authService.getBrowserInfo();
+      const extensionVersion = chrome.runtime.getManifest().version;
+      deviceInfo = {
+        browserInfo,
+        extensionVersion
+      };
+    } catch (e) {
+      console.warn('Failed to get device info:', e);
+    }
+    
+    // 必须传递 deviceId，否则提示升级
+    if (!deviceId) {
+      showError('请升级扩展到最新版本');
+      setLoading(false);
+      elements.btnVerify.disabled = false;
+      return;
+    }
+    
+    const response = await authApi.verifyEmail(state.email, state.code, deviceId, deviceInfo);
     
     if (response.code === 0) {
       // 保存用户信息
       await authService.saveUserInfo({
         userId: response.data.userId,
-        deviceId: response.data.userId, // 临时使用userId作为deviceId
+        deviceId: response.data.deviceId || deviceId,
         accessToken: response.data.accessToken,
         registeredAt: new Date().toISOString()
       });

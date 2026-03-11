@@ -133,7 +133,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userInfo = await authService.getUserInfo();
     console.log('[login] User info:', userInfo);
     const userIdKey = authService.storageKey.userId;
-      if (userInfo && userInfo[userIdKey]) {
+    const accessTokenKey = authService.storageKey.accessToken;
+    
+    // 只有同时有 userId 和 accessToken 才算已登录
+    // 静默注册后只有 userId，但没有 accessToken，不算已登录
+    if (userInfo && userInfo[userIdKey] && userInfo[accessTokenKey]) {
       console.log('[login] Already logged in, redirecting...');
       showMessage(i18n?.getMessage('alreadyLoggedIn') || 'You are already logged in, redirecting...', 'info');
       // 不自动跳转，让用户留在登录页面可以注销
@@ -296,13 +300,9 @@ async function handleVerify() {
     const userInfo = await authService.getUserInfo();
     const existingDeviceId = userInfo?.[authService.storageKey.deviceId];
     
-    // 获取 user_device_uuid 和浏览器信息
+    // 获取浏览器信息
     let deviceInfo = null;
     try {
-      const uuidData = await chrome.storage.local.get('userDeviceUuid');
-      const userDeviceUuid = uuidData.userDeviceUuid || null;
-      
-      // 获取浏览器信息
       const browserInfo = {
         name: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Unknown',
         version: navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || 'Unknown',
@@ -311,7 +311,6 @@ async function handleVerify() {
       };
       
       deviceInfo = {
-        userDeviceUuid,
         browserInfo,
         extensionVersion: chrome.runtime.getManifest().version
       };
@@ -328,7 +327,6 @@ async function handleVerify() {
     if (isSuccess) {
       const userId = data?.userId;
       const deviceId = data?.deviceId;
-      const userDeviceUuid = data?.userDeviceUuid;
       const accessToken = data?.accessToken;
       const expiresAt = data?.expiresAt;
       
@@ -340,12 +338,6 @@ async function handleVerify() {
       
       if (deviceId) {
         storageData[authService.storageKey.deviceId] = deviceId;
-      }
-      
-      // 同步 userDeviceUuid（确保前端与后端数据库一致）
-      if (userDeviceUuid) {
-        storageData['userDeviceUuid'] = userDeviceUuid;
-        console.log('[Email] Synced userDeviceUuid:', userDeviceUuid);
       }
       
       if (accessToken) {
@@ -476,26 +468,8 @@ async function handleOAuthToken(provider, accessToken) {
     if (userInfo && userInfo.email) {
       console.log('[OAuth] Calling backend to verify token...');
       
-      // 获取 user_device_uuid（必填）
-      let userDeviceUuid = null;
-      try {
-        const uuidData = await chrome.storage.local.get('userDeviceUuid');
-        userDeviceUuid = uuidData.userDeviceUuid || null;
-        
-        // 强制 user_device_uuid 必填
-        if (!userDeviceUuid) {
-          console.error('[OAuth] userDeviceUuid is required but not found in storage');
-          showMessage('Error: Device identifier not found, please refresh and try again', 'error');
-          return;
-        }
-      } catch (e) {
-        console.error('[OAuth] Failed to get userDeviceUuid:', e);
-        showMessage('Error: Failed to get device identifier', 'error');
-        return;
-      }
-      
-      // 发送给后端验证并创建账户
-      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo, userDeviceUuid);
+      // 发送给后端验证并创建账户（不再需要 userDeviceUuid）
+      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo);
       console.log('[OAuth] Backend response:', response);
       
       if (response.code === 0 || response.data?.success) {
@@ -511,12 +485,6 @@ async function handleOAuthToken(provider, accessToken) {
         
         if (data.deviceId) {
           storageData[authService.storageKey.deviceId] = data.deviceId;
-        }
-        
-        // 同步 userDeviceUuid（确保前端与后端数据库一致）
-        if (data.userDeviceUuid) {
-          storageData['userDeviceUuid'] = data.userDeviceUuid;
-          console.log('[OAuth] Synced userDeviceUuid:', data.userDeviceUuid);
         }
         
         await chrome.storage.local.set(storageData);

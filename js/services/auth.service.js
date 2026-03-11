@@ -32,9 +32,6 @@ class AuthService {
         return await this.getUserInfo();
       }
 
-      // 获取或生成 user_device_uuid
-      const userDeviceUuid = await userDeviceUUID.getOrCreate();
-
       // 获取浏览器信息
       const browserInfo = this.getBrowserInfo();
 
@@ -43,7 +40,6 @@ class AuthService {
 
       // 发送注册请求
       const response = await authApi.silentRegister({
-        userDeviceUuid,
         browserInfo,
         extensionVersion
       });
@@ -85,12 +81,6 @@ class AuthService {
         [this.storageKey.accessToken]: accessToken,
         [this.storageKey.tokenExpiresAt]: expiresAt
       };
-
-      // 同步 userDeviceUuid（确保前端与后端数据库一致）
-      if (data.userDeviceUuid) {
-        storageData['userDeviceUuid'] = data.userDeviceUuid;
-        console.log('[getAccessToken] Synced userDeviceUuid:', data.userDeviceUuid);
-      }
 
       await chrome.storage.local.set(storageData);
 

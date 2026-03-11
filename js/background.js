@@ -38,6 +38,123 @@ const STORAGE_KEYS_LOCAL = {
   userDeviceUuid: STORAGE_KEYS ? STORAGE_KEYS.USER_DEVICE_UUID : 'userDeviceUuid'
 };
 
+// ==================== IndexedDB 工具类 ====================
+// 用于持久化存储设备 UUID（扩展卸载后保留）
+
+const DB_NAME = 'TabSearchDeviceDB';
+const DB_STORE_NAME = 'deviceInfo';
+let _db = null;
+
+/**
+ * 打开 IndexedDB 数据库
+ */
+function openIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(DB_STORE_NAME)) {
+        db.createObjectStore(DB_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+
+    request.onsuccess = (event) => {
+      _db = event.target.result;
+      resolve(_db);
+    };
+
+    request.onerror = (event) => {
+      reject(new Error('IndexedDB open error: ' + event.target.error));
+    };
+  });
+}
+
+/**
+ * 从 IndexedDB 获取设备 UUID
+ */
+async function getDeviceUUIDFromIndexedDB() {
+  try {
+    const db = await openIndexedDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([DB_STORE_NAME], 'readonly');
+      const store = transaction.objectStore(DB_STORE_NAME);
+      const request = store.get('deviceUUID');
+
+      request.onsuccess = () => {
+        resolve(request.result ? request.result.value : null);
+      };
+
+      request.onerror = () => {
+        reject(new Error('IndexedDB read error'));
+      };
+
+      transaction.oncomplete = () => {
+        if (_db) {
+          _db.close();
+          _db = null;
+        }
+      };
+    });
+  } catch (error) {
+    console.error('[Background] IndexedDB get error:', error);
+    return null;
+  }
+}
+
+/**
+ * 保存设备 UUID 到 IndexedDB
+ */
+async function saveDeviceUUIDToIndexedDB(uuid) {
+  try {
+    const db = await openIndexedDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([DB_STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(DB_STORE_NAME);
+      const request = store.put({
+        id: 'deviceUUID',
+        value: uuid,
+        createdAt: new Date().toISOString()
+      });
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(new Error('IndexedDB write error'));
+
+      transaction.oncomplete = () => {
+        if (_db) {
+          _db.close();
+          _db = null;
+        }
+      };
+    });
+  } catch (error) {
+    console.error('[Background] IndexedDB save error:', error);
+  }
+}
+
+// ==================== 设备 UUID 双层缓存 ====================
+// L1: 内存缓存（最快，Service Worker 挂起后丢失）
+// L2: chrome.storage.local（较快，扩展卸载后丢失）
+// L3: IndexedDB（持久化，卸载后保留）
+
+let _cachedUUID = null;
+
+/**
+ * 生成 UUID
+ */
+function generateUUID() {
+  if (crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // 使用 chrome.storage 持久化固定标签页弹窗的窗口 ID
 // 因为 Service Worker 可能会被挂起和重新启动，全局变量会被重置
 
@@ -1039,6 +1156,21 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await initializeAll();
 });
 
+// 扩展即将被卸载时保存 UUID 到 IndexedDB
+chrome.runtime.onSuspend.addListener(async () => {
+  // console.log('[Background] Extension suspending, saving UUID to IndexedDB...');
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEYS_LOCAL.userDeviceUuid);
+    const uuid = result[STORAGE_KEYS_LOCAL.userDeviceUuid];
+    if (uuid) {
+      await saveDeviceUUIDToIndexedDB(uuid);
+      // console.log('[Background] UUID saved to IndexedDB on suspend:', uuid);
+    }
+  } catch (error) {
+    console.error('[Background] Failed to save UUID on suspend:', error);
+  }
+});
+
 // 扩展启动时初始化状态
 chrome.runtime.onStartup.addListener(async () => {
   // console.log('[TabSearch] Extension started');
@@ -1153,23 +1285,71 @@ class AuthService {
   }
 
   /**
-   * 获取或生成 user_device_uuid
+   * 获取设备 UUID（双层缓存策略）
+   * L1: 内存缓存（最快，Service Worker 挂起后丢失）
+   * L2: chrome.storage.local（较快，扩展卸载后丢失）
+   * L3: IndexedDB（持久化，卸载后保留）
    * @returns {Promise<string>} - 返回 UUID
    */
   async getUserDeviceUUID() {
+    try {
+      // L1: 优先从内存获取（~0ms）
+      if (_cachedUUID) {
+        // console.log('[Background] UUID from memory cache:', _cachedUUID);
+        return _cachedUUID;
+      }
+
+      // L2: 从 chrome.storage.local 获取（~1-5ms）
+      const localResult = await chrome.storage.local.get(STORAGE_KEYS_LOCAL.userDeviceUuid);
+      let uuid = localResult[STORAGE_KEYS_LOCAL.userDeviceUuid];
+
+      if (uuid) {
+        // console.log('[Background] UUID from chrome.storage.local:', uuid);
+        _cachedUUID = uuid;
+        return uuid;
+      }
+
+      // L3: 从 IndexedDB 获取（~5-20ms）
+      uuid = await getDeviceUUIDFromIndexedDB();
+
+      if (uuid) {
+        // console.log('[Background] UUID from IndexedDB:', uuid);
+        // 同步到 L2
+        await chrome.storage.local.set({ [STORAGE_KEYS_LOCAL.userDeviceUuid]: uuid });
+        _cachedUUID = uuid;
+        return uuid;
+      }
+
+      // 没有找到，生成新的
+      uuid = generateUUID();
+      // console.log('[Background] Generated new UUID:', uuid);
+
+      // 保存到所有层级
+      await saveDeviceUUIDToIndexedDB(uuid);
+      await chrome.storage.local.set({ [STORAGE_KEYS_LOCAL.userDeviceUuid]: uuid });
+      _cachedUUID = uuid;
+
+      return uuid;
+    } catch (error) {
+      console.error('[Background] UUID recovery failed, fallback to legacy:', error);
+      // 降级方案：使用 chrome.storage.local
+      return this.getUserDeviceUUIDLegacy();
+    }
+  }
+
+  /**
+   * 降级方案：使用 chrome.storage.local（原有逻辑）
+   */
+  async getUserDeviceUUIDLegacy() {
     return new Promise((resolve) => {
       chrome.storage.local.get(STORAGE_KEYS_LOCAL.userDeviceUuid, (result) => {
         if (result[STORAGE_KEYS_LOCAL.userDeviceUuid]) {
-          resolve(result[STORAGE_KEYS_LOCAL.userDeviceUuid]);
+          _cachedUUID = result[STORAGE_KEYS_LOCAL.userDeviceUuid];
+          resolve(_cachedUUID);
         } else {
-          // 生成新的 UUID
-          const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-          });
-          // 存储并返回
+          const uuid = generateUUID();
           chrome.storage.local.set({ [STORAGE_KEYS_LOCAL.userDeviceUuid]: uuid }, () => {
+            _cachedUUID = uuid;
             resolve(uuid);
           });
         }
@@ -1487,24 +1667,13 @@ async function initializeSyncQueue() {
 /**
  * 清除所有本地存储数据
  * 用于扩展卸载后重新安装时重置状态
- * 注意：保留 userDeviceUuid，因为它是设备的唯一标识符
+ * 注意：不需要保留 userDeviceUuid，因为 IndexedDB 会自动保留
  */
 async function clearAllStorage() {
   try {
-    // 先获取 userDeviceUuid
-    const result = await chrome.storage.local.get(STORAGE_KEYS_LOCAL.userDeviceUuid);
-    const userDeviceUuid = result[STORAGE_KEYS_LOCAL.userDeviceUuid];
-    
-    // 清除所有数据
+    // 清除 chrome.storage.local（IndexedDB 会自动保留 UUID）
     await chrome.storage.local.clear();
-    
-    // 恢复 userDeviceUuid
-    if (userDeviceUuid) {
-      await chrome.storage.local.set({ [STORAGE_KEYS_LOCAL.userDeviceUuid]: userDeviceUuid });
-      console.log('[Background] Storage cleared but userDeviceUuid preserved:', userDeviceUuid);
-    } else {
-      console.log('[Background] All storage cleared (no existing userDeviceUuid)');
-    }
+    // console.log('[Background] Storage cleared (UUID preserved in IndexedDB)');
   } catch (error) {
     console.error('[Background] Failed to clear storage:', error);
   }

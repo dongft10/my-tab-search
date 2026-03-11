@@ -33,7 +33,6 @@ class AuthApi {
       data.deviceId = deviceId;
     }
     if (deviceInfo) {
-      data.userDeviceUuid = deviceInfo.userDeviceUuid;
       data.browserInfo = deviceInfo.browserInfo;
       data.extensionVersion = deviceInfo.extensionVersion;
     }
