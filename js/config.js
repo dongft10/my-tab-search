@@ -95,7 +95,8 @@ export const API_CONFIG = {
     DEVICES: {
       LIST: '/devices',
       DELETE: '/devices',
-      LOGOUT_ALL: '/devices/logout'
+      LOGOUT_ALL: '/devices/logout',
+      ACTIVE: '/devices/active'
     },
     // 固定标签页相关
     PINNED_TABS: {

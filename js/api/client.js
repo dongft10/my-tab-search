@@ -139,6 +139,17 @@ class ApiClient {
   }
 
   /**
+   * PATCH 请求
+   * @param {string} endpoint - API 端点
+   * @param {object} data - 请求数据
+   * @param {object} headers - 请求头
+   * @returns {Promise} - 返回响应
+   */
+  patch(endpoint, data = null, headers = {}) {
+    return this.request(endpoint, 'PATCH', data, headers);
+  }
+
+  /**
    * 延迟函数
    * @param {number} ms - 延迟时间（毫秒）
    * @returns {Promise} - 返回 Promise

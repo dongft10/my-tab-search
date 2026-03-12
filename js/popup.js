@@ -6,10 +6,32 @@ import featureLimitService from './services/feature-limit.service.js';
 import syncQueueService from './services/sync-queue.service.js';
 // Import auth service
 import authService from './services/auth.service.js';
+// Import auth API
+import authApi from './api/auth.js';
 // Import trial service
 import trialService from './services/trial.service.js';
 // Import search match service
 import searchMatchService from './services/search-match.service.js';
+
+// 检查并上报设备活跃状态
+async function checkAndReportActive() {
+  const today = new Date().toISOString().split('T')[0];
+  const result = await chrome.storage.local.get(['deviceActiveReported', 'deviceId']);
+  const lastReported = result.deviceActiveReported;
+
+  if (lastReported !== today && result.deviceId) {
+    // 先保存缓存（不管上报是否成功），避免重复无效请求
+    await chrome.storage.local.set({ deviceActiveReported: today });
+    
+    // 再尝试上报（失败静默处理，不影响用户体验）
+    try {
+      await authApi.reportDeviceActive(result.deviceId);
+      console.log('[Device] Active status reported for today');
+    } catch (error) {
+      console.error('[Device] Failed to report active status:', error);
+    }
+  }
+}
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -209,6 +231,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   // @param relativeOffset 可选，指定目标标签页相对于视口顶部的偏移量
   async function updateTabs(nextSelectedTabId, targetTabId = null, relativeOffset = null) {
     const query = searchInput.value.trim().toLowerCase();
+
+    // 检查并上报活跃状态（只在有搜索词时）
+    if (query.length > 0) {
+      checkAndReportActive();
+    }
 
     // 预先获取 pinnedTabs（只需要 1 次 I/O），构建 Map 用于快速查找
     const pinnedResult = await new Promise((resolve) => {

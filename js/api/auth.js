@@ -215,6 +215,15 @@ class AuthApi {
   }
 
   /**
+   * 上报设备活跃度
+   * @param {string} deviceId - 设备 ID
+   * @returns {Promise} - 返回上报结果
+   */
+  async reportDeviceActive(deviceId) {
+    return apiClient.patch(ENDPOINTS.DEVICES.ACTIVE, {}, { 'X-Device-ID': deviceId });
+  }
+
+  /**
    * 验证 OAuth code 并获取 token
    * @param {string} provider - OAuth 提供商 (google/microsoft)
    * @param {string} code - OAuth 授权码
