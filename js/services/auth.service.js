@@ -4,7 +4,6 @@
  */
 
 import authApi from '../api/auth.js';
-import userDeviceUUID from '../utils/user-device-uuid.js';
 
 class AuthService {
   constructor() {

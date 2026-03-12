@@ -468,7 +468,7 @@ async function handleOAuthToken(provider, accessToken) {
     if (userInfo && userInfo.email) {
       console.log('[OAuth] Calling backend to verify token...');
       
-      // 发送给后端验证并创建账户（不再需要 userDeviceUuid）
+      // 发送给后端验证并创建账户
       const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo);
       console.log('[OAuth] Backend response:', response);
       

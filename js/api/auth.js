@@ -24,7 +24,7 @@ class AuthApi {
    * @param {string} email - 邮箱地址
    * @param {string} code - 验证码
    * @param {string} deviceId - 设备ID（可选，用于关联现有设备）
-   * @param {Object} deviceInfo - 设备信息（可选，包含 userDeviceUuid 和 browserInfo）
+   * @param {Object} deviceInfo - 设备信息（可选，包含 browserInfo）
    * @returns {Promise} - 返回验证结果
    */
   async verifyEmail(email, code, deviceId = null, deviceInfo = null) {
@@ -207,13 +207,10 @@ class AuthApi {
    * @param {string} accessToken - 访问令牌
    * @returns {Promise} - 返回登出结果
     */
-  async logoutDevice(accessToken, userDeviceUuid = null) {
+  async logoutDevice(accessToken) {
     const headers = {
       'Authorization': `Bearer ${accessToken}`
     };
-    if (userDeviceUuid) {
-      headers['X-UserDeviceUUID'] = userDeviceUuid;
-    }
     return apiClient.post(ENDPOINTS.DEVICES.LOGOUT_ALL, {}, headers);
   }
 
@@ -235,10 +232,9 @@ class AuthApi {
    * @param {string} provider - OAuth 提供商 (google/microsoft)
    * @param {string} accessToken - OAuth access token
    * @param {object} userInfo - 用户信息
-   * @param {string} userDeviceUuid - 设备 UUID（可选）
    * @returns {Promise} - 返回验证结果
    */
-  async verifyOAuthToken(provider, accessToken, userInfo, userDeviceUuid = null) {
+  async verifyOAuthToken(provider, accessToken, userInfo) {
     const data = {
       provider,
       accessToken,
@@ -246,9 +242,6 @@ class AuthApi {
       name: userInfo.name,
       picture: userInfo.picture
     };
-    if (userDeviceUuid) {
-      data.userDeviceUuid = userDeviceUuid;
-    }
     
     // 获取浏览器信息并添加到 headers
     const userAgent = navigator.userAgent;

@@ -120,8 +120,7 @@ if (typeof CONFIG_COMMON === 'undefined') {
     DEVICE_ID: 'deviceId',
     ACCESS_TOKEN: 'accessToken',
     TOKEN_EXPIRES_AT: 'tokenExpiresAt',
-    REGISTERED_AT: 'registeredAt',
-    USER_DEVICE_UUID: 'userDeviceUuid'
+    REGISTERED_AT: 'registeredAt'
   };
 
   /**

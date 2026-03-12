@@ -845,7 +845,7 @@ async function handleLoginOAuthToken(provider, accessToken) {
     }
     
     if (userInfo && userInfo.email) {
-      // 直接发送 OAuth 登录请求（不再需要 userDeviceUuid）
+      // 发送 OAuth 登录请求
       const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo);
       
       if (response.code === 0 || response.data?.success) {

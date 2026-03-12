@@ -186,11 +186,7 @@ class DeviceService {
         throw new Error('No access token');
       }
 
-      // 获取 userDeviceUuid 用于 logout 请求
-      const uuidData = await chrome.storage.local.get('userDeviceUuid');
-      const userDeviceUuid = uuidData.userDeviceUuid || null;
-
-      const response = await authApi.logoutDevice(accessToken, userDeviceUuid);
+      const response = await authApi.logoutDevice(accessToken);
       
       // 兼容两种响应格式
       const isSuccess = response?.code === 0 || response?.success === true;
