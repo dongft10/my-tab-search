@@ -335,6 +335,10 @@
     "message": "长期固定标签页数量已达上限（最多5个）~ 快去完成邮箱验证，解锁更多功能吧！",
     "description": "Toast message when unverified user reaches long term pinned limit"
   },
+  "longTermPinnedRequireVerification": {
+    "message": "长期固定功能需要完成邮箱验证后才能使用哦！",
+    "description": "Toast message when unverified user tries to use long term pinned feature"
+  },
   "longTermPinnedLimitExpired": {
     "message": "长期固定标签页数量已达上限（最多5个）~ 体验期已结束，升级VIP会员即可继续使用更多功能哦！",
     "description": "Toast message when expired trial non-VIP user reaches long term pinned limit"

@@ -781,21 +781,8 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
     console.log('[pinned-list] userInfo:', await authService.getUserInfo());
     
     if (!isEmailVerified) {
-      // 静默注册用户：检查长期固定数量限制（5个）
-      const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
-      const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
-      
-      if (!isCurrentlyLongTermPinned && longTermCount >= 5) {
-        showToast(i18n.getMessage('longTermPinnedLimitUnverified') || `长期固定标签页数量已达上限（最多5个），请完成邮箱验证解锁更多功能`);
-        return;
-      }
-      
-      // 未超过限制，允许操作
-      if (isCurrentlyLongTermPinned) {
-        await cancelLongTermPinned(tabId);
-      } else {
-        await setLongTermPinned(tabId);
-      }
+      // 静默注册用户：不允许使用长期固定功能
+      showToast(i18n.getMessage('longTermPinnedRequireVerification') || `长期固定功能需要完成邮箱验证后才能使用哦！`);
       return;
     }
     

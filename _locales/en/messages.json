@@ -335,6 +335,10 @@
     "message": "Long-term pinned tabs limit reached (max 5). Complete email verification to unlock more features!",
     "description": "Toast message when unverified user reaches long term pinned limit"
   },
+  "longTermPinnedRequireVerification": {
+    "message": "Email verification is required before using Long-term pinned feature!",
+    "description": "Toast message when unverified user tries to use long term pinned feature"
+  },
   "longTermPinnedLimitExpired": {
     "message": "Long-term pinned tabs limit reached (max 5). Trial period ended. Upgrade to VIP to continue using more features!",
     "description": "Toast message when expired trial non-VIP user reaches long term pinned limit"
