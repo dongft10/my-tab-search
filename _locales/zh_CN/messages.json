@@ -551,6 +551,10 @@
     "message": "深色主题",
     "description": "Dark theme label"
   },
+  "featureRequireVerification": {
+    "message": "请先完成邮箱验证才能使用此功能",
+    "description": "Generic message when a feature requires email verification"
+  },
   "selectLanguageLabel": {
     "message": "选择语言:",
     "description": "Select language label"

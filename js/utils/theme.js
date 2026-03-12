@@ -51,4 +51,9 @@ const ThemeManager = {
   }
 };
 
-window.ThemeManager = ThemeManager;
+// 同时支持模块导出和普通脚本
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { ThemeManager };
+} else {
+  window.ThemeManager = ThemeManager;
+}

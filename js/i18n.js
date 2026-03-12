@@ -35,7 +35,7 @@ class I18nManager {
         return;
       }
 
-      const response = await fetch(`/_locales/${lang}/messages.json`);
+      const response = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
       if (!response.ok) {
         throw new Error(`Failed to load messages for ${lang}`);
       }
@@ -45,7 +45,6 @@ class I18nManager {
       this.loadedLanguages.add(lang);
     } catch (error) {
       console.error(`Failed to load messages for ${lang}:`, error);
-      // Fallback to English if loading fails
       if (lang !== 'en') {
         await this.loadMessages('en');
       }

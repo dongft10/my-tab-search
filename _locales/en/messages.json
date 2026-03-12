@@ -551,6 +551,10 @@
     "message": "Dark Theme",
     "description": "Dark theme label"
   },
+  "featureRequireVerification": {
+    "message": "Please complete email verification to use this feature",
+    "description": "Generic message when a feature requires email verification"
+  },
   "selectLanguageLabel": {
     "message": "Select Language:",
     "description": "Select language label"
