@@ -44,7 +44,7 @@ echo.
 
 REM Build and package (with compression)
 echo [2/2] Building and packaging extension...
-call npm run build
+call npm run build:dev
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed
     pause
@@ -61,4 +61,9 @@ echo Output files are in: pack\out
 echo   - my-tab-search-v{version}.crx (for local installation)
 echo   - my-tab-search-v{version}.zip (for Chrome Web Store)
 echo.
-pause
+
+:: 等待 3 秒后自动退出
+timeout /t 3 /nobreak
+
+:: 脚本结束会自动退出，也可以显式退出
+exit

@@ -16,7 +16,29 @@ class AuthApi {
    * @returns {Promise} - 返回注册结果
    */
   async silentRegister(deviceInfo) {
-    return apiClient.post(ENDPOINTS.AUTH.SILENT_REGISTER, deviceInfo);
+    // 直接从 storage 获取 deviceId，不通过 authService
+    let deviceId = null;
+    try {
+      const result = await chrome.storage.local.get(['deviceId']);
+      deviceId = result.deviceId || null;
+      console.log('[silentRegister] Got deviceId from storage:', deviceId ? 'exists' : 'null');
+    } catch (e) {
+      console.warn('Failed to get deviceId from storage:', e);
+    }
+    
+    const data = { ...deviceInfo };
+    
+    const headers = {};
+    
+    // 如果有 deviceId，通过 Header 传递给后端
+    if (deviceId) {
+      headers['X-Device-ID'] = deviceId;
+      console.log('[silentRegister] Sending X-Device-ID header:', deviceId);
+    } else {
+      console.log('[silentRegister] No deviceId found, will create new device');
+    }
+    
+    return apiClient.post(ENDPOINTS.AUTH.SILENT_REGISTER, data, headers);
   }
 
   /**
@@ -230,10 +252,29 @@ class AuthApi {
    * @returns {Promise} - 返回验证结果
    */
   async verifyOAuthCode(provider, code) {
-    return apiClient.post(ENDPOINTS.AUTH.OAUTH_VERIFY, {
+    // 获取本地存储的 deviceId
+    let deviceId = null;
+    try {
+      const authService = await import('../services/auth.service.js');
+      const userInfo = await authService.default.getUserInfo();
+      deviceId = userInfo[authService.default.storageKey.deviceId];
+    } catch (e) {
+      console.warn('Failed to get deviceId from storage:', e);
+    }
+    
+    const data = {
       provider,
       code
-    });
+    };
+    
+    const headers = {};
+    
+    // 如果有 deviceId，通过 Header 传递给后端
+    if (deviceId) {
+      headers['X-Device-ID'] = deviceId;
+    }
+    
+    return apiClient.post(ENDPOINTS.AUTH.OAUTH_VERIFY, data, headers);
   }
 
   /**
@@ -256,6 +297,16 @@ class AuthApi {
     const userAgent = navigator.userAgent;
     const browserInfo = this.parseUserAgent(userAgent);
     
+    // 获取本地存储的 deviceId
+    let deviceId = null;
+    try {
+      const authService = await import('../services/auth.service.js');
+      const storedUserInfo = await authService.default.getUserInfo();
+      deviceId = storedUserInfo[authService.default.storageKey.deviceId];
+    } catch (e) {
+      console.warn('Failed to get deviceId from storage:', e);
+    }
+    
     const headers = {
       'X-Browser-Name': browserInfo.name,
       'X-Browser-Version': browserInfo.version,
@@ -263,6 +314,11 @@ class AuthApi {
       'X-Language': navigator.language,
       'X-Extension-Version': await versionManager.getVersion()
     };
+    
+    // 如果有 deviceId，传递给后端
+    if (deviceId) {
+      headers['X-Device-ID'] = deviceId;
+    }
     
     return apiClient.post(ENDPOINTS.AUTH.OAUTH_TOKEN_LOGIN, data, headers);
   }

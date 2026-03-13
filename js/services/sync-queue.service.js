@@ -130,8 +130,10 @@ class SyncQueueService {
       const processedIds = [];
       for (const item of queue) {
         try {
+          console.log('[SyncQueue] Processing operation:', item.type, item.data);
           await this.processOperation(item, accessToken);
           processedIds.push(this.getOperationId(item));
+          console.log('[SyncQueue] Operation completed:', item.type);
         } catch (error) {
           console.error('[SyncQueue] Process operation error:', error);
           item.retryCount = (item.retryCount || 0) + 1;
@@ -167,26 +169,20 @@ class SyncQueueService {
       throw new Error('Invalid operation: missing tabId');
     }
     
-    const authApi = (await import('../api/auth.js')).default;
-
-    switch (item.type) {
-      case 'pinTab':
-        await authApi.syncPinnedTab(accessToken, {
-          ...item.data,
-          tabId: String(item.data.tabId)
-        });
-        break;
-      case 'unpinTab':
-        await authApi.syncUnpinTab(accessToken, String(item.data.tabId));
-        break;
-      case 'updateTab':
-        await authApi.syncUpdateTab(accessToken, {
-          ...item.data,
-          tabId: String(item.data.tabId)
-        });
-        break;
-      default:
-        console.warn('[SyncQueue] Unknown operation type:', item.type);
+    try {
+      // 使用 pinned-tabs-sync.service.js 进行同步
+      const PinnedTabsSyncService = (await import('./pinned-tabs-sync.service.js')).default;
+      const syncService = new PinnedTabsSyncService();
+      
+      // 触发完整同步（让 sync 服务自己处理）
+      await syncService.fullSync();
+      
+      console.log('[SyncQueue] Sync operation completed:', item.type);
+    } catch (error) {
+      // 同步失败，但不影响本地操作
+      // 错误会在 performSync 中被捕获，增加重试计数
+      console.warn('[SyncQueue] Sync operation failed (will retry):', item.type, error.message);
+      throw error; // 抛出错误，让上层处理重试
     }
   }
 
@@ -206,11 +202,16 @@ class SyncQueueService {
   scheduleSync(delay = 0) {
     if (this.syncTimer) {
       clearTimeout(this.syncTimer);
+      console.log('[SyncQueue] Cleared previous sync timer');
     }
     
+    const actualDelay = delay || this.debounceDelay;
+    console.log('[SyncQueue] Scheduling sync in %dms', actualDelay);
+    
     this.syncTimer = setTimeout(() => {
+      console.log('[SyncQueue] Timer triggered, starting sync...');
       this.performSync();
-    }, delay || this.debounceDelay);
+    }, actualDelay);
   }
 
   /**

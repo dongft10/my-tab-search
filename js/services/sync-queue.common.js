@@ -11,6 +11,50 @@ let syncTimer = null;
 let isSyncing = false;
 
 /**
+ * 获取设备 ID
+ */
+async function getDeviceId() {
+  try {
+    const result = await chrome.storage.local.get(['deviceId']);
+    return result.deviceId || null;
+  } catch (error) {
+    console.error('[SyncQueue] Get deviceId error:', error);
+    return null;
+  }
+}
+
+/**
+ * 获取本地版本号
+ */
+async function getLocalVersion() {
+  try {
+    const result = await chrome.storage.local.get(['pinnedTabsVersion']);
+    return result.pinnedTabsVersion || 0;
+  } catch (error) {
+    console.error('[SyncQueue] Get local version error:', error);
+    return 0;
+  }
+}
+
+/**
+ * 获取 PinnedTabsService
+ */
+function PinnedTabsService() {
+  // 简单的实现，从 storage 获取标签页
+  this.getPinnedTabs = async function() {
+    try {
+      const result = await chrome.storage.local.get(['pinnedTabs']);
+      const tabs = result.pinnedTabs || [];
+      console.log('[SyncQueue] Got pinned tabs from storage:', tabs.length);
+      return tabs;
+    } catch (error) {
+      console.error('[SyncQueue] Get pinned tabs error:', error);
+      return [];
+    }
+  };
+}
+
+/**
  * 获取同步队列
  */
 async function getSyncQueue() {
@@ -139,42 +183,36 @@ async function processSyncOperation(item, accessToken) {
     'Authorization': `Bearer ${accessToken}`
   };
 
+  // 获取设备 ID 和本地标签页
+  const deviceId = await getDeviceId();
+  const pinnedTabsService = new PinnedTabsService();
+  const localTabs = await pinnedTabsService.getPinnedTabs();
+  const localVersion = await getLocalVersion();
+
+  // 筛选出长期固定的 tabs（必须有 isLongTermPinned 和 longTermPinnedAt）
+  const longTermTabs = localTabs
+    .filter(tab => tab.isLongTermPinned && tab.longTermPinnedAt)
+    .map(tab => ({
+      url: tab.url,
+      title: tab.title,
+      longTermPinnedAt: tab.longTermPinnedAt
+    }));
+
+  console.log('[SyncQueue] Filtered long-term tabs:', longTermTabs.length);
+
   let endpoint = '';
   let method = 'POST';
   let body = null;
 
-  switch (item.type) {
-    case 'pinTab':
-      endpoint = '/pinned-tabs/sync';
-      body = { 
-        action: 'add', 
-        tab: {
-          ...item.data,
-          tabId: String(item.data.tabId)
-        }
-      };
-      break;
-    case 'unpinTab':
-      endpoint = '/pinned-tabs/sync';
-      body = { action: 'remove', tabId: String(item.data?.tabId) };
-      break;
-    case 'updateTab':
-      endpoint = '/pinned-tabs/sync';
-      body = { 
-        action: 'update', 
-        tabId: String(item.data?.tabId),
-        tab: {
-          ...item.data,
-          tabId: String(item.data?.tabId)
-        }
-      };
-      break;
-    default:
-      console.warn('[SyncQueue] Unknown operation type:', item.type);
-      return;
-  }
+  // 统一使用完整的同步格式
+  endpoint = '/pinned-tabs/sync';
+  body = {
+    deviceId: deviceId,
+    localTabs: longTermTabs,
+    lastKnownVersion: localVersion
+  };
 
-  console.log('[SyncQueue] Sending sync request:', item.type, body);
+  console.log('[SyncQueue] Sending sync request:', body);
 
   const response = await fetch(CONFIG_COMMON.getApiUrl(endpoint), {
     method,
