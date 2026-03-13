@@ -1171,18 +1171,38 @@ class AuthService {
       // 获取扩展版本
       const extensionVersion = chrome.runtime.getManifest().version;
 
+      // 获取本地存储的 deviceId（如果有）
+      let deviceId = null;
+      try {
+        const result = await chrome.storage.local.get([STORAGE_KEYS_LOCAL.deviceId]);
+        deviceId = result[STORAGE_KEYS_LOCAL.deviceId] || null;
+        console.log('[silentRegister] Got deviceId from storage:', deviceId ? 'exists' : 'null');
+      } catch (e) {
+        console.warn('Failed to get deviceId from storage:', e);
+      }
+
       // 发送注册请求
       const silentRegEndpoint = API_CONFIG ? API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER : '/auth/silent-register';
+      
+      // 准备 headers
+      const headers = {};
+      if (deviceId) {
+        headers['X-Device-ID'] = deviceId;
+        console.log('[silentRegister] Sending X-Device-ID header:', deviceId);
+      } else {
+        console.log('[silentRegister] No deviceId found, will create new device');
+      }
+      
       const response = await this.apiClient.post(silentRegEndpoint, {
         browserInfo,
         extensionVersion
-      });
+      }, headers);
 
       // 存储用户信息（静默注册不设置 registeredAt）
       await this.saveUserInfo({
         userId: response.data.userId,
         deviceId: response.data.deviceId
-        // 注意：不设置 registeredAt，只有邮箱验证或OAuth登录后才设置
+        // 注意：不设置 registeredAt，只有邮箱验证或 OAuth 登录后才设置
       });
 
       console.log('Silent registration successful:', response.data);
@@ -1324,25 +1344,44 @@ const authService = new AuthService();
 
 /**
  * 检查 Token 是否需要刷新
- * Token 在过期前 1 天需要刷新
+ * Token 在过期前 5 天需要刷新
  * @returns {Promise<boolean>}
  */
 async function shouldRefreshToken() {
   try {
+    // 1. 先检查用户是否已注册
+    const isRegistered = await authService.isRegistered();
+    if (!isRegistered) {
+      // 用户未注册，不需要刷新 token
+      console.log('User not registered, skip token refresh');
+      return false;
+    }
+
+    // 2. 用户已注册，检查 token 状态
     const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
       STORAGE_KEYS_LOCAL.accessToken,
       STORAGE_KEYS_LOCAL.tokenExpiresAt
     ]);
 
     if (!accessToken || !tokenExpiresAt) {
+      // 没有 token 或过期时间，需要获取新 token
+      console.log('No valid token found, need to get new token');
       return true;
     }
 
     const expiresAt = new Date(tokenExpiresAt).getTime();
     const now = Date.now();
-    const refreshThreshold = 5 * 24 * 60 * 60 * 1000; // 5天，单位毫秒
+    const refreshThreshold = 5 * 24 * 60 * 60 * 1000; // 5 天，单位毫秒
 
-    return expiresAt - now < refreshThreshold;
+    const needsRefresh = expiresAt - now < refreshThreshold;
+    console.log('Token refresh check:', {
+      expiresAt: new Date(expiresAt).toISOString(),
+      now: new Date(now).toISOString(),
+      timeUntilExpiry: Math.round((expiresAt - now) / (1000 * 60 * 60)) + ' hours',
+      needsRefresh: needsRefresh
+    });
+
+    return needsRefresh;
   } catch (error) {
     console.error('Error checking token expiration:', error);
     return true;

@@ -63,4 +63,8 @@ echo.
 echo Warning: This package is configured for PRODUCTION environment
 echo.
 
-pause
+:: 等待 3 秒后自动退出
+timeout /t 3 /nobreak
+
+:: 脚本结束会自动退出，也可以显式退出
+exit
