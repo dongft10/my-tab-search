@@ -237,7 +237,6 @@ class DeviceService {
       // 使用 authService 的 storageKey 清除登录相关数据
       const keysToRemove = [
         authService.storageKey.userId,
-        authService.storageKey.deviceId,
         authService.storageKey.accessToken,
         authService.storageKey.tokenExpiresAt,
         authService.storageKey.registeredAt,

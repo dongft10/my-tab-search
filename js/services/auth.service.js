@@ -107,7 +107,6 @@ class AuthService {
       // 清除存储的信息
       await chrome.storage.local.remove([
         this.storageKey.userId,
-        this.storageKey.deviceId,
         this.storageKey.accessToken,
         this.storageKey.registeredAt
       ]);
@@ -119,7 +118,6 @@ class AuthService {
       // 即使失败也清除本地存储
       await chrome.storage.local.remove([
         this.storageKey.userId,
-        this.storageKey.deviceId,
         this.storageKey.accessToken,
         this.storageKey.registeredAt
       ]);
