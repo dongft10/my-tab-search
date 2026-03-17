@@ -8,6 +8,7 @@ import authService from './auth.service.js';
 import vipService from './vip.service.js';
 import featureLimitService from './feature-limit.service.js';
 import pinnedTabsService from './pinned-tabs.service.js';
+import { pinnedTabsSyncService } from './pinned-tabs-sync.service.js';
 import { getCacheTime } from '../config.js';
 
 class DeviceService {
@@ -233,6 +234,11 @@ class DeviceService {
       
       // 清除固定标签页
       await pinnedTabsService.clearPinnedTabs();
+      
+      // 清除同步相关数据
+      if (pinnedTabsSyncService) {
+        await pinnedTabsSyncService.clearSyncData();
+      }
       
       // 使用 authService 的 storageKey 清除登录相关数据
       const keysToRemove = [

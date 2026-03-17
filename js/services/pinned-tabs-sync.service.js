@@ -214,6 +214,12 @@ class PinnedTabsSyncService {
       const localTabs = await this.pinnedTabsService.getPinnedTabs();
       const localVersion = await this.getLocalVersion();
       
+      // 检查设备ID是否存在
+      if (!deviceId) {
+        console.error('[PinnedTabsSync] Device ID not found, skipping sync');
+        return;
+      }
+      
       console.log('[PinnedTabsSync] Got local tabs:', localTabs.length);
       console.log('[PinnedTabsSync] Local tabs:', JSON.stringify(localTabs));
       
@@ -403,6 +409,12 @@ class PinnedTabsSyncService {
     const token = await this.authService.getAccessToken();
     const deviceId = await this.getDeviceId();
 
+    // 检查设备ID是否存在
+    if (!deviceId) {
+      console.error('[PinnedTabsSync] Device ID not found, skipping check sync');
+      return { needsSync: false, serverVersion: 0 };
+    }
+
     const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/pinned-tabs/sync/check`, {
       method: 'POST',
       headers: {
@@ -450,7 +462,8 @@ class PinnedTabsSyncService {
    * 获取设备 ID
    */
   async getDeviceId() {
-    return await this.deviceService.getDeviceId();
+    const userInfo = await this.authService.getUserInfo();
+    return userInfo?.[this.authService.storageKey.deviceId];
   }
 
   /**
@@ -552,6 +565,25 @@ class PinnedTabsSyncService {
     }
 
     return { status: 'normal', message: '' };
+  }
+
+  /**
+   * 清除同步相关的存储数据
+   * 在用户登出时调用，确保新账号登录时不会使用旧账号的同步状态
+   */
+  async clearSyncData() {
+    try {
+      const keysToRemove = [
+        this.LOCAL_VERSION_KEY,
+        this.LAST_SYNC_TIME_KEY,
+        this.SYNC_FAILURE_COUNT_KEY,
+        this.LAST_FAILURE_TIME_KEY
+      ];
+      await chrome.storage.local.remove(keysToRemove);
+      console.log('[PinnedTabsSync] Sync data cleared');
+    } catch (error) {
+      console.error('[PinnedTabsSync] Clear sync data error:', error);
+    }
   }
 
   /**
