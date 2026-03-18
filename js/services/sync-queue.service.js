@@ -117,7 +117,14 @@ class SyncQueueService {
         console.log('[SyncQueue] Queue is empty, skipping sync');
         return;
       }
-
+      if (queue.length > 0 ){
+        // 过滤筛选出syncQueue中isLongTermPinned为true的tabs
+        queue = queue.filter(item => item.isLongTermPinned && item.isLongTermPinned === 'true');
+        if (queue.length === 0) {
+          console.log('[SyncQueue] No long term pinned tabs in queue, skipping sync');
+          return;
+        }
+      }
       console.log('[SyncQueue] Starting sync, queue length:', queue.length);
 
       const accessToken = await authService.getValidAccessToken();
