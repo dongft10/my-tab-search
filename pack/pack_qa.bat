@@ -41,9 +41,9 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Dependencies installed
 echo.
 
-REM Build and package (with compression)
+REM Build and package (without compression)
 echo [2/2] Building and packaging extension...
-call npm run build
+call npm run build:qa
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed
     pause
@@ -63,8 +63,8 @@ echo.
 echo Note: This package is configured for QA environment
 echo.
 
-:: 等待 3 秒后自动退出
+:: Wait for 3 seconds before exiting
 timeout /t 3 /nobreak
 
-:: 脚本结束会自动退出，也可以显式退出
+:: Exit the script
 exit

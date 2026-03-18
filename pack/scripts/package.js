@@ -79,8 +79,8 @@ function createZipFile(sourceDir, outputPath) {
  */
 function copySourceFiles(srcDir, destDir) {
   // 定义要排除的目录和文件
-  const excludeDirs = ['node_modules', '.git', '.github', 'out', 'pack', '.vscode', 'dist', 'build', '.idea', 'scripts', 'rwpt', 'vscode-markdown-editor', 'website'];
-  const excludeFiles = ['.gitignore', 'package.json', 'package-lock.json', '*.crx', '*.zip', '*.pem', '*.ps1', 'README.md', 'SETUP_INSTRUCTIONS.md'];
+  const excludeDirs = ['node_modules', '.git', '.github', 'out', 'pack', '.vscode', 'dist', 'build', '.idea', 'scripts', 'rwpt', 'vscode-markdown-editor', 'website', 'docs', '.trae'];
+  const excludeFiles = ['.gitignore', 'package.json', 'package-lock.json', '*.crx', '*.zip', '*.pem', '*.ps1', 'README.md', 'SETUP_INSTRUCTIONS.md', 'AGENTS.md'];
 
   // 确保目标目录存在
   if (!fs.existsSync(destDir)) {
