@@ -692,8 +692,10 @@ async function removeFromPinnedList(tabId) {
     // 保存到存储
     await chrome.storage.local.set({ pinnedTabs });
     
-    // 异步同步到服务器
-    syncQueueService.addOperation('unpinTab', { tabId }).catch(err => console.warn('Sync unpinTab failed:', err));
+    // 只有长期固定标签页的变化才同步到服务器
+    if (targetTab && targetTab.isLongTermPinned) {
+      syncQueueService.addOperation('unpinTab', { tabId }).catch(err => console.warn('Sync unpinTab failed:', err));
+    }
     
     // 确定要滚动到的标签页ID
     // 优先选择下一个标签页，如果没有则选择上一个
