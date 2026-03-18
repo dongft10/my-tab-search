@@ -3,6 +3,7 @@
  * 用于 background.js 的 importScripts
  */
 
+// 常量定义
 const SYNC_QUEUE_STORAGE_KEY = 'syncQueue';
 const SYNC_QUEUE_MAX_RETRIES = 3;
 const SYNC_QUEUE_DEBOUNCE_DELAY = 2000;
@@ -81,6 +82,72 @@ async function saveSyncQueue(queue) {
 }
 
 /**
+ * 获取操作唯一标识
+ */
+function getOperationId(item) {
+  return `${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`;
+}
+
+/**
+ * 处理队列中的操作
+ */
+async function processQueue(queue, processItem) {
+  const processedIds = [];
+  
+  for (const item of queue) {
+    try {
+      console.log('[SyncQueue] Processing operation:', item.type, item.data);
+      await processItem(item);
+      processedIds.push(getOperationId(item));
+      console.log('[SyncQueue] Operation completed:', item.type);
+    } catch (error) {
+      console.error('[SyncQueue] Process operation error:', error);
+      item.retryCount = (item.retryCount || 0) + 1;
+      if (item.retryCount >= SYNC_QUEUE_MAX_RETRIES) {
+        console.warn('[SyncQueue] Operation max retries reached, removing:', item.type);
+        processedIds.push(getOperationId(item));
+      }
+    }
+  }
+
+  const remainingQueue = queue.filter(item => 
+    !processedIds.includes(getOperationId(item))
+  );
+  
+  await saveSyncQueue(remainingQueue);
+  console.log('[SyncQueue] Queue processed, remaining:', remainingQueue.length);
+  
+  return remainingQueue;
+}
+
+/**
+ * 检查是否需要同步
+ */
+function shouldSync(queue) {
+  // 1. 如果本地队列有操作，执行同步
+  // 2. 如果本地队列为空，也执行同步以从服务器获取数据
+  if (queue.length > 0) {
+    return true; // 只要有队列就同步
+  } else {
+    // 本地队列为空，也需要同步以从服务器获取数据
+    console.log('[SyncQueue] Queue is empty, but syncing to check server data');
+    return true;
+  }
+}
+
+/**
+ * 安全的错误处理
+ */
+async function safeExecute(fn, errorMessage) {
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(`[SyncQueue] ${errorMessage}:`, error);
+    throw error;
+  }
+}
+
+/**
  * 添加操作到同步队列
  */
 async function addToSyncQueue(type, data) {
@@ -125,13 +192,7 @@ async function performSyncQueue() {
   isSyncing = true;
   try {
     const queue = await getSyncQueue();
-    if (queue.length === 0) {
-      console.log('[SyncQueue] Queue is empty, skipping sync');
-      return;
-    }
-
-    console.log('[SyncQueue] Starting sync, queue length:', queue.length);
-
+    
     const storageData = await chrome.storage.local.get(['accessToken']);
     const accessToken = storageData.accessToken;
 
@@ -139,28 +200,36 @@ async function performSyncQueue() {
       console.log('[SyncQueue] No access token, skipping sync');
       return;
     }
-
-    const processedIds = [];
-    for (const item of queue) {
+    
+    if (shouldSync(queue)) {
+      // 执行同步操作
       try {
-        await processSyncOperation(item, accessToken);
-        processedIds.push(`${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`);
+        // 无论队列中有多少 item，只执行一次完整的同步
+        await processSyncOperation({ 
+          type: 'sync', 
+          data: { tabId: queue.length > 0 ? 'queue-sync' : 'sync-check' } 
+        }, accessToken);
+        
+        // 同步成功后，清除队列中的所有操作
+        if (queue.length > 0) {
+          console.log('[SyncQueue] Sync completed, clearing queue');
+          await saveSyncQueue([]);
+          console.log('[SyncQueue] Queue cleared, processed:', queue.length, 'operations');
+        } else {
+          console.log('[SyncQueue] Sync completed, no local operations to process');
+        }
       } catch (error) {
-        console.error('[SyncQueue] Process operation error:', error);
-        item.retryCount = (item.retryCount || 0) + 1;
-        if (item.retryCount >= SYNC_QUEUE_MAX_RETRIES) {
-          console.warn('[SyncQueue] Operation max retries reached, removing:', item.type);
-          processedIds.push(`${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`);
+        console.error('[SyncQueue] Process sync error:', error);
+        
+        // 同步失败时，处理队列中的操作
+        if (queue.length > 0) {
+          await processQueue(queue, async (item) => {
+            // 这里可以添加具体的错误处理逻辑
+            throw error;
+          });
         }
       }
     }
-
-    const remainingQueue = queue.filter(item => 
-      !processedIds.includes(`${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`)
-    );
-    await saveSyncQueue(remainingQueue);
-
-    console.log('[SyncQueue] Sync completed, remaining:', remainingQueue.length);
   } catch (error) {
     console.error('[SyncQueue] Perform sync error:', error);
   } finally {
@@ -224,6 +293,73 @@ async function processSyncOperation(item, accessToken) {
     const errorText = await response.text();
     console.error('[SyncQueue] Sync failed:', response.status, errorText);
     throw new Error(`Sync failed: ${response.status}`);
+  }
+
+  // 处理服务器响应
+  const syncResult = await response.json();
+  console.log('[SyncQueue] Sync response:', syncResult);
+
+  // 提取 data 字段
+  const syncData = syncResult.data || {};
+
+  // 更新本地标签页
+  if (syncData.tabs && Array.isArray(syncData.tabs)) {
+    console.log('[SyncQueue] Updating local tabs with', syncData.tabs.length, 'tabs from server');
+    
+    // 获取当前所有标签页
+    const currentTabs = await pinnedTabsService.getPinnedTabs();
+    
+    // 分离本地的长期固定和非长期固定标签页
+    const localLongTermTabs = currentTabs.filter(tab => tab.isLongTermPinned);
+    const nonLongTermTabs = currentTabs.filter(tab => !tab.isLongTermPinned);
+    const mergedTabs = [...nonLongTermTabs]; // 保留本地非长期固定标签页
+    const localMap = new Map(localLongTermTabs.map(t => [t.url, t]));
+    
+    // 处理服务器返回的长期固定标签页，将 longTermPinnedAt 赋值给 pinnedAt
+    for (const serverTab of syncData.tabs) {
+      const localTab = localMap.get(serverTab.url);
+      
+      if (!localTab) {
+        // 服务端新增，直接添加
+        console.log('[SyncQueue] Adding new tab from server: %s', serverTab.url);
+        mergedTabs.push({
+          ...serverTab,
+          isLongTermPinned: 'true',
+          longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
+          pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString() // 使用 longTermPinnedAt 作为 pinnedAt
+        });
+      } else {
+        // 存在本地记录，保留本地的 tabId
+        console.log('[SyncQueue] Updating existing tab from server: %s', serverTab.url);
+        mergedTabs.push({
+          ...serverTab,
+          tabId: localTab.tabId, // 保留本地的 tabId
+          isLongTermPinned: 'true',
+          longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
+          pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString() // 使用 longTermPinnedAt 作为 pinnedAt
+        });
+        localMap.delete(serverTab.url);
+      }
+    }
+    
+    // 按 pinnedAt 正序排列（时间越早排在越前面）
+    mergedTabs.sort((a, b) => {
+      const dateA = a.pinnedAt ? new Date(a.pinnedAt) : new Date(0);
+      const dateB = b.pinnedAt ? new Date(b.pinnedAt) : new Date(0);
+      return dateA - dateB;
+    });
+    
+    const updatedTabs = mergedTabs;
+    
+    // 保存更新后的标签页
+    await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+    console.log('[SyncQueue] Local tabs updated successfully');
+  }
+
+  // 更新本地版本号
+  if (syncData.serverVersion) {
+    await chrome.storage.local.set({ pinnedTabsVersion: syncData.serverVersion });
+    console.log('[SyncQueue] Local version updated to:', syncData.serverVersion);
   }
 }
 

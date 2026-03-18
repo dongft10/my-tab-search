@@ -272,6 +272,12 @@ class PinnedTabsSyncService {
    */
   async syncAfterChange(tab, action) {
     try {
+      // 只有长期固定标签页的变化才触发同步
+      if (!tab || !tab.isLongTermPinned) {
+        console.log('[PinnedTabsSync] Skip sync for non-long-term-pinned tab');
+        return;
+      }
+
       // 清除之前的定时器
       if (this.syncTimer) {
         clearTimeout(this.syncTimer);
@@ -312,13 +318,14 @@ class PinnedTabsSyncService {
    */
   async mergeData(serverTabs, localTabs) {
     try {
-      // 先获取本地的长期固定 Tabs
+      // 分离本地的长期固定和非长期固定标签页
       const localLongTermTabs = localTabs.filter(t => t.isLongTermPinned);
-      const mergedTabs = [];
+      const localNonLongTermTabs = localTabs.filter(t => !t.isLongTermPinned);
+      const mergedTabs = [...localNonLongTermTabs]; // 保留本地非长期固定标签页
       const localMap = new Map(localLongTermTabs.map(t => [t.url, t]));
 
-      console.log('[PinnedTabsSync] Merging data: serverTabs=%d, localLongTermTabs=%d', 
-        serverTabs.length, localLongTermTabs.length);
+      console.log('[PinnedTabsSync] Merging data: serverTabs=%d, localLongTermTabs=%d, localNonLongTermTabs=%d', 
+        serverTabs.length, localLongTermTabs.length, localNonLongTermTabs.length);
 
       for (const serverTab of serverTabs) {
         const localTab = localMap.get(serverTab.url);
@@ -328,7 +335,8 @@ class PinnedTabsSyncService {
           console.log('[PinnedTabsSync] Adding new tab from server: %s', serverTab.url);
           mergedTabs.push({
             ...serverTab,
-            isLongTermPinned: true
+            isLongTermPinned: true,
+            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString() // 使用 longTermPinnedAt 作为 pinnedAt
           });
         } else {
           // 存在本地记录，处理冲突
@@ -336,14 +344,24 @@ class PinnedTabsSyncService {
           if (resolved.value) {
             console.log('[PinnedTabsSync] Resolved conflict for %s: %s', 
               serverTab.url, resolved.resolution);
+            // 保留本地的 tabId，确保与当前浏览器中的标签页匹配
             mergedTabs.push({
               ...resolved.value,
-              isLongTermPinned: true
+              tabId: localTab.tabId, // 保留本地的 tabId
+              isLongTermPinned: true,
+              pinnedAt: resolved.value.longTermPinnedAt || resolved.value.pinnedAt || new Date().toISOString() // 确保有 pinnedAt 字段
             });
           }
           localMap.delete(serverTab.url);
         }
       }
+
+      // 按 pinnedAt 正序排列（时间越早排在越前面）
+      mergedTabs.sort((a, b) => {
+        const dateA = a.pinnedAt ? new Date(a.pinnedAt) : new Date(0);
+        const dateB = b.pinnedAt ? new Date(b.pinnedAt) : new Date(0);
+        return dateA - dateB;
+      });
 
       // 保存合并后的数据
       await this.pinnedTabsService.savePinnedTabs(mergedTabs);

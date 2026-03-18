@@ -728,7 +728,12 @@ chrome.commands.onCommand.addListener(async (command) => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // 打开主搜索弹窗（通过 chrome.action.openPopup）
-      chrome.action.openPopup();
+      try {
+        chrome.action.openPopup();
+      } catch (error) {
+        console.warn('[background] Failed to open popup:', error.message);
+        // 如果无法打开弹窗（例如扩展图标未固定到工具栏），可以在这里添加备用方案
+      }
     } catch (error) {
       console.error('[_execute_action] Error:', error);
     }
@@ -852,7 +857,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // 打开主搜索弹窗（通过 chrome.action.openPopup）
-      chrome.action.openPopup();
+      try {
+        chrome.action.openPopup();
+      } catch (error) {
+        console.warn('[background] Failed to open popup:', error.message);
+        // 如果无法打开弹窗（例如扩展图标未固定到工具栏），可以在这里添加备用方案
+      }
       sendResponse({ success: true });
     } catch (error) {
       console.error('[background] Error opening main popup:', error);

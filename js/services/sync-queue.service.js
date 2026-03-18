@@ -6,44 +6,24 @@
 
 import authService from './auth.service.js';
 import authApi from '../api/auth.js';
+import {
+  SYNC_QUEUE_STORAGE_KEY,
+  SYNC_QUEUE_MAX_RETRIES,
+  SYNC_QUEUE_DEBOUNCE_DELAY,
+  getSyncQueue,
+  saveSyncQueue,
+  addToSyncQueue,
+  getOperationId,
+  processQueue,
+  shouldSync,
+  safeExecute
+} from './sync-queue.core.js';
 
 class SyncQueueService {
   constructor() {
-    this.storageKey = 'syncQueue';
-    this.maxRetries = 3;
-    this.retryDelay = 5000;
     this.syncTimer = null;
-    this.debounceDelay = 2000;
+    this.debounceDelay = SYNC_QUEUE_DEBOUNCE_DELAY;
     this.isSyncing = false;
-  }
-
-  /**
-   * 获取同步队列
-   * @returns {Promise<Array>} - 返回同步队列
-   */
-  async getQueue() {
-    try {
-      const data = await chrome.storage.local.get(this.storageKey);
-      return data[this.storageKey] || [];
-    } catch (error) {
-      console.error('[SyncQueue] Get queue error:', error);
-      return [];
-    }
-  }
-
-  /**
-   * 保存同步队列
-   * @param {Array} queue - 同步队列
-   * @returns {Promise} - 返回保存结果
-   */
-  async saveQueue(queue) {
-    try {
-      await chrome.storage.local.set({
-        [this.storageKey]: queue
-      });
-    } catch (error) {
-      console.error('[SyncQueue] Save queue error:', error);
-    }
   }
 
   /**
@@ -53,33 +33,7 @@ class SyncQueueService {
    * @returns {Promise} - 返回添加结果
    */
   async addOperation(type, data) {
-    try {
-      const queue = await this.getQueue();
-      
-      const normalizedTabId = String(data.tabId || '');
-      
-      const exists = queue.some(item => 
-        item.type === type && 
-        String(item.data.tabId || '') === normalizedTabId &&
-        item.status !== 'completed'
-      );
-
-      if (!exists) {
-        queue.push({
-          type,
-          data,
-          createdAt: new Date().toISOString(),
-          retryCount: 0,
-          status: 'pending'
-        });
-        await this.saveQueue(queue);
-        console.log('[SyncQueue] Added operation:', type, data);
-      }
-
-      this.scheduleSync();
-    } catch (error) {
-      console.error('[SyncQueue] Add operation error:', error);
-    }
+    await addToSyncQueue(type, data, () => this.scheduleSync());
   }
 
   /**
@@ -89,15 +43,13 @@ class SyncQueueService {
    * @returns {Promise} - 返回移除结果
    */
   async removeOperation(type, tabId) {
-    try {
-      const queue = await this.getQueue();
+    await safeExecute(async () => {
+      const queue = await getSyncQueue();
       const filtered = queue.filter(item => 
         !(item.type === type && item.data.tabId === tabId)
       );
-      await this.saveQueue(filtered);
-    } catch (error) {
-      console.error('[SyncQueue] Remove operation error:', error);
-    }
+      await saveSyncQueue(filtered);
+    }, 'Remove operation error');
   }
 
   /**
@@ -112,51 +64,37 @@ class SyncQueueService {
 
     this.isSyncing = true;
     try {
-      const queue = await this.getQueue();
-      if (queue.length === 0) {
-        console.log('[SyncQueue] Queue is empty, skipping sync');
-        return;
-      }
-      if (queue.length > 0 ){
-        // 过滤筛选出syncQueue中isLongTermPinned为true的tabs
-        queue = queue.filter(item => item.isLongTermPinned && item.isLongTermPinned === 'true');
-        if (queue.length === 0) {
-          console.log('[SyncQueue] No long term pinned tabs in queue, skipping sync');
-          return;
-        }
-      }
-      console.log('[SyncQueue] Starting sync, queue length:', queue.length);
-
+      const queue = await getSyncQueue();
+      
       const accessToken = await authService.getValidAccessToken();
 
       if (!accessToken) {
         console.log('[SyncQueue] No access token, skipping sync');
         return;
       }
-
-      const processedIds = [];
-      for (const item of queue) {
-        try {
-          console.log('[SyncQueue] Processing operation:', item.type, item.data);
-          await this.processOperation(item, accessToken);
-          processedIds.push(this.getOperationId(item));
-          console.log('[SyncQueue] Operation completed:', item.type);
-        } catch (error) {
-          console.error('[SyncQueue] Process operation error:', error);
-          item.retryCount = (item.retryCount || 0) + 1;
-          if (item.retryCount >= this.maxRetries) {
-            console.warn('[SyncQueue] Operation max retries reached, removing:', item.type);
-            processedIds.push(this.getOperationId(item));
-          }
+      
+      if (shouldSync(queue)) {
+        console.log('[SyncQueue] Starting sync');
+        
+        // 使用 pinned-tabs-sync.service.js 进行同步
+        const PinnedTabsSyncService = (await import('./pinned-tabs-sync.service.js')).default;
+        const syncService = new PinnedTabsSyncService();
+        
+        // 触发完整同步（让 sync 服务自己处理）
+        await syncService.fullSync();
+        
+        // 如果有本地队列，处理队列中的操作
+        if (queue.length > 0) {
+          await processQueue(queue, async (item) => {
+            // 已经执行了完整同步，这里可以标记操作为完成
+            console.log('[SyncQueue] Operation completed:', item.type);
+          });
+        } else {
+          console.log('[SyncQueue] Sync completed, no local operations to process');
         }
+      } else {
+        console.log('[SyncQueue] No operations to sync, skipping');
       }
-
-      const remainingQueue = queue.filter(item => 
-        !processedIds.includes(this.getOperationId(item))
-      );
-      await this.saveQueue(remainingQueue);
-
-      console.log('[SyncQueue] Sync completed, remaining:', remainingQueue.length);
     } catch (error) {
       console.error('[SyncQueue] Perform sync error:', error);
     } finally {
@@ -191,15 +129,6 @@ class SyncQueueService {
       console.warn('[SyncQueue] Sync operation failed (will retry):', item.type, error.message);
       throw error; // 抛出错误，让上层处理重试
     }
-  }
-
-  /**
-   * 获取操作唯一标识
-   * @param {object} item - 操作项
-   * @returns {string} - 返回唯一标识
-   */
-  getOperationId(item) {
-    return `${item.type}_${item.data?.tabId || 'unknown'}_${item.createdAt}`;
   }
 
   /**
@@ -243,7 +172,7 @@ class SyncQueueService {
    * @returns {Promise} - 返回清除结果
    */
   async clearQueue() {
-    await this.saveQueue([]);
+    await saveSyncQueue([]);
   }
 }
 
