@@ -6,6 +6,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <link rel="stylesheet" href="../css/popup.css" />
   <title>my-tab-search</title>
+  <script src="../js/utils/theme-init-inline.js"></script>
+  <style>
+    /* 初始背景色，防止 CSS 加载前的白屏闪烁 */
+    html {
+      background-color: #e8e9eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      html {
+        background-color: #0f0f1a;
+      }
+    }
+  </style>
 </head>
 
 <body>

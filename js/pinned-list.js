@@ -627,10 +627,10 @@ async function switchToTab(tabId) {
       return;
     }
     
-    // 标签页不存在，检查是否是长期固定的tab
+    // 标签页不存在，检查是否是长期固定的 tab
     const result = await chrome.storage.local.get('pinnedTabs');
     const pinnedTabs = result.pinnedTabs || [];
-    const targetTab = pinnedTabs.find(t => t.isLongTermPinned && t.tabId === tabId);
+    const targetTab = pinnedTabs.find(t => t.isLongTermPinned && Number(t.tabId) === Number(tabId));
     
     if (targetTab) {
       // 长期固定的tab：先查找当前浏览器中是否有相同URL的已打开标签页
@@ -676,18 +676,18 @@ async function removeFromPinnedList(tabId) {
     const result = await chrome.storage.local.get('pinnedTabs');
     let pinnedTabs = result.pinnedTabs || [];
     
-    // 检查是否是长期固定的tab，如果是则不执行移除
-    const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+    // 检查是否是长期固定的 tab，如果是则不执行移除
+    const targetTab = pinnedTabs.find(t => Number(t.tabId) === Number(tabId));
     if (targetTab && targetTab.isLongTermPinned) {
       console.log('[removeFromPinnedList] Cannot remove long-term pinned tab:', tabId);
       return;
     }
     
     // 找到要移除的标签页的索引
-    const removedIndex = pinnedTabs.findIndex(tab => tab.tabId === tabId);
+    const removedIndex = pinnedTabs.findIndex(tab => Number(tab.tabId) === Number(tabId));
     
     // 过滤掉要移除的标签页
-    pinnedTabs = pinnedTabs.filter(tab => tab.tabId !== tabId);
+    pinnedTabs = pinnedTabs.filter(tab => Number(tab.tabId) !== Number(tabId));
     
     // 保存到存储
     await chrome.storage.local.set({ pinnedTabs });
@@ -720,10 +720,10 @@ async function removeFromPinnedList(tabId) {
 // 关闭标签页并从固定列表中移除
 async function closeTabAndRemoveFromPinnedList(tabId) {
   try {
-    // 检查是否是长期固定的tab
+    // 检查是否是长期固定的 tab
     const result = await chrome.storage.local.get('pinnedTabs');
     const pinnedTabs = result.pinnedTabs || [];
-    const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+    const targetTab = pinnedTabs.find(t => Number(t.tabId) === Number(tabId));
     const isLongTermPinned = targetTab && targetTab.isLongTermPinned;
     
     // 关闭浏览器标签页（如果标签页还存在）
@@ -906,8 +906,11 @@ async function setLongTermPinned(tabId) {
     const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
     
+    // 确保 tabId 类型一致（转换为数字进行比较）
+    const targetTabId = Number(tabId);
+    
     const updatedTabs = tabs.map(t => {
-      if (t.tabId === tabId) {
+      if (Number(t.tabId) === targetTabId) {
         return {
           ...t,
           isLongTermPinned: true,
@@ -938,14 +941,17 @@ async function setLongTermPinned(tabId) {
   }
 }
 
-// 取消长期固定Tab
+// 取消长期固定 Tab
 async function cancelLongTermPinned(tabId) {
   try {
     const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
     
+    // 确保 tabId 类型一致（转换为数字进行比较）
+    const targetTabId = Number(tabId);
+    
     const updatedTabs = tabs.map(t => {
-      if (t.tabId === tabId) {
+      if (Number(t.tabId) === targetTabId) {
         return {
           ...t,
           isLongTermPinned: false,

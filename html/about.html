@@ -5,49 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>About - MyTabSearch</title>
   <link rel="stylesheet" href="../css/about.css">
+  <script src="../js/utils/theme-init-inline.js"></script>
+  <style id="initial-bg-style">
+    /* 初始背景色，防止 CSS 加载前的白屏闪烁 */
+    html, body {
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
   <style>
+    /* 默认主题 - 亮色主题 */
     :root {
       --primary: #6366f1;
       --primary-light: #818cf8;
       --secondary: #ec4899;
       --accent: #14b8a6;
       
-      --bg-primary: #0f0f1a;
-      --bg-secondary: #1a1a2e;
-      --bg-tertiary: #252540;
-      --bg-hover: #2a2a45;
-      
-      --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.7);
-      --text-muted: rgba(255, 255, 255, 0.5);
-      
-      --border-color: rgba(255, 255, 255, 0.1);
-      --border-light: rgba(255, 255, 255, 0.06);
-      
-      --card-bg: #1a1a2e;
-      --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-      
-      --btn-primary: #6366f1;
-      --btn-primary-hover: #818cf8;
-      
-      --version-bg: rgba(255, 255, 255, 0.05);
-      --shortcut-bg: rgba(99, 102, 241, 0.15);
-      --shortcut-border: rgba(99, 102, 241, 0.3);
-      --shortcut-text: #818cf8;
-
-      /* Aurora gradient for dark theme */
-      --hero-gradient: 
-          radial-gradient(120% 80% at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-          radial-gradient(120% 80% at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
-          radial-gradient(120% 80% at 50% 100%, rgba(20, 184, 166, 0.1) 0%, transparent 50%),
-          linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #252540 100%);
-      --aurora-1: rgba(99, 102, 241, 0.2);
-      --aurora-2: rgba(236, 72, 153, 0.15);
-      --aurora-3: rgba(20, 184, 166, 0.12);
-      --aurora-4: rgba(245, 158, 11, 0.1);
-    }
-
-    [data-theme="light"] {
       --bg-primary: #f8fafc;
       --bg-secondary: #ffffff;
       --bg-tertiary: #f1f5f9;
@@ -83,6 +57,82 @@
       --aurora-4: rgba(245, 158, 11, 0.1);
     }
 
+    /* 暗色主题 - 通过 data-theme 设置 */
+    [data-theme="dark"] {
+      --bg-primary: #0f0f1a;
+      --bg-secondary: #1a1a2e;
+      --bg-tertiary: #252540;
+      --bg-hover: #2a2a45;
+      
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.7);
+      --text-muted: rgba(255, 255, 255, 0.5);
+      
+      --border-color: rgba(255, 255, 255, 0.1);
+      --border-light: rgba(255, 255, 255, 0.06);
+      
+      --card-bg: #1a1a2e;
+      --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      
+      --btn-primary: #6366f1;
+      --btn-primary-hover: #818cf8;
+      
+      --version-bg: rgba(255, 255, 255, 0.05);
+      --shortcut-bg: rgba(99, 102, 241, 0.15);
+      --shortcut-border: rgba(99, 102, 241, 0.3);
+      --shortcut-text: #818cf8;
+
+      /* Aurora gradient for dark theme */
+      --hero-gradient: 
+          radial-gradient(120% 80% at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+          radial-gradient(120% 80% at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+          radial-gradient(120% 80% at 50% 100%, rgba(20, 184, 166, 0.1) 0%, transparent 50%),
+          linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #252540 100%);
+      --aurora-1: rgba(99, 102, 241, 0.2);
+      --aurora-2: rgba(236, 72, 153, 0.15);
+      --aurora-3: rgba(20, 184, 166, 0.12);
+      --aurora-4: rgba(245, 158, 11, 0.1);
+    }
+
+    /* 系统偏好暗色主题时应用暗色变量（仅当用户未设置主题时） */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg-primary: #0f0f1a;
+        --bg-secondary: #1a1a2e;
+        --bg-tertiary: #252540;
+        --bg-hover: #2a2a45;
+        
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.7);
+        --text-muted: rgba(255, 255, 255, 0.5);
+        
+        --border-color: rgba(255, 255, 255, 0.1);
+        --border-light: rgba(255, 255, 255, 0.06);
+        
+        --card-bg: #1a1a2e;
+        --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        
+        --btn-primary: #6366f1;
+        --btn-primary-hover: #818cf8;
+        
+        --version-bg: rgba(255, 255, 255, 0.05);
+        --shortcut-bg: rgba(99, 102, 241, 0.15);
+        --shortcut-border: rgba(99, 102, 241, 0.3);
+        --shortcut-text: #818cf8;
+
+        /* Aurora gradient for dark theme */
+        --hero-gradient: 
+            radial-gradient(120% 80% at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+            radial-gradient(120% 80% at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+            radial-gradient(120% 80% at 50% 100%, rgba(20, 184, 166, 0.1) 0%, transparent 50%),
+            linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #252540 100%);
+        --aurora-1: rgba(99, 102, 241, 0.2);
+        --aurora-2: rgba(236, 72, 153, 0.15);
+        --aurora-3: rgba(20, 184, 166, 0.12);
+        --aurora-4: rgba(245, 158, 11, 0.1);
+      }
+    }
+
     body {
       font-family: Arial, sans-serif;
       max-width: 600px;
@@ -112,7 +162,7 @@
       animation: aurora 8s ease-in-out infinite;
     }
 
-    [data-theme="light"] body::after {
+    [data-theme="dark"] body::after {
       animation: aurora 8s ease-in-out infinite;
     }
 

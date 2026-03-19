@@ -1,9 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   if (window.ThemeManager) {
-    // 确保默认主题已设置
-    if (!localStorage.getItem('theme')) {
-      window.ThemeManager.setTheme('light');
-    }
+    // 主题已经在 HTML 的内联脚本中初始化了
+    // 这里只需要初始化事件监听器
     window.ThemeManager.init();
   }
 });
