@@ -78,14 +78,23 @@ class ApiClient {
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+          const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+          error.status = response.status;
+          throw error;
         }
 
         return await response.json();
       } catch (error) {
         lastError = error;
-        attempt++;
         
+        // 429 (Rate Limit) 错误不重试，直接返回失败
+        if (error.status === 429) {
+          console.warn('[ApiClient] Rate limited, no retry');
+          throw error;
+        }
+        
+        // 其他错误尝试重试
+        attempt++;
         if (attempt < this.maxRetries) {
           console.warn(`Request failed, retrying (${attempt}/${this.maxRetries})...`);
           await this.delay(this.retryDelay);
