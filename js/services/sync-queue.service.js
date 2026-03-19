@@ -6,6 +6,8 @@
 
 import authService from './auth.service.js';
 import authApi from '../api/auth.js';
+import pinnedTabsService from './pinned-tabs.service.js';
+import deviceService from './device.service.js';
 import {
   SYNC_QUEUE_STORAGE_KEY,
   SYNC_QUEUE_MAX_RETRIES,
@@ -77,8 +79,8 @@ class SyncQueueService {
         console.log('[SyncQueue] Starting sync');
         
         // 使用 pinned-tabs-sync.service.js 进行同步
-        const PinnedTabsSyncService = (await import('./pinned-tabs-sync.service.js')).default;
-        const syncService = new PinnedTabsSyncService();
+        const { PinnedTabsSyncService, createPinnedTabsSyncService } = await import('./pinned-tabs-sync.service.js');
+        const syncService = createPinnedTabsSyncService(pinnedTabsService, authService, deviceService);
         
         // 触发完整同步（让 sync 服务自己处理）
         await syncService.fullSync();
@@ -116,8 +118,8 @@ class SyncQueueService {
     
     try {
       // 使用 pinned-tabs-sync.service.js 进行同步
-      const PinnedTabsSyncService = (await import('./pinned-tabs-sync.service.js')).default;
-      const syncService = new PinnedTabsSyncService();
+      const { PinnedTabsSyncService, createPinnedTabsSyncService } = await import('./pinned-tabs-sync.service.js');
+      const syncService = createPinnedTabsSyncService(pinnedTabsService, authService, deviceService);
       
       // 触发完整同步（让 sync 服务自己处理）
       await syncService.fullSync();

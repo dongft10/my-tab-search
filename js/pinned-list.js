@@ -493,7 +493,7 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       longTermBtn.addEventListener('click', async function (e) {
         e.stopPropagation();
         // 检查用户状态并处理
-        await handleLongTermPinnedClick(tab.tabId, tab.isLongTermPinned);
+        await handleLongTermPinnedClick(tab.tabId, tab.isLongTermPinned, tab);
       });
       
       // 组装展开区域（从左到右：长期固定 → 取消固定 → 关闭）
@@ -774,7 +774,7 @@ function getHostName(url) {
 }
 
 // 处理长期固定按钮点击（根据用户类型显示不同提示）
-async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
+async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned, tab) {
   try {
     // 检查是否已完成邮箱验证或OAuth登录
     const isEmailVerified = await authService.isEmailVerified();
@@ -787,6 +787,11 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       showToast(i18n.getMessage('longTermPinnedRequireVerification') || `长期固定功能需要完成邮箱验证后才能使用哦！`);
       return;
     }
+    
+    // 获取当前标签页信息
+    const result = await chrome.storage.local.get('pinnedTabs');
+    const pinnedTabs = result.pinnedTabs || [];
+    const currentTab = pinnedTabs.find(t => t.tabId === tabId);
     
     // 已完成邮箱验证的用户：根据体验期/VIP状态决定
     // 乐观模式：优先使用本地缓存，服务器异常时不影响用户操作
@@ -805,7 +810,6 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
     if (localTrialStatus && localTrialStatus.isInTrialPeriod) {
       console.log('[pinned-list] User in trial period, checking limit');
       const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
-      const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
       const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
       
       if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
@@ -814,9 +818,9 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       }
       
       if (isCurrentlyLongTermPinned) {
-        await cancelLongTermPinned(tabId);
+        await cancelLongTermPinned(tabId, currentTab);
       } else {
-        await setLongTermPinned(tabId);
+        await setLongTermPinned(tabId, currentTab);
       }
       // 后台异步刷新状态
       trialService.fetchTrialStatus().catch(err => console.warn('[pinned-list] Failed to fetch trial status:', err));
@@ -836,7 +840,6 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
     // VIP用户可以正常使用（限制100个）
     if (vipStatus && vipStatus.isVip) {
       const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
-      const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
       const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
       
       if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
@@ -845,9 +848,9 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       }
       
       if (isCurrentlyLongTermPinned) {
-        await cancelLongTermPinned(tabId);
+        await cancelLongTermPinned(tabId, currentTab);
       } else {
-        await setLongTermPinned(tabId);
+        await setLongTermPinned(tabId, currentTab);
       }
       return;
     }
@@ -858,7 +861,6 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       console.log('[pinned-list] Server error detected, using optimistic mode');
       // 检查长期固定数量，使用前端限制作为fallback（100个）
       const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
-      const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
       const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
       
       if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
@@ -867,16 +869,15 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
       }
       
       if (isCurrentlyLongTermPinned) {
-        await cancelLongTermPinned(tabId);
+        await cancelLongTermPinned(tabId, currentTab);
       } else {
-        await setLongTermPinned(tabId);
+        await setLongTermPinned(tabId, currentTab);
       }
       return;
     }
     
     // 体验期结束且非VIP的普通用户：限制5个长期固定（引导购买VIP）
     const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
-    const pinnedTabs = await chrome.storage.local.get('pinnedTabs').then(r => r.pinnedTabs || []);
     const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
     
     if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
@@ -890,9 +891,9 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
     }
     
     if (isCurrentlyLongTermPinned) {
-      await cancelLongTermPinned(tabId);
+      await cancelLongTermPinned(tabId, currentTab);
     } else {
-      await setLongTermPinned(tabId);
+      await setLongTermPinned(tabId, currentTab);
     }
   } catch (error) {
     console.error('Long term pinned error:', error);
@@ -901,13 +902,14 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned) {
 }
 
 // 设置长期固定Tab
-async function setLongTermPinned(tabId) {
+async function setLongTermPinned(tabId, tab) {
   try {
     const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
     
     const updatedTabs = tabs.map(t => {
-      if (t.tabId === tabId) {
+      // 处理 tabId 为 undefined 的情况，使用 URL 匹配
+      if (t.tabId === tabId || (tab && t.url === tab.url)) {
         return {
           ...t,
           isLongTermPinned: true,
@@ -939,13 +941,14 @@ async function setLongTermPinned(tabId) {
 }
 
 // 取消长期固定Tab
-async function cancelLongTermPinned(tabId) {
+async function cancelLongTermPinned(tabId, tab) {
   try {
     const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
     
     const updatedTabs = tabs.map(t => {
-      if (t.tabId === tabId) {
+      // 处理 tabId 为 undefined 的情况，使用 URL 匹配
+      if (t.tabId === tabId || (tab && t.url === tab.url)) {
         return {
           ...t,
           isLongTermPinned: false,

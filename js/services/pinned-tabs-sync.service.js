@@ -321,8 +321,9 @@ class PinnedTabsSyncService {
       // 分离本地的长期固定和非长期固定标签页
       const localLongTermTabs = localTabs.filter(t => t.isLongTermPinned);
       const localNonLongTermTabs = localTabs.filter(t => !t.isLongTermPinned);
-      const mergedTabs = [...localNonLongTermTabs]; // 保留本地非长期固定标签页
-      const localMap = new Map(localLongTermTabs.map(t => [t.url, t]));
+      const mergedTabs = []; // 初始化空数组，后续统一添加
+      // 使用所有本地固定标签页创建映射，避免重复添加
+      const localMap = new Map(localTabs.map(t => [t.url, t]));
 
       console.log('[PinnedTabsSync] Merging data: serverTabs=%d, localLongTermTabs=%d, localNonLongTermTabs=%d', 
         serverTabs.length, localLongTermTabs.length, localNonLongTermTabs.length);
@@ -333,8 +334,20 @@ class PinnedTabsSyncService {
         if (!localTab) {
           // 服务端新增，直接添加
           console.log('[PinnedTabsSync] Adding new tab from server: %s', serverTab.url);
+          // 尝试查找当前浏览器中是否有相同 URL 的标签页
+          let tabId = undefined;
+          try {
+            const existingTabs = await chrome.tabs.query({ url: serverTab.url });
+            if (existingTabs && existingTabs.length > 0) {
+              tabId = existingTabs[0].id;
+              console.log('[PinnedTabsSync] Found existing tab with id %d for URL %s', tabId, serverTab.url);
+            }
+          } catch (e) {
+            console.warn('[PinnedTabsSync] Failed to query existing tabs:', e);
+          }
           mergedTabs.push({
             ...serverTab,
+            tabId: tabId,
             isLongTermPinned: true,
             pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString() // 使用 longTermPinnedAt 作为 pinnedAt
           });
@@ -354,6 +367,11 @@ class PinnedTabsSyncService {
           }
           localMap.delete(serverTab.url);
         }
+      }
+
+      // 添加本地未被服务器覆盖的标签页
+      for (const [url, localTab] of localMap) {
+        mergedTabs.push(localTab);
       }
 
       // 按 pinnedAt 正序排列（时间越早排在越前面）
