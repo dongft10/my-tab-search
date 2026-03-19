@@ -5,8 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="settingsTitle">设置 - MyTabSearch</title>
   <link rel="stylesheet" href="../css/settings.css">
+  <script src="../js/utils/theme-init-inline.js"></script>
+  <style id="initial-bg-style">
+    /* 初始背景色，防止 CSS 加载前的白屏闪烁 */
+    html, body {
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
 </head>
-<body>
+
+<body style="margin: 0; padding: 0;">
   <div class="settings-container">
     <!-- 账户信息区域 -->
     <section class="settings-section" id="account-section">

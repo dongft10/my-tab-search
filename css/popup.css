@@ -1,57 +1,5 @@
+/* 默认主题变量 - 亮色主题 */
 :root {
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --secondary: #ec4899;
-  --accent: #14b8a6;
-  
-  --bg-primary: #0f0f1a;
-  --bg-secondary: #1a1a2e;
-  --bg-tertiary: #252540;
-  --bg-hover: #2a2a45;
-  --bg-selected: rgba(99, 102, 241, 0.3);
-  
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-muted: rgba(255, 255, 255, 0.5);
-  
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-light: rgba(255, 255, 255, 0.06);
-  
-  --highlight-bg: #fef08a;
-  --highlight-text: #000;
-  
-  --pinned-tab-bg: rgba(255, 165, 0, 0.2);
-  --pinned-tab-hover: rgba(255, 165, 0, 0.3);
-  --pinned-tab-selected: rgba(255, 165, 0, 0.4);
-  
-  --btn-primary: #6366f1;
-  --btn-hover: rgba(255, 255, 255, 0.1);
-  --btn-danger: #ef4444;
-  --btn-success: #22c55e;
-  
-  --scrollbar-track: rgba(255, 255, 255, 0.05);
-  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
-  
-  --toast-bg: #1f1f3a;
-  --toast-text: #ffffff;
-
-  /* Aurora gradient for dark theme */
-  --hero-gradient: 
-      radial-gradient(120% 80% at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-      radial-gradient(120% 80% at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
-      radial-gradient(120% 80% at 50% 100%, rgba(20, 184, 166, 0.1) 0%, transparent 50%),
-      linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #252540 100%);
-  --aurora-1: rgba(99, 102, 241, 0.2);
-  --aurora-2: rgba(236, 72, 153, 0.15);
-  --aurora-3: rgba(20, 184, 166, 0.12);
-  --aurora-4: rgba(245, 158, 11, 0.1);
-}
-
-[data-theme="light"] {
   --primary: #6366f1;
   --primary-light: #818cf8;
   --secondary: #ec4899;
@@ -103,6 +51,108 @@
   --aurora-4: rgba(245, 158, 11, 0.1);
 }
 
+/* 暗色主题变量 - 通过 data-theme 或系统偏好设置 */
+[data-theme="dark"] {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --secondary: #ec4899;
+  --accent: #14b8a6;
+  
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: #252540;
+  --bg-hover: #2a2a45;
+  --bg-selected: rgba(99, 102, 241, 0.3);
+  
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.06);
+  
+  --pinned-tab-bg: rgba(255, 165, 0, 0.2);
+  --pinned-tab-hover: rgba(255, 165, 0, 0.3);
+  --pinned-tab-selected: rgba(255, 165, 0, 0.4);
+  
+  --btn-primary: #6366f1;
+  --btn-hover: rgba(255, 255, 255, 0.1);
+  --btn-success: #22c55e;
+  
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  
+  --empty-color: rgba(255, 255, 255, 0.5);
+  --empty-icon-opacity: 0.5;
+
+  /* Aurora gradient for dark theme */
+  --hero-gradient: 
+      radial-gradient(120% 80% at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+      radial-gradient(120% 80% at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+      radial-gradient(120% 80% at 50% 100%, rgba(20, 184, 166, 0.1) 0%, transparent 50%),
+      linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #252540 100%);
+  --aurora-1: rgba(99, 102, 241, 0.2);
+  --aurora-2: rgba(236, 72, 153, 0.15);
+  --aurora-3: rgba(20, 184, 166, 0.12);
+  --aurora-4: rgba(245, 158, 11, 0.1);
+}
+
+/* 系统偏好暗色主题时应用暗色变量（仅当用户未设置主题时） */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --primary: #6366f1;
+    --primary-light: #818cf8;
+    --secondary: #ec4899;
+    --accent: #14b8a6;
+    
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a2e;
+    --bg-tertiary: #252540;
+    --bg-hover: #2a2a45;
+    --bg-selected: rgba(99, 102, 241, 0.3);
+    
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.5);
+    
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-light: rgba(255, 255, 255, 0.06);
+    
+    --pinned-tab-bg: rgba(255, 165, 0, 0.2);
+    --pinned-tab-hover: rgba(255, 165, 0, 0.3);
+    --pinned-tab-selected: rgba(255, 165, 0, 0.4);
+    
+    --btn-primary: #6366f1;
+    --btn-hover: rgba(255, 255, 255, 0.1);
+    --btn-success: #22c55e;
+    
+    --scrollbar-track: rgba(255, 255, 255, 0.05);
+    --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+    
+    --empty-color: rgba(255, 255, 255, 0.5);
+    --empty-icon-opacity: 0.5;
+
+    /* Aurora gradient for dark theme */
+    --hero-gradient: 
+        radial-gradient(120% 80% at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+        radial-gradient(120% 80% at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+        radial-gradient(120% 80% at 50% 100%, rgba(20, 184, 166, 0.1) 0%, transparent 50%),
+        linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #252540 100%);
+    --aurora-1: rgba(99, 102, 241, 0.2);
+    --aurora-2: rgba(236, 72, 153, 0.15);
+    --aurora-3: rgba(20, 184, 166, 0.12);
+    --aurora-4: rgba(245, 158, 11, 0.1);
+  }
+}
+
 body {
   width: 400px;
   /*min-height: 600px;*/
@@ -143,7 +193,7 @@ body::after {
   animation: aurora 8s ease-in-out infinite;
 }
 
-[data-theme="light"] body::after {
+[data-theme="dark"] body::after {
   animation: aurora 8s ease-in-out infinite;
 }
 
