@@ -791,7 +791,8 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned, tab) 
     // 获取当前标签页信息
     const result = await chrome.storage.local.get('pinnedTabs');
     const pinnedTabs = result.pinnedTabs || [];
-    const currentTab = pinnedTabs.find(t => t.tabId === tabId);
+    // 优先使用 URL 匹配（服务器同步的tab没有有效tabId，tabId可能为undefined）
+    const currentTab = pinnedTabs.find(t => (tab && t.url === tab.url) || (tabId !== undefined && t.tabId === tabId));
     
     // 已完成邮箱验证的用户：根据体验期/VIP状态决定
     // 乐观模式：优先使用本地缓存，服务器异常时不影响用户操作
@@ -908,8 +909,9 @@ async function setLongTermPinned(tabId, tab) {
     const tabs = result.pinnedTabs || [];
     
     const updatedTabs = tabs.map(t => {
-      // 处理 tabId 为 undefined 的情况，使用 URL 匹配
-      if (t.tabId === tabId || (tab && t.url === tab.url)) {
+      // 优先使用 URL 匹配（服务器同步的tab没有有效tabId，tabId可能为undefined）
+      // tabId 仅在有效时才用于匹配，避免 undefined === undefined 误匹配所有 tab
+      if ((tab && t.url === tab.url) || (tabId !== undefined && t.tabId === tabId)) {
         return {
           ...t,
           isLongTermPinned: true,
@@ -921,10 +923,12 @@ async function setLongTermPinned(tabId, tab) {
     
     await chrome.storage.local.set({ pinnedTabs: updatedTabs });
     
-    // 异步同步到服务器（仅在 tabId 存在时）
-    if (tabId) {
+    // 异步同步到服务器（携带 tabId 用于队列去重，url 用于实际标识）
+    const syncUrl = (tab && tab.url) || updatedTabs.find(t => (tabId !== undefined && t.tabId === tabId))?.url;
+    if (syncUrl) {
       syncQueueService.addOperation('updateTab', {
-        tabId,
+        tabId: tabId || 'url:' + syncUrl,
+        url: syncUrl,
         isLongTermPinned: true,
         longTermPinnedAt: new Date().toISOString()
       }).catch(err => console.warn('Sync updateTab failed:', err));
@@ -947,8 +951,9 @@ async function cancelLongTermPinned(tabId, tab) {
     const tabs = result.pinnedTabs || [];
     
     const updatedTabs = tabs.map(t => {
-      // 处理 tabId 为 undefined 的情况，使用 URL 匹配
-      if (t.tabId === tabId || (tab && t.url === tab.url)) {
+      // 优先使用 URL 匹配（服务器同步的tab没有有效tabId，tabId可能为undefined）
+      // tabId 仅在有效时才用于匹配，避免 undefined === undefined 误匹配所有 tab
+      if ((tab && t.url === tab.url) || (tabId !== undefined && t.tabId === tabId)) {
         return {
           ...t,
           isLongTermPinned: false,
@@ -960,10 +965,12 @@ async function cancelLongTermPinned(tabId, tab) {
     
     await chrome.storage.local.set({ pinnedTabs: updatedTabs });
     
-    // 异步同步到服务器（仅在 tabId 存在时）
-    if (tabId) {
+    // 异步同步到服务器（携带 tabId 用于队列去重，url 用于实际标识）
+    const syncUrl = (tab && tab.url) || updatedTabs.find(t => (tabId !== undefined && t.tabId === tabId))?.url;
+    if (syncUrl) {
       syncQueueService.addOperation('updateTab', {
-        tabId,
+        tabId: tabId || 'url:' + syncUrl,
+        url: syncUrl,
         isLongTermPinned: false,
         longTermPinnedAt: null
       }).catch(err => console.warn('Sync updateTab failed:', err));
