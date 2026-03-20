@@ -116,9 +116,45 @@ body {
 }
 
 .verify-section {
+  position: relative;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #eee;
+}
+
+.verify-modal {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 100;
+}
+
+.btn-close-modal {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.btn-close-modal:hover {
+  background: #f0f0f0;
+  color: #666;
 }
 
 .hint {

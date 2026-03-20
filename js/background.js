@@ -998,6 +998,14 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     return true;
   }
+
+  if (message.action === 'syncQueueAddOperation') {
+    console.log('[background] Received syncQueueAddOperation:', message.type, message.data);
+    if (self.SyncQueueService) {
+      self.SyncQueueService.scheduleSync && self.SyncQueueService.scheduleSync(2000);
+    }
+    return false;
+  }
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {

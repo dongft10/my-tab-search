@@ -529,11 +529,13 @@ async function checkUserEligibilityForAdvancedMode() {
 }
 
 // 处理登录 - 显示登录弹窗
-function handleLogin() {
+async function handleLogin() {
   const modal = document.getElementById('login-modal');
   if (modal) {
     modal.style.display = 'flex';
   }
+  // 恢复验证码倒计时状态
+  await restoreLoginResendCountdown();
 }
 
 // 关闭登录弹窗
@@ -543,11 +545,23 @@ function closeLoginModal() {
     modal.style.display = 'none';
   }
   // 重置表单
-  document.getElementById('login-email-input').value = '';
+  const emailInput = document.getElementById('login-email-input');
+  const btnSendCode = document.getElementById('login-btn-send-code');
+  if (emailInput) {
+    emailInput.value = '';
+    emailInput.disabled = false;
+  }
+  if (btnSendCode) {
+    btnSendCode.style.display = 'block';
+    btnSendCode.disabled = false;
+  }
   document.getElementById('login-code-input').value = '';
   document.getElementById('login-verify-section').style.display = 'none';
   document.getElementById('login-status-message').textContent = '';
   document.getElementById('login-status-message').className = 'status-message';
+
+  // 清除 storage 中的倒计时状态
+  chrome.storage.local.remove([LOGIN_RESEND_COOLDOWN_KEY, LOGIN_RESEND_EMAIL_KEY]);
 }
 
 // 设置登录弹窗事件
@@ -604,6 +618,9 @@ function setupLoginModalEvents() {
 // 登录弹窗 - 发送验证码
 let loginResendTimer = null;
 let loginResendSeconds = 0;
+const LOGIN_RESEND_COOLDOWN = 60;
+const LOGIN_RESEND_COOLDOWN_KEY = 'verificationCodeLastSent';
+const LOGIN_RESEND_EMAIL_KEY = 'verificationCodeLastEmail';
 
 async function handleLoginSendCode() {
   const emailInput = document.getElementById('login-email-input');
@@ -634,7 +651,7 @@ async function handleLoginSendCode() {
       document.getElementById('login-verify-section').style.display = 'block';
       btnSendCode.style.display = 'none';
       emailInput.disabled = true;
-      startLoginResendCountdown();
+      startLoginResendCountdown(email);
     } else {
       showLoginMessage(response.msg || '发送失败', 'error');
       btnSendCode.disabled = false;
@@ -648,21 +665,29 @@ async function handleLoginSendCode() {
   }
 }
 
-function startLoginResendCountdown() {
-  loginResendSeconds = 60;
+function startLoginResendCountdown(email = null) {
+  loginResendSeconds = LOGIN_RESEND_COOLDOWN;
+
+  // 持久化倒计时状态到 storage
+  const now = Date.now();
+  chrome.storage.local.set({
+    [LOGIN_RESEND_COOLDOWN_KEY]: now,
+    [LOGIN_RESEND_EMAIL_KEY]: email
+  });
+
   const btnResendCode = document.getElementById('login-btn-resend-code');
-  
+
   if (btnResendCode) {
     btnResendCode.style.display = 'inline-block';
     updateLoginResendButton();
   }
-  
+
   if (loginResendTimer) clearInterval(loginResendTimer);
-  
+
   loginResendTimer = setInterval(() => {
     loginResendSeconds--;
     updateLoginResendButton();
-    
+
     if (loginResendSeconds <= 0) {
       clearInterval(loginResendTimer);
       loginResendTimer = null;
@@ -670,8 +695,47 @@ function startLoginResendCountdown() {
         btnResendCode.disabled = false;
         btnResendCode.textContent = '重新发送';
       }
+      // 清除 storage 中的倒计时状态
+      chrome.storage.local.remove([LOGIN_RESEND_COOLDOWN_KEY, LOGIN_RESEND_EMAIL_KEY]);
     }
   }, 1000);
+}
+
+// 恢复登录倒计时状态
+async function restoreLoginResendCountdown() {
+  try {
+    const result = await chrome.storage.local.get([LOGIN_RESEND_COOLDOWN_KEY, LOGIN_RESEND_EMAIL_KEY]);
+    const lastSent = result[LOGIN_RESEND_COOLDOWN_KEY];
+    const lastEmail = result[LOGIN_RESEND_EMAIL_KEY];
+
+    if (lastSent) {
+      const elapsed = (Date.now() - lastSent) / 1000;
+      const remaining = LOGIN_RESEND_COOLDOWN - Math.floor(elapsed);
+
+      if (remaining > 0) {
+        loginResendSeconds = remaining;
+
+        // 恢复邮箱
+        const emailInput = document.getElementById('login-email-input');
+        const verifySection = document.getElementById('login-verify-section');
+        const btnSendCode = document.getElementById('login-btn-send-code');
+
+        if (lastEmail && emailInput) {
+          emailInput.value = lastEmail;
+          emailInput.disabled = true;
+        }
+        if (btnSendCode) btnSendCode.style.display = 'none';
+        if (verifySection) verifySection.style.display = 'block';
+
+        startLoginResendCountdown(lastEmail);
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error('[settings] restoreLoginResendCountdown error:', error);
+    return false;
+  }
 }
 
 function updateLoginResendButton() {

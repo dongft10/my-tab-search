@@ -151,6 +151,7 @@ async function safeExecute(fn, errorMessage) {
  * 添加操作到同步队列
  */
 async function addToSyncQueue(type, data) {
+  console.log('[SyncQueue] addToSyncQueue called:', type, data);
   try {
     const queue = await getSyncQueue();
     
@@ -184,6 +185,7 @@ async function addToSyncQueue(type, data) {
  * 执行同步
  */
 async function performSyncQueue() {
+  console.log('[SyncQueue] performSyncQueue called');
   if (isSyncing) {
     console.log('[SyncQueue] Sync already in progress, skipping');
     return;
@@ -302,6 +304,58 @@ async function processSyncOperation(item, accessToken) {
   // 提取 data 字段
   const syncData = syncResult.data || {};
 
+  // ===== 新增：处理版本落后 =====
+  if (syncData.needsPull) {
+    console.log('[SyncQueue] Server has newer data, pulling first, version:', syncData.serverVersion);
+
+    // 更新本地数据为服务端返回的 tabs
+    if (syncData.tabs && Array.isArray(syncData.tabs)) {
+      const currentTabs = await pinnedTabsService.getPinnedTabs();
+      const localLongTermTabs = currentTabs.filter(tab => tab.isLongTermPinned);
+      const nonLongTermTabs = currentTabs.filter(tab => !tab.isLongTermPinned);
+      const mergedTabs = [...nonLongTermTabs];
+      const localLongTermMap = new Map(localLongTermTabs.map(t => [t.url, t]));
+
+      for (const serverTab of syncData.tabs) {
+        const localTab = localLongTermMap.get(serverTab.url);
+        if (!localTab) {
+          mergedTabs.push({
+            ...serverTab,
+            isLongTermPinned: true,
+            longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
+            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
+          });
+        } else {
+          mergedTabs.push({
+            ...serverTab,
+            tabId: localTab.tabId,
+            isLongTermPinned: true,
+            longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
+            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
+          });
+        }
+      }
+
+      mergedTabs.sort((a, b) => {
+        const dateA = a.pinnedAt ? new Date(a.pinnedAt) : new Date(0);
+        const dateB = b.pinnedAt ? new Date(b.pinnedAt) : new Date(0);
+        return dateA - dateB;
+      });
+
+      await chrome.storage.local.set({ pinnedTabs: mergedTabs });
+    }
+
+    // 更新本地版本号
+    if (syncData.serverVersion) {
+      await chrome.storage.local.set({ pinnedTabsVersion: syncData.serverVersion });
+    }
+
+    // 不抛出错误，直接返回
+    // 需要拉取数据后，下次自然会重新触发同步
+    return;
+  }
+  // ===== 处理结束 =====
+
   // 更新本地标签页
   if (syncData.tabs && Array.isArray(syncData.tabs)) {
     console.log('[SyncQueue] Updating local tabs with', syncData.tabs.length, 'tabs from server');
@@ -373,6 +427,7 @@ async function processSyncOperation(item, accessToken) {
  * 安排同步任务（带防抖）
  */
 function scheduleSync(delay = 0) {
+  console.log('[SyncQueue] scheduleSync called with delay:', delay);
   if (syncTimer) {
     clearTimeout(syncTimer);
   }
@@ -406,5 +461,6 @@ function startPeriodicSync(interval = 60000) {
 self.SyncQueueService = {
   addOperation: addToSyncQueue,
   startPeriodicSync,
-  performSync: performSyncQueue
+  performSync: performSyncQueue,
+  scheduleSync
 };
