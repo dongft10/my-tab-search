@@ -258,7 +258,7 @@ async function processSyncOperation(item, accessToken) {
   const localTabs = await pinnedTabsService.getPinnedTabs();
   const localVersion = await getLocalVersion();
 
-  // 筛选出长期固定的 tabs（必须有 isLongTermPinned 和 longTermPinnedAt）
+  // 筛选出长期固定的 tabs
   const longTermTabs = localTabs
     .filter(tab => tab.isLongTermPinned && tab.longTermPinnedAt)
     .map(tab => ({
@@ -312,35 +312,41 @@ async function processSyncOperation(item, accessToken) {
     // 分离本地的长期固定和非长期固定标签页
     const localLongTermTabs = currentTabs.filter(tab => tab.isLongTermPinned);
     const nonLongTermTabs = currentTabs.filter(tab => !tab.isLongTermPinned);
-    const mergedTabs = [...nonLongTermTabs]; // 保留本地非长期固定标签页
-    const localMap = new Map(localLongTermTabs.map(t => [t.url, t]));
     
-    // 处理服务器返回的长期固定标签页，将 longTermPinnedAt 赋值给 pinnedAt
+    // 以服务端返回的 tabs 为权威的长期固定列表
+    // 服务端已做了冲突解决，返回的是最终应存在的长期固定 tabs
+    const mergedTabs = [...nonLongTermTabs]; // 保留本地非长期固定标签页
+    const localLongTermMap = new Map(localLongTermTabs.map(t => [t.url, t]));
+    
+    // 处理服务器返回的长期固定标签页
     for (const serverTab of syncData.tabs) {
-      const localTab = localMap.get(serverTab.url);
+      const localTab = localLongTermMap.get(serverTab.url);
       
       if (!localTab) {
         // 服务端新增，直接添加
         console.log('[SyncQueue] Adding new tab from server: %s', serverTab.url);
         mergedTabs.push({
           ...serverTab,
-          isLongTermPinned: 'true',
+          isLongTermPinned: true,
           longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
-          pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString() // 使用 longTermPinnedAt 作为 pinnedAt
+          pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
         });
       } else {
-        // 存在本地记录，保留本地的 tabId
-        console.log('[SyncQueue] Updating existing tab from server: %s', serverTab.url);
+        // 存在本地记录，保留本地的 tabId，其余字段以服务端为准
+        console.log('[SyncQueue] Merging tab from server: %s', serverTab.url);
         mergedTabs.push({
           ...serverTab,
           tabId: localTab.tabId, // 保留本地的 tabId
-          isLongTermPinned: 'true',
+          isLongTermPinned: true,
           longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
-          pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString() // 使用 longTermPinnedAt 作为 pinnedAt
+          pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
         });
-        localMap.delete(serverTab.url);
+        localLongTermMap.delete(serverTab.url);
       }
     }
+    
+    // 注意：localLongTermMap 中剩余的本地 tabs 不再加入 mergedTabs
+    // 因为服务端返回的列表是权威来源，不在服务端列表中的 tab 已被用户取消长期固定
     
     // 按 pinnedAt 正序排列（时间越早排在越前面）
     mergedTabs.sort((a, b) => {
