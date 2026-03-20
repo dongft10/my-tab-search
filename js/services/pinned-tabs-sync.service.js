@@ -5,6 +5,8 @@
  * 包括：同步初始化、定期检查、冲突处理、重试机制
  */
 
+import { API_CONFIG, getApiUrl } from '../config.js';
+
 class PinnedTabsSyncService {
   constructor(pinnedTabsService, authService, deviceService) {
     this.pinnedTabsService = pinnedTabsService;
@@ -109,7 +111,7 @@ class PinnedTabsSyncService {
   async checkTrialEnabled() {
     try {
       const token = await this.authService.getAccessToken();
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/system/trial`, {
+      const response = await fetch(getApiUrl('/system/trial'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -401,10 +403,14 @@ class PinnedTabsSyncService {
       console.log('[PinnedTabsSync] Client wins for %s (localTime=%s, serverTime=%s)', 
         localTab.url, localTab.longTermPinnedAt, serverTab.longTermPinnedAt);
       return { value: localTab, resolution: 'client_wins' };
-    } else {
+    } else if (localTime < serverTime) {
       console.log('[PinnedTabsSync] Server wins for %s (localTime=%s, serverTime=%s)', 
         localTab.url, localTab.longTermPinnedAt, serverTab.longTermPinnedAt);
       return { value: serverTab, resolution: 'server_wins' };
+    } else {
+      // 时间戳相同，数据一致，保留本地数据（含 tabId 等本地字段）
+      console.log('[PinnedTabsSync] No conflict for %s (timestamps equal)', localTab.url);
+      return { value: localTab, resolution: 'equal' };
     }
   }
 
@@ -415,7 +421,7 @@ class PinnedTabsSyncService {
     const token = await this.authService.getAccessToken();
     const deviceId = data.deviceId;
 
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/pinned-tabs/sync`, {
+    const response = await fetch(getApiUrl('/pinned-tabs/sync'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -451,7 +457,7 @@ class PinnedTabsSyncService {
       return { needsSync: false, serverVersion: 0 };
     }
 
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/pinned-tabs/sync/check`, {
+    const response = await fetch(getApiUrl('/pinned-tabs/sync/check'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
