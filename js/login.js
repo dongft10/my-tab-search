@@ -9,6 +9,8 @@ const elements = {
   emailInput: document.getElementById('email-input'),
   btnSendCode: document.getElementById('btn-send-code'),
   verifySection: document.getElementById('verify-section'),
+  verifyModal: document.getElementById('verify-modal'),
+  btnCloseModal: document.getElementById('btn-close-modal'),
   codeInput: document.getElementById('code-input'),
   btnVerify: document.getElementById('btn-verify'),
   btnResendCode: document.getElementById('btn-resend-code'),
@@ -69,6 +71,8 @@ async function refreshOriginalSettingsPage() {
 let resendTimer = null;
 let resendSeconds = 0;
 const RESEND_COOLDOWN = 60; // 秒（前端显示60s，后端限制55s）
+const RESEND_COOLDOWN_KEY = 'verificationCodeLastSent'; // storage key
+const RESEND_EMAIL_KEY = 'verificationCodeLastEmail'; // storage key for email
 
 // 来源 tab ID（用于登录成功后刷新原页面）
 let sourceTabId = null;
@@ -88,6 +92,7 @@ let authApi, authService, i18n, featureLimitService;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('[login] DOMContentLoaded fired');
   try {
     const modules = await loadModules();
     authApi = modules.authApi;
@@ -115,7 +120,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   
   setupEventListeners();
-  
+
+  // 恢复验证码倒计时状态（如果还在倒计时内）
+  await restoreResendCountdown();
+
   // 解析 URL 参数，获取来源 tab ID
   try {
     const urlParams = new URLSearchParams(window.location.search);
@@ -168,6 +176,36 @@ function setupEventListeners() {
   if (elements.btnResendCode) {
     elements.btnResendCode.addEventListener('click', handleSendCode);
   }
+  if (elements.btnCloseModal) {
+    elements.btnCloseModal.addEventListener('click', () => {
+      // 关闭验证界面，恢复到输入邮箱状态
+      if (elements.verifySection) {
+        elements.verifySection.style.display = 'none';
+      }
+      if (elements.btnSendCode) {
+        elements.btnSendCode.style.display = 'block';
+        elements.btnSendCode.disabled = false;
+      }
+      if (elements.emailInput) {
+        elements.emailInput.disabled = false;
+        elements.emailInput.value = '';
+      }
+      if (elements.codeInput) {
+        elements.codeInput.value = '';
+      }
+      // 清除 storage 中的倒计时状态
+      chrome.storage.local.remove([RESEND_COOLDOWN_KEY, RESEND_EMAIL_KEY]);
+    });
+  }
+  // 阻止点击 verify-modal 外部时关闭 popup（Chrome popup 默认行为）
+  if (elements.verifySection) {
+    elements.verifySection.addEventListener('click', (e) => {
+      // 如果点击的是 verify-section 本身（遮罩层），不关闭
+      if (e.target === elements.verifySection) {
+        e.stopPropagation();
+      }
+    });
+  }
   if (elements.btnGoogle) {
     elements.btnGoogle.addEventListener('click', () => handleOAuth('google'));
   }
@@ -181,6 +219,7 @@ function setupEventListeners() {
 
 // 发送验证码
 async function handleSendCode() {
+  console.log('[login] handleSendCode called, resendSeconds=', resendSeconds);
   const email = elements.emailInput.value.trim();
   
   if (!email || !isValidEmail(email)) {
@@ -230,7 +269,7 @@ async function handleSendCode() {
     if (emailInput) emailInput.disabled = true;
     
     // 启动倒计时
-    startResendCountdown();
+    startResendCountdown(email);
   } catch (error) {
     console.error('Send code error:', error);
     // 显示错误消息
@@ -246,22 +285,31 @@ async function handleSendCode() {
 }
 
 // 启动重新发送倒计时
-function startResendCountdown() {
+function startResendCountdown(email = null) {
+  console.log('[login] startResendCountdown called with email=', email);
   resendSeconds = RESEND_COOLDOWN;
-  
+
+  // 持久化倒计时状态到 storage
+  const now = Date.now();
+  chrome.storage.local.set({
+    [RESEND_COOLDOWN_KEY]: now,
+    [RESEND_EMAIL_KEY]: email
+  });
+  console.log('[login] startResendCountdown: saved to storage, time=', now);
+
   if (elements.btnResendCode) {
     elements.btnResendCode.style.display = 'inline-block';
     updateResendButtonText();
   }
-  
+
   if (resendTimer) {
     clearInterval(resendTimer);
   }
-  
+
   resendTimer = setInterval(() => {
     resendSeconds--;
     updateResendButtonText();
-    
+
     if (resendSeconds <= 0) {
       clearInterval(resendTimer);
       resendTimer = null;
@@ -269,8 +317,61 @@ function startResendCountdown() {
         elements.btnResendCode.disabled = false;
         elements.btnResendCode.textContent = i18n?.getMessage('resendCode') || 'Resend code';
       }
+      // 清除 storage 中的倒计时状态
+      chrome.storage.local.remove([RESEND_COOLDOWN_KEY, RESEND_EMAIL_KEY]);
     }
   }, 1000);
+}
+
+// 恢复倒计时状态（从 storage 中读取）
+async function restoreResendCountdown() {
+  console.log('[login] restoreResendCountdown called');
+  console.log('[login] restoreResendCountdown: elements.verifySection =', elements.verifySection);
+  console.log('[login] restoreResendCountdown: elements.emailInput =', elements.emailInput);
+  try {
+    const result = await chrome.storage.local.get([RESEND_COOLDOWN_KEY, RESEND_EMAIL_KEY]);
+    const lastSent = result[RESEND_COOLDOWN_KEY];
+    const lastEmail = result[RESEND_EMAIL_KEY];
+    console.log('[login] restoreResendCountdown: lastSent=', lastSent, 'lastEmail=', lastEmail);
+
+    if (lastSent) {
+      const elapsed = (Date.now() - lastSent) / 1000;
+      const remaining = RESEND_COOLDOWN - Math.floor(elapsed);
+      console.log('[login] restoreResendCountdown: elapsed=', elapsed, 'remaining=', remaining);
+
+      if (remaining > 0) {
+        // 仍在倒计时内，恢复状态
+        resendSeconds = remaining;
+
+        // 如果有保存的邮箱，自动填充并显示验证界面
+        if (lastEmail && elements.emailInput) {
+          elements.emailInput.value = lastEmail;
+          elements.emailInput.disabled = true;
+        }
+
+        if (elements.btnSendCode) {
+          elements.btnSendCode.style.display = 'none';
+        }
+
+        if (elements.verifySection) {
+          console.log('[login] restoreResendCountdown: setting verifySection display to block');
+          elements.verifySection.style.display = 'block';
+          console.log('[login] restoreResendCountdown: verifySection.style.display now =', elements.verifySection.style.display);
+        } else {
+          console.log('[login] restoreResendCountdown: elements.verifySection is null!');
+        }
+
+        // 启动倒计时
+        startResendCountdown(lastEmail);
+        return true;
+      }
+    }
+    console.log('[login] restoreResendCountdown: no active countdown found');
+    return false;
+  } catch (error) {
+    console.error('[login] restoreResendCountdown error:', error);
+    return false;
+  }
 }
 
 // 更新重新发送按钮文字

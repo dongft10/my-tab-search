@@ -35,7 +35,19 @@ class SyncQueueService {
    * @returns {Promise} - 返回添加结果
    */
   async addOperation(type, data) {
-    await addToSyncQueue(type, data, () => this.scheduleSync());
+    console.log('[SyncQueue] addOperation called:', type, data);
+
+    await addToSyncQueue(type, data);
+
+    console.log('[SyncQueue] Notifying background to schedule sync');
+    chrome.runtime.sendMessage({
+      action: 'syncQueueAddOperation',
+      type: type,
+      data: data
+    }).catch(err => {
+      console.warn('[SyncQueue] Failed to notify background:', err);
+      this.scheduleSync();
+    });
   }
 
   /**
@@ -59,6 +71,7 @@ class SyncQueueService {
    * @returns {Promise} - 返回同步结果
    */
   async performSync() {
+    console.log('[SyncQueue] performSync called');
     if (this.isSyncing) {
       console.log('[SyncQueue] Sync already in progress, skipping');
       return;
@@ -138,14 +151,15 @@ class SyncQueueService {
    * @param {number} delay - 延迟时间（毫秒）
    */
   scheduleSync(delay = 0) {
+    console.log('[SyncQueue] scheduleSync called with delay:', delay);
     if (this.syncTimer) {
       clearTimeout(this.syncTimer);
       console.log('[SyncQueue] Cleared previous sync timer');
     }
-    
+
     const actualDelay = delay || this.debounceDelay;
     console.log('[SyncQueue] Scheduling sync in %dms', actualDelay);
-    
+
     this.syncTimer = setTimeout(() => {
       console.log('[SyncQueue] Timer triggered, starting sync...');
       this.performSync();

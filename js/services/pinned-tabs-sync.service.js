@@ -237,6 +237,26 @@ class PinnedTabsSyncService {
       });
 
       if (response.success) {
+        // ===== 新增：处理版本落后的情况 =====
+        if (response.needsPull) {
+          console.log('[PinnedTabsSync] Server has newer data (version %d), pulling first',
+            response.serverVersion);
+
+          // 用服务端返回的 tabs 合并本地数据
+          await this.mergeData(response.tabs, localTabs);
+
+          // 更新本地版本号
+          await this.setLocalVersion(response.serverVersion);
+
+          // 记录同步时间
+          await this.updateLastSyncTime(Date.now());
+
+          // 重新触发一次完整同步（此时本地版本已是最新的）
+          console.log('[PinnedTabsSync] Re-triggering sync after pull');
+          return await this.fullSync();
+        }
+        // ===== 处理结束 =====
+
         // 合并数据
         await this.mergeData(response.tabs, localTabs);
         

@@ -22,11 +22,14 @@
       <button class="btn-primary" id="btn-send-code" data-i18n="sendVerificationCode">发送验证码</button>
       
       <div class="verify-section" id="verify-section" style="display: none;">
-        <div class="input-group">
-          <input type="text" id="code-input" data-i18n-placeholder="enterCodePlaceholder" placeholder="请输入验证码" maxlength="6">
+        <div class="verify-modal" id="verify-modal">
+          <button class="btn-close-modal" id="btn-close-modal" title="关闭">&times;</button>
+          <div class="input-group">
+            <input type="text" id="code-input" data-i18n-placeholder="enterCodePlaceholder" placeholder="请输入验证码" maxlength="6">
+          </div>
+          <button class="btn-primary" id="btn-verify" data-i18n="verifyAndLogin">验证并登录</button>
+          <button class="btn-secondary" id="btn-resend-code" style="display: none;" disabled>重新发送 (60s)</button>
         </div>
-        <button class="btn-primary" id="btn-verify" data-i18n="verifyAndLogin">验证并登录</button>
-        <button class="btn-secondary" id="btn-resend-code" style="display: none;" disabled>重新发送 (60s)</button>
       </div>
       
       <p class="hint" id="email-hint"></p>
