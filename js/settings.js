@@ -559,9 +559,7 @@ function closeLoginModal() {
   document.getElementById('login-verify-section').style.display = 'none';
   document.getElementById('login-status-message').textContent = '';
   document.getElementById('login-status-message').className = 'status-message';
-
-  // 清除 storage 中的倒计时状态
-  chrome.storage.local.remove([LOGIN_RESEND_COOLDOWN_KEY, LOGIN_RESEND_EMAIL_KEY]);
+  // 注意：不清除 storage 中的倒计时状态，因为 popup 关闭后仍需恢复
 }
 
 // 设置登录弹窗事件
@@ -571,13 +569,33 @@ function setupLoginModalEvents() {
   if (closeBtn) {
     closeBtn.addEventListener('click', closeLoginModal);
   }
-  
-  // 点击遮罩关闭
+
+  // 点击遮罩不关闭（阻止事件冒泡）
+  const modal = document.getElementById('login-modal');
   const overlay = document.querySelector('#login-modal .login-modal-overlay');
-  if (overlay) {
-    overlay.addEventListener('click', closeLoginModal);
+  const content = document.querySelector('#login-modal .login-modal-content');
+
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      // 如果点击的是 modal 本身（遮罩层），不关闭
+      if (e.target === modal) {
+        e.stopPropagation();
+      }
+    });
   }
-  
+
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  if (content) {
+    content.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
+
   // 发送验证码
   const btnSendCode = document.getElementById('login-btn-send-code');
   if (btnSendCode) {
@@ -665,15 +683,22 @@ async function handleLoginSendCode() {
   }
 }
 
-function startLoginResendCountdown(email = null) {
-  loginResendSeconds = LOGIN_RESEND_COOLDOWN;
+function startLoginResendCountdown(email = null, initialSeconds = null, updateStorage = true) {
+  // 如果没有传入初始秒数，使用默认值
+  if (initialSeconds === null) {
+    initialSeconds = LOGIN_RESEND_COOLDOWN;
+  }
+  loginResendSeconds = initialSeconds;
 
-  // 持久化倒计时状态到 storage
-  const now = Date.now();
-  chrome.storage.local.set({
-    [LOGIN_RESEND_COOLDOWN_KEY]: now,
-    [LOGIN_RESEND_EMAIL_KEY]: email
-  });
+  // 只有在真正发送验证码时才更新 storage（用于防止60秒内重复发送）
+  // 恢复倒计时时不更新 storage，避免时间计算错误
+  if (updateStorage) {
+    const now = Date.now();
+    chrome.storage.local.set({
+      [LOGIN_RESEND_COOLDOWN_KEY]: now,
+      [LOGIN_RESEND_EMAIL_KEY]: email
+    });
+  }
 
   const btnResendCode = document.getElementById('login-btn-resend-code');
 
@@ -703,14 +728,18 @@ function startLoginResendCountdown(email = null) {
 
 // 恢复登录倒计时状态
 async function restoreLoginResendCountdown() {
+  console.log('[settings] restoreLoginResendCountdown called');
   try {
     const result = await chrome.storage.local.get([LOGIN_RESEND_COOLDOWN_KEY, LOGIN_RESEND_EMAIL_KEY]);
     const lastSent = result[LOGIN_RESEND_COOLDOWN_KEY];
     const lastEmail = result[LOGIN_RESEND_EMAIL_KEY];
+    console.log('[settings] restoreLoginResendCountdown: lastSent=', lastSent, 'lastEmail=', lastEmail);
 
     if (lastSent) {
       const elapsed = (Date.now() - lastSent) / 1000;
       const remaining = LOGIN_RESEND_COOLDOWN - Math.floor(elapsed);
+      console.log('[settings] restoreLoginResendCountdown: now=', Date.now(), 'lastSent=', lastSent, 'elapsed=', elapsed, 'remaining=', remaining);
+      console.log('[settings] restoreLoginResendCountdown: should restore?', remaining > 0);
 
       if (remaining > 0) {
         loginResendSeconds = remaining;
@@ -719,17 +748,59 @@ async function restoreLoginResendCountdown() {
         const emailInput = document.getElementById('login-email-input');
         const verifySection = document.getElementById('login-verify-section');
         const btnSendCode = document.getElementById('login-btn-send-code');
+        console.log('[settings] restoreLoginResendCountdown: elements found', { emailInput, verifySection, btnSendCode });
 
         if (lastEmail && emailInput) {
           emailInput.value = lastEmail;
           emailInput.disabled = true;
         }
         if (btnSendCode) btnSendCode.style.display = 'none';
-        if (verifySection) verifySection.style.display = 'block';
+        if (verifySection) {
+          console.log('[settings] restoreLoginResendCountdown: setting verifySection display to block');
+          verifySection.style.display = 'block';
+        } else {
+          console.log('[settings] restoreLoginResendCountdown: verifySection is null!');
+        }
 
-        startLoginResendCountdown(lastEmail);
+        startLoginResendCountdown(lastEmail, remaining, false);
         return true;
+      } else {
+        // 倒计时已结束，清除 storage 并重置 UI
+        chrome.storage.local.remove([LOGIN_RESEND_COOLDOWN_KEY, LOGIN_RESEND_EMAIL_KEY]);
+        // 重置发送按钮
+        const btnSendCode = document.getElementById('login-btn-send-code');
+        if (btnSendCode) {
+          btnSendCode.disabled = false;
+          btnSendCode.textContent = '发送验证码';
+          btnSendCode.style.display = 'block';
+        }
+        // 隐藏验证界面
+        const verifySection = document.getElementById('login-verify-section');
+        if (verifySection) {
+          verifySection.style.display = 'none';
+        }
+        // 启用邮箱输入框
+        const emailInput = document.getElementById('login-email-input');
+        if (emailInput) {
+          emailInput.disabled = false;
+        }
+        return false;
       }
+    }
+    // 没有发送记录，重置 UI
+    const btnSendCode = document.getElementById('login-btn-send-code');
+    if (btnSendCode) {
+      btnSendCode.disabled = false;
+      btnSendCode.textContent = '发送验证码';
+      btnSendCode.style.display = 'block';
+    }
+    const verifySection = document.getElementById('login-verify-section');
+    if (verifySection) {
+      verifySection.style.display = 'none';
+    }
+    const emailInput = document.getElementById('login-email-input');
+    if (emailInput) {
+      emailInput.disabled = false;
     }
     return false;
   } catch (error) {
