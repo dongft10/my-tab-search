@@ -177,17 +177,17 @@ body::after {
 .settings-section {
   background: var(--card-bg);
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
   box-shadow: var(--card-shadow);
 }
 
 .settings-section h2 {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -199,8 +199,8 @@ body::after {
 .account-info {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .account-avatar {
@@ -248,8 +248,8 @@ body::after {
 .vip-status {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
   color: #fff;
 }
 
@@ -257,7 +257,7 @@ body::after {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .vip-info:last-child {
@@ -265,12 +265,12 @@ body::after {
 }
 
 .vip-label {
-  font-size: 14px;
+  font-size: 13px;
   opacity: 0.9;
 }
 
 .vip-value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -279,15 +279,15 @@ body::after {
   background: var(--trial-bg);
   border: 1px solid var(--trial-border);
   border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
 }
 
 .trial-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .trial-info:last-child {
@@ -586,16 +586,14 @@ body::after {
 /* 主题设置样式 */
 .theme-options {
   display: flex;
-  gap: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
 }
 
 .theme-option {
   cursor: pointer;
   flex: 1;
-  min-width: 180px;
-  max-width: 220px;
+  width: 50%;
 }
 
 .theme-option input[type="radio"] {
@@ -604,11 +602,12 @@ body::after {
 
 .theme-card {
   border: 2px solid var(--border-light);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 8px;
+  padding: 8px;
   text-align: center;
   transition: all 0.3s ease;
   background: var(--bg-secondary);
+  height: 100%;
 }
 
 .theme-option input[type="radio"]:checked + .theme-card {
@@ -623,10 +622,10 @@ body::after {
 
 .theme-preview {
   width: 100%;
-  height: 80px;
-  border-radius: 8px;
+  height: 48px;
+  border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .theme-dark-preview {
@@ -899,4 +898,78 @@ body::after {
 
 .login-modal-content .status-info {
   color: #3b82f6;
+}
+
+/* 快捷键设置模块样式 */
+.shortcuts-section {
+  padding: 14px 16px;
+}
+
+.shortcut-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shortcut-tip {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.shortcut-setup {
+  text-align: center;
+}
+
+.btn-setup-shortcut {
+  padding: 8px 20px;
+  background: var(--btn-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-setup-shortcut:hover {
+  background: var(--btn-primary-hover);
+}
+
+/* 账户信息按钮 */
+.account-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.account-info .btn-login,
+.account-info .btn-logout {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.account-info .btn-login {
+  background: var(--btn-primary);
+  color: #fff;
+  border: none;
+}
+
+.account-info .btn-login:hover {
+  background: var(--btn-primary-hover);
+}
+
+.account-info .btn-logout {
+  background: transparent;
+  color: var(--btn-danger);
+  border: 1px solid var(--btn-danger);
+}
+
+.account-info .btn-logout:hover {
+  background: var(--btn-danger);
+  color: #fff;
 }

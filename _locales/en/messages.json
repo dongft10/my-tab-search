@@ -646,5 +646,29 @@
   "searchMatchModeDeveloping": {
     "message": "Feature under development, stay tuned!",
     "description": "Message when feature is developing"
+  },
+  "keyboardShortcutsTitle": {
+    "message": "Keyboard Shortcuts",
+    "description": "Keyboard shortcuts settings section title"
+  },
+  "shortcutTipText": {
+    "message": "Due to Chrome's security restrictions, keyboard shortcuts need to be manually confirmed after installation. Click the button below to set up:",
+    "description": "Tip text for keyboard shortcuts setup"
+  },
+  "shortcutOpenPopupKeyDesc": {
+    "message": "Open tab search",
+    "description": "Open popup shortcut description"
+  },
+  "shortcutPrevTabKeyDesc": {
+    "message": "Switch to previous tab",
+    "description": "Previous tab shortcut description"
+  },
+  "shortcutPinnedTabsKeyDesc": {
+    "message": "Open pinned tabs",
+    "description": "Open pinned tabs shortcut description"
+  },
+  "setupShortcutsBtn": {
+    "message": "Set Up Shortcuts",
+    "description": "Setup shortcuts button text"
   }
 }

@@ -646,5 +646,29 @@
   "searchMatchModeDeveloping": {
     "message": "功能持续迭代开发中，敬请期待！",
     "description": "Message when feature is developing"
+  },
+  "keyboardShortcutsTitle": {
+    "message": "快捷键设置",
+    "description": "Keyboard shortcuts settings section title"
+  },
+  "shortcutTipText": {
+    "message": "由于Chrome的安全限制，安装后需要手动确认键盘快捷键。点击下方按钮进行设置：",
+    "description": "Tip text for keyboard shortcuts setup"
+  },
+  "shortcutOpenPopupKeyDesc": {
+    "message": "Open tab search",
+    "description": "Open popup shortcut description"
+  },
+  "shortcutPrevTabKeyDesc": {
+    "message": "Switch to previous tab",
+    "description": "Previous tab shortcut description"
+  },
+  "shortcutPinnedTabsKeyDesc": {
+    "message": "Open pinned tabs",
+    "description": "Open pinned tabs shortcut description"
+  },
+  "setupShortcutsBtn": {
+    "message": "设置快捷键",
+    "description": "Setup shortcuts button text"
   }
 }

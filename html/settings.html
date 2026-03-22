@@ -22,8 +22,12 @@
               <span class="vip-badge" id="vip-badge" style="display: none;">VIP</span>
             </p>
           </div>
+          <div class="account-actions">
+            <button class="btn-login" id="btn-login" style="display: none;" data-i18n="loginOrRegister">登录 / 注册</button>
+            <button class="btn-logout" id="btn-logout" style="display: none;" data-i18n="logout">退出登录</button>
+          </div>
         </div>
-        
+
         <!-- VIP 状态显示 -->
         <div class="vip-status" id="vip-status" style="display: none;">
           <div class="vip-info">
@@ -46,19 +50,17 @@
             延展体验期
           </button>
         </div>
-        
-        <div class="account-actions">
-          <button class="btn-login" id="btn-login" style="display: none;" data-i18n="loginOrRegister">登录 / 注册</button>
-          <button class="btn-logout" id="btn-logout" style="display: none;" data-i18n="logout">退出登录</button>
-        </div>
       </div>
     </section>
 
-    <!-- 设备管理区域 -->
-    <section class="settings-section" id="devices-section">
-      <h2 data-i18n="deviceManagementTitle">设备管理</h2>
-      <div class="device-list" id="device-list">
-        <p class="loading-text" data-i18n="loadingText">加载中...</p>
+    <!-- 快捷键设置 -->
+    <section class="settings-section shortcuts-section">
+      <h2 data-i18n="keyboardShortcutsTitle">快捷键设置</h2>
+      <div class="shortcut-content">
+        <p class="shortcut-tip" data-i18n="shortcutTipText">Due to Chrome security restrictions, keyboard shortcuts need to be manually confirmed after installation. Click the button below to set up:</p>
+        <div class="shortcut-setup">
+          <button class="btn-setup-shortcut" id="btn-setup-shortcut" data-i18n="setupShortcutsBtn">设置快捷键</button>
+        </div>
       </div>
     </section>
 

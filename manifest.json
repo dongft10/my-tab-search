@@ -36,14 +36,11 @@
         "manifest.json",
         "html/about.html",
         "html/settings.html",
-        "html/login.html",
         "html/auth.html",
         "js/about.js",
         "js/settings.js",
-        "js/login.js",
         "js/auth-callback.js",
-        "js/i18n.js",
-        "css/login.css"
+        "js/i18n.js"
       ],
       "matches": [
         "<all_urls>"
