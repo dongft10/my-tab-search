@@ -381,9 +381,22 @@ async function loadTrialStatus() {
           // 显示"体验期剩余:"标签
           elements.trialLabel.style.display = 'inline';
           elements.trialDaysLeft.textContent = `${trialData.trialDaysLeft} days`;
-          
+
           if (trialData.canExtend) {
             elements.btnExtendTrial.style.display = 'block';
+            // 只有体验期剩余 <= 3 天或已结束，才启用延展按钮
+            const isNearExpiry = trialData.trialDaysLeft <= 3;
+            elements.btnExtendTrial.disabled = !isNearExpiry;
+          }
+        } else {
+          // 体验期已结束，显示结束状态
+          elements.trialStatus.style.display = 'block';
+          elements.trialLabel.style.display = 'inline';
+          elements.trialDaysLeft.textContent = i18n.getMessage('trialExpired') || '体验期已结束';
+          // 体验期结束，允许申请延展
+          if (trialData.canExtend) {
+            elements.btnExtendTrial.style.display = 'block';
+            elements.btnExtendTrial.disabled = false;
           }
         }
       }
