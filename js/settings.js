@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   i18n.addListener(applyI18n);
 });
 
-function applyI18n() {
+async function applyI18n() {
   // Update page title
   document.title = i18n.getMessage('settingsTitle') || 'Settings - MyTabSearch';
 
@@ -194,6 +194,10 @@ function applyI18n() {
       }
     }
   }
+
+  // Reload trial status to update dynamic content like "X days"
+  // Note: Not awaiting to avoid blocking UI
+  loadTrialStatus();
 }
 
 async function loadSettings() {
