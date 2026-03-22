@@ -998,7 +998,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
 
   if (message.action === 'syncQueueAddOperation') {
-    console.log('[background] Received syncQueueAddOperation:', message.type, message.data);
+    // console.log('[background] Received syncQueueAddOperation:', message.type, message.data);
     if (self.SyncQueueService) {
       self.SyncQueueService.scheduleSync && self.SyncQueueService.scheduleSync(2000);
     }
