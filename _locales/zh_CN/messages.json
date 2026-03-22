@@ -523,6 +523,10 @@
     "message": "延展体验期",
     "description": "Extend trial button text"
   },
+  "trialExpired": {
+    "message": "体验期已结束",
+    "description": "Trial expired status text"
+  },
   "promotionPeriodMessage": {
     "message": "✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄",
     "description": "Message shown during promotion period when trial is disabled"
