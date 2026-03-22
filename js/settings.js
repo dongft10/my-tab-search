@@ -31,8 +31,8 @@ const elements = {
   btnExtendTrial: document.getElementById('btn-extend-trial'),
   btnLogin: document.getElementById('btn-login'),
   btnLogout: document.getElementById('btn-logout'),
-  devicesSection: document.getElementById('devices-section'),
-  deviceList: document.getElementById('device-list'),
+  shortcutsSection: document.getElementById('shortcuts-section'),
+  btnSetupShortcut: document.getElementById('btn-setup-shortcut'),
   languageSelect: document.getElementById('language-select'),
   searchMatchModeSelect: document.getElementById('search-match-mode'),
   appVersion: document.getElementById('app-version'),
@@ -53,7 +53,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 监听 OAuth 登录成功消息
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'AUTH_SUCCESS') {
-      console.log('[Settings] OAuth login success, refreshing page...');
       // 重新加载页面以更新 Token
       setTimeout(() => {
         window.location.reload();
@@ -76,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function applyI18n() {
   // Update page title
   document.title = i18n.getMessage('settingsTitle') || 'Settings - MyTabSearch';
-  
+
   // Update section titles - 动态获取data-i18n属性
   const sections = document.querySelectorAll('.settings-section h2');
   sections.forEach((section) => {
@@ -88,16 +87,112 @@ function applyI18n() {
       }
     }
   });
-  
+
   // Update other text elements
   const logoutBtn = document.getElementById('btn-logout');
   if (logoutBtn) {
     logoutBtn.textContent = i18n.getMessage('logout') || '退出登录';
   }
-  
+
   const languageLabel = document.querySelector('.setting-item label');
   if (languageLabel) {
     languageLabel.textContent = i18n.getMessage('selectLanguage') || '选择语言:';
+  }
+
+  // Update shortcut button text
+  const shortcutBtn = document.getElementById('btn-setup-shortcut');
+  if (shortcutBtn) {
+    const i18nKey = shortcutBtn.getAttribute('data-i18n');
+    if (i18nKey) {
+      const message = i18n.getMessage(i18nKey);
+      if (message) {
+        shortcutBtn.textContent = message;
+      }
+    }
+  }
+
+  // Update shortcut tip text
+  const shortcutTip = document.querySelector('.shortcut-tip');
+  if (shortcutTip) {
+    const i18nKey = shortcutTip.getAttribute('data-i18n');
+    if (i18nKey) {
+      const message = i18n.getMessage(i18nKey);
+      if (message) {
+        shortcutTip.textContent = message;
+      }
+    }
+  }
+
+  // Update trial status elements
+  const trialLabel = document.getElementById('trial-label');
+  if (trialLabel) {
+    const i18nKey = trialLabel.getAttribute('data-i18n');
+    if (i18nKey) {
+      const message = i18n.getMessage(i18nKey);
+      if (message) {
+        trialLabel.textContent = message;
+      }
+    }
+  }
+
+  const btnExtendTrial = document.getElementById('btn-extend-trial');
+  if (btnExtendTrial) {
+    const i18nKey = btnExtendTrial.getAttribute('data-i18n');
+    if (i18nKey) {
+      const message = i18n.getMessage(i18nKey);
+      if (message) {
+        btnExtendTrial.textContent = message;
+      }
+    }
+  }
+
+  // Update theme labels
+  const themeLabels = document.querySelectorAll('.theme-label');
+  themeLabels.forEach((label) => {
+    const i18nKey = label.getAttribute('data-i18n');
+    if (i18nKey) {
+      const message = i18n.getMessage(i18nKey);
+      if (message) {
+        label.textContent = message;
+      }
+    }
+  });
+
+  // Update search match mode elements
+  const searchMatchLabelText = document.querySelector('label[for="search-match-mode"]');
+  if (searchMatchLabelText) {
+    const i18nKey = searchMatchLabelText.getAttribute('data-i18n');
+    if (i18nKey) {
+      const message = i18n.getMessage(i18nKey);
+      if (message) {
+        searchMatchLabelText.textContent = message;
+      }
+    }
+  }
+
+  // Update select options
+  const selectElements = document.querySelectorAll('select');
+  selectElements.forEach((select) => {
+    select.querySelectorAll('option').forEach((option) => {
+      const i18nKey = option.getAttribute('data-i18n');
+      if (i18nKey) {
+        const message = i18n.getMessage(i18nKey);
+        if (message) {
+          option.textContent = message;
+        }
+      }
+    });
+  });
+
+  const settingDesc = document.querySelector('.setting-description');
+  if (settingDesc) {
+    const i18nKey = settingDesc.getAttribute('data-i18n');
+    if (i18nKey) {
+      const message = i18n.getMessage(i18nKey);
+      if (message) {
+        settingDesc.textContent = message;
+      }
+    }
   }
 }
 
@@ -132,8 +227,8 @@ async function loadSettings() {
     // 加载体验期状态
     await loadTrialStatus();
     
-    // 加载设备列表
-    await loadDevices();
+    // 加载设备列表（已移除，替换为快捷键设置）
+    // await loadDevices();
   } catch (error) {
     console.error('Load settings error:', error);
     showMessage(i18n.getMessage('loadSettingsFailed') || 'Failed to load settings', 'error');
@@ -298,89 +393,6 @@ async function loadTrialStatus() {
   }
 }
 
-// 加载设备列表
-async function loadDevices() {
-  try {
-    let accessToken = null;
-    let userId = null;
-    
-    // 获取用户信息和 token
-    try {
-      const userInfo = await authService.getUserInfo();
-      userId = userInfo[authService.storageKey.userId];
-      accessToken = await authService.getValidAccessToken();
-    } catch (e) {
-      // 未登录，隐藏设备管理区块
-      if (elements.devicesSection) {
-        elements.devicesSection.style.display = 'none';
-      }
-      return;
-    }
-    
-    // 检查是否有设备管理权限（需要同时有 userId 和 accessToken）
-    if (!userId || !accessToken) {
-      if (elements.devicesSection) {
-        elements.devicesSection.style.display = 'none';
-      }
-      return;
-    }
-    
-    // 已登录，显示设备管理区块
-    if (elements.devicesSection) {
-      elements.devicesSection.style.display = 'block';
-    }
-
-    try {
-      // 获取当前设备的 deviceId
-      const userInfo = await authService.getUserInfo();
-      const currentDeviceId = userInfo?.[authService.storageKey.deviceId];
-
-      if (!currentDeviceId) {
-        elements.deviceList.innerHTML = '<p class="empty-text">暂无设备信息</p>';
-        return;
-      }
-
-      // 触发feature-limit请求以更新设备最后活跃时间
-      try {
-        await featureLimitService.getFeatureLimit('pinnedTabs', true, false);
-      } catch (e) {
-        console.error('Refresh feature limits error:', e);
-      }
-
-      // 获取当前设备详情
-      const devices = await deviceService.getDevices();
-      const currentDevice = devices?.find(d => d.id === currentDeviceId);
-
-      if (!currentDevice) {
-        elements.deviceList.innerHTML = '<p class="empty-text">当前设备信息不可用</p>';
-        return;
-      }
-
-      // 只渲染当前设备
-      elements.deviceList.innerHTML = `
-        <div class="device-item" data-device-id="${escapeHtml(currentDevice.id)}">
-          <div class="device-icon">${getDeviceIcon(currentDevice.browserName)}</div>
-          <div class="device-info">
-            <div class="device-name">
-              ${escapeHtml(currentDevice.browserName || 'Unknown')} ${escapeHtml(currentDevice.browserVersion || '')}
-              <span class="current-badge">当前设备</span>
-            </div>
-            <div class="device-meta">
-              <span class="device-platform">${escapeHtml(currentDevice.platform || 'Unknown')}</span>
-              <span class="device-last-seen">最后活跃：${formatLastSeen(currentDevice.lastSeenAt)}</span>
-            </div>
-          </div>
-        </div>
-      `;
-    } catch (e) {
-      console.error('Load devices API error:', e);
-      elements.deviceList.innerHTML = '<p class="error-text">加载设备失败</p>';
-    }
-  } catch (error) {
-    console.error('Load devices error:', error);
-    elements.deviceList.innerHTML = '<p class="error-text">加载设备失败</p>';
-  }
-}
 
 // 转义 HTML 防止 XSS 攻击
 function escapeHtml(text) {
@@ -388,42 +400,6 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
-}
-
-// 获取设备图标
-function getDeviceIcon(browserName) {
-  const icons = {
-    'Chrome': '🌐',
-    'Firefox': '🦊',
-    'Safari': '🧭',
-    'Edge': '🌊',
-    'Opera': '🔴'
-  };
-  return icons[browserName] || '💻';
-}
-
-// 格式化最后活跃时间
-function formatLastSeen(lastSeenAt) {
-  if (!lastSeenAt) return '未知';
-  
-  try {
-    const date = new Date(lastSeenAt);
-    const now = new Date();
-    const diff = now - date;
-    
-    // 小于1分钟
-    if (diff < 60000) return '刚刚';
-    // 小于1小时
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-    // 小于1天
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-    // 小于30天
-    if (diff < 2592000000) return `${Math.floor(diff / 86400000)}天前`;
-    
-    return date.toLocaleDateString();
-  } catch (error) {
-    return '未知';
-  }
 }
 
 // 设置事件监听
@@ -444,6 +420,10 @@ function setupEventListeners() {
   
   if (elements.btnExtendTrial) {
     elements.btnExtendTrial.addEventListener('click', handleExtendTrial);
+  }
+
+  if (elements.btnSetupShortcut) {
+    elements.btnSetupShortcut.addEventListener('click', handleSetupShortcut);
   }
   
   const saveButton = document.getElementById('save-settings');
@@ -728,27 +708,21 @@ function startLoginResendCountdown(email = null, initialSeconds = null, updateSt
 
 // 恢复登录倒计时状态
 async function restoreLoginResendCountdown() {
-  console.log('[settings] restoreLoginResendCountdown called');
   try {
     const result = await chrome.storage.local.get([LOGIN_RESEND_COOLDOWN_KEY, LOGIN_RESEND_EMAIL_KEY]);
     const lastSent = result[LOGIN_RESEND_COOLDOWN_KEY];
     const lastEmail = result[LOGIN_RESEND_EMAIL_KEY];
-    console.log('[settings] restoreLoginResendCountdown: lastSent=', lastSent, 'lastEmail=', lastEmail);
 
     if (lastSent) {
       const elapsed = (Date.now() - lastSent) / 1000;
       const remaining = LOGIN_RESEND_COOLDOWN - Math.floor(elapsed);
-      console.log('[settings] restoreLoginResendCountdown: now=', Date.now(), 'lastSent=', lastSent, 'elapsed=', elapsed, 'remaining=', remaining);
-      console.log('[settings] restoreLoginResendCountdown: should restore?', remaining > 0);
 
       if (remaining > 0) {
         loginResendSeconds = remaining;
 
-        // 恢复邮箱
         const emailInput = document.getElementById('login-email-input');
         const verifySection = document.getElementById('login-verify-section');
         const btnSendCode = document.getElementById('login-btn-send-code');
-        console.log('[settings] restoreLoginResendCountdown: elements found', { emailInput, verifySection, btnSendCode });
 
         if (lastEmail && emailInput) {
           emailInput.value = lastEmail;
@@ -756,30 +730,23 @@ async function restoreLoginResendCountdown() {
         }
         if (btnSendCode) btnSendCode.style.display = 'none';
         if (verifySection) {
-          console.log('[settings] restoreLoginResendCountdown: setting verifySection display to block');
           verifySection.style.display = 'block';
-        } else {
-          console.log('[settings] restoreLoginResendCountdown: verifySection is null!');
         }
 
         startLoginResendCountdown(lastEmail, remaining, false);
         return true;
       } else {
-        // 倒计时已结束，清除 storage 并重置 UI
         chrome.storage.local.remove([LOGIN_RESEND_COOLDOWN_KEY, LOGIN_RESEND_EMAIL_KEY]);
-        // 重置发送按钮
         const btnSendCode = document.getElementById('login-btn-send-code');
         if (btnSendCode) {
           btnSendCode.disabled = false;
           btnSendCode.textContent = '发送验证码';
           btnSendCode.style.display = 'block';
         }
-        // 隐藏验证界面
         const verifySection = document.getElementById('login-verify-section');
         if (verifySection) {
           verifySection.style.display = 'none';
         }
-        // 启用邮箱输入框
         const emailInput = document.getElementById('login-email-input');
         if (emailInput) {
           emailInput.disabled = false;
@@ -787,7 +754,6 @@ async function restoreLoginResendCountdown() {
         return false;
       }
     }
-    // 没有发送记录，重置 UI
     const btnSendCode = document.getElementById('login-btn-send-code');
     if (btnSendCode) {
       btnSendCode.disabled = false;
@@ -804,7 +770,6 @@ async function restoreLoginResendCountdown() {
     }
     return false;
   } catch (error) {
-    console.error('[settings] restoreLoginResendCountdown error:', error);
     return false;
   }
 }
@@ -891,7 +856,6 @@ async function handleLoginVerify() {
         loadAccountInfo();
         loadVipStatus();
         loadTrialStatus();
-        loadDevices();
         showMessage('登录成功！', 'success');
       }, 1000);
     } else {
@@ -1073,6 +1037,16 @@ async function handleExtendTrial() {
   } finally {
     elements.btnExtendTrial.disabled = false;
     elements.btnExtendTrial.textContent = 'Extend Trial';
+  }
+}
+
+// 处理快捷键设置按钮点击
+function handleSetupShortcut() {
+  try {
+    chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+  } catch (error) {
+    console.error('Open shortcuts page error:', error);
+    showMessage('Failed to open shortcuts page', 'error');
   }
 }
 

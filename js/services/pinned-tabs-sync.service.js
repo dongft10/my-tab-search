@@ -1,8 +1,6 @@
 /**
  * Pinned Tabs 跨设备同步服务
- * 
  * 负责 VIP 用户长期固定标签页的跨设备同步
- * 包括：同步初始化、定期检查、冲突处理、重试机制
  */
 
 import { API_CONFIG, getApiUrl } from '../config.js';
@@ -12,92 +10,55 @@ class PinnedTabsSyncService {
     this.pinnedTabsService = pinnedTabsService;
     this.authService = authService;
     this.deviceService = deviceService;
-    
-    // 同步配置
-    this.SYNC_INTERVAL_MS = 30 * 60 * 1000;  // 30 分钟同步间隔
-    this.CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 分钟检查间隔
-    this.DEBOUNCE_DELAY = 5000;              // 5 秒防抖延迟
-    
-    // 存储键名
+
+    this.SYNC_INTERVAL_MS = 30 * 60 * 1000;
+    this.CHECK_INTERVAL_MS = 30 * 60 * 1000;
+    this.DEBOUNCE_DELAY = 5000;
+
     this.LOCAL_VERSION_KEY = 'pinnedTabsVersion';
     this.LAST_SYNC_TIME_KEY = 'pinnedTabsLastSyncTime';
     this.SYNC_FAILURE_COUNT_KEY = 'pinnedTabsSyncFailureCount';
     this.LAST_FAILURE_TIME_KEY = 'pinnedTabsLastFailureTime';
-    
-    // 失败配置
-    this.FAILURE_THRESHOLD = 5;              // 失败阈值
-    this.COOLDOWN_TIME = 5 * 60 * 1000;      // 5 分钟冷却时间
-    
-    // 定时器
+
+    this.FAILURE_THRESHOLD = 5;
+    this.COOLDOWN_TIME = 5 * 60 * 1000;
+
     this.syncInterval = null;
     this.syncTimer = null;
-    
-    console.log('[PinnedTabsSync] Service initialized');
   }
 
-  /**
-   * 初始化同步服务
-   */
   async initialize() {
     try {
-      // 检查是否已登录
       const isLoggedIn = await this.authService.isRegistered();
       if (!isLoggedIn) {
-        console.log('[PinnedTabsSync] User not logged in, skip initialization');
         return;
       }
 
-      // 检查用户是否有权限使用长期固定 Tab 功能
       const hasPermission = await this.checkLongTermPinnedPermission();
       if (!hasPermission) {
-        console.log('[PinnedTabsSync] User does not have permission, skip sync');
         return;
       }
 
-      console.log('[PinnedTabsSync] Initializing sync service...');
-
-      // 登录后首次同步
       await this.fullSync();
-
-      // 设置定期检查（每 30 分钟）
       this.startPeriodicCheck();
-
-      console.log('[PinnedTabsSync] Initialization completed');
     } catch (error) {
       console.error('[PinnedTabsSync] Initialization failed:', error);
     }
   }
 
-  /**
-   * 检查用户是否有权限使用长期固定 Tab 功能
-   * 优先级：trial_enabled 配置 > VIP 用户 > 邮箱验证的普通用户
-   */
   async checkLongTermPinnedPermission() {
     try {
-      // 1. 检查是否是 VIP 用户（最高优先级）
       const isVIP = await this.authService.isVIP();
       if (isVIP) {
-        console.log('[PinnedTabsSync] User is VIP, has permission');
         return true;
       }
 
-      // 2. 检查 trial_enabled 配置
       const trialEnabled = await this.checkTrialEnabled();
       if (!trialEnabled) {
-        // trial_enabled 未开启，说明是推广期
-        // 检查用户是否已完成邮箱验证
         const isEmailVerified = await this.authService.isEmailVerified();
-        if (isEmailVerified) {
-          console.log('[PinnedTabsSync] Trial period, email verified user has permission');
-          return true;
-        } else {
-          console.log('[PinnedTabsSync] Trial period, but email not verified');
-          return false;
-        }
+        return isEmailVerified;
       }
 
-      // trial_enabled 已开启，但用户不是 VIP
-      console.log('[PinnedTabsSync] Trial disabled, user is not VIP');
       return false;
     } catch (error) {
       console.error('[PinnedTabsSync] Check permission failed:', error);
@@ -105,9 +66,6 @@ class PinnedTabsSyncService {
     }
   }
 
-  /**
-   * 检查 trial_enabled 配置
-   */
   async checkTrialEnabled() {
     try {
       const token = await this.authService.getAccessToken();
@@ -119,23 +77,17 @@ class PinnedTabsSyncService {
       });
 
       if (!response.ok) {
-        console.log('[PinnedTabsSync] Get trial config failed');
         return false;
       }
 
       const result = await response.json();
-      const trialEnabled = result.data && result.data.enabled === true;
-      console.log('[PinnedTabsSync] Trial enabled:', trialEnabled);
-      return trialEnabled;
+      return result.data && result.data.enabled === true;
     } catch (error) {
       console.error('[PinnedTabsSync] Check trial enabled failed:', error);
       return false;
     }
   }
 
-  /**
-   * 启动定期检查
-   */
   startPeriodicCheck() {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
@@ -144,59 +96,40 @@ class PinnedTabsSyncService {
     this.syncInterval = setInterval(async () => {
       await this.periodicCheck();
     }, this.CHECK_INTERVAL_MS);
-
-    console.log('[PinnedTabsSync] Periodic check started (interval: 30min)');
   }
 
-  /**
-   * 停止定期检查
-   */
   stopPeriodicCheck() {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
       this.syncInterval = null;
-      console.log('[PinnedTabsSync] Periodic check stopped');
     }
   }
 
-  /**
-   * 定期检查：询问服务器是否需要同步
-   */
   async periodicCheck() {
     try {
-      // 检查是否可以同步（避免频繁失败后仍不断重试）
       const canSync = await this.canSync();
       if (!canSync) {
-        console.log('[PinnedTabsSync] In cooldown period, skip check');
         return;
       }
 
-      // 检查距离上次同步时间
       const lastSyncTime = await this.getLastSyncTime();
       const now = Date.now();
-      
+
       if (lastSyncTime && (now - lastSyncTime) < this.SYNC_INTERVAL_MS) {
-        console.log('[PinnedTabsSync] Within sync interval, skip check');
         return;
       }
 
-      // 先检测服务器是否可用
       const isServerAvailable = await this.checkServerHealth();
       if (!isServerAvailable) {
-        console.log('[PinnedTabsSync] Server unavailable, skip check');
         return;
       }
 
-      // 询问服务器是否需要同步
       const localVersion = await this.getLocalVersion();
       const response = await this.apiCheckSync(localVersion);
 
       if (response.needsSync) {
-        console.log('[PinnedTabsSync] Server has newer data (serverVersion=%d, localVersion=%d), triggering full sync', 
-          response.serverVersion, localVersion);
         await this.fullSync();
       } else {
-        console.log('[PinnedTabsSync] Version matches, no sync needed');
         await this.updateLastSyncTime(Date.now());
       }
     } catch (error) {
@@ -205,30 +138,17 @@ class PinnedTabsSyncService {
     }
   }
 
-  /**
-   * 完整同步流程
-   */
   async fullSync() {
     try {
-      console.log('[PinnedTabsSync] Starting full sync...');
-
       const deviceId = await this.getDeviceId();
       const localTabs = await this.pinnedTabsService.getPinnedTabs();
       const localVersion = await this.getLocalVersion();
-      
-      // 检查设备ID是否存在
+
       if (!deviceId) {
-        console.error('[PinnedTabsSync] Device ID not found, skipping sync');
         return;
       }
-      
-      console.log('[PinnedTabsSync] Got local tabs:', localTabs.length);
-      console.log('[PinnedTabsSync] Local tabs:', JSON.stringify(localTabs));
-      
-      const tabsToSync = this.getTabsToSync(localTabs);
 
-      console.log('[PinnedTabsSync] Sync data: deviceId=%s, version=%d, tabsCount=%d', 
-        deviceId, localVersion, tabsToSync.length);
+      const tabsToSync = this.getTabsToSync(localTabs);
 
       const response = await this.apiSync({
         deviceId,
@@ -237,48 +157,17 @@ class PinnedTabsSyncService {
       });
 
       if (response.success) {
-        // ===== 新增：处理版本落后的情况 =====
         if (response.needsPull) {
-          console.log('[PinnedTabsSync] Server has newer data (version %d), pulling first',
-            response.serverVersion);
-
-          // 用服务端返回的 tabs 合并本地数据
           await this.mergeData(response.tabs, localTabs);
-
-          // 更新本地版本号
           await this.setLocalVersion(response.serverVersion);
-
-          // 记录同步时间
           await this.updateLastSyncTime(Date.now());
-
-          // 重新触发一次完整同步（此时本地版本已是最新的）
-          console.log('[PinnedTabsSync] Re-triggering sync after pull');
           return await this.fullSync();
         }
-        // ===== 处理结束 =====
 
-        // 合并数据
         await this.mergeData(response.tabs, localTabs);
-        
-        // 更新本地版本号
         await this.setLocalVersion(response.serverVersion);
-        
-        // 记录同步时间
         await this.updateLastSyncTime(Date.now());
-        
-        // 重置失败计数
         await this.resetFailureCount();
-
-        console.log('[PinnedTabsSync] Full sync completed, new version: %d', response.serverVersion);
-
-        // 如果有冲突，记录日志
-        if (response.conflicts && response.conflicts.length > 0) {
-          console.log('[PinnedTabsSync] Conflicts resolved: %d', response.conflicts.length);
-          response.conflicts.forEach(conflict => {
-            console.log('[PinnedTabsSync]   - URL: %s, resolution: %s, reason: %s', 
-              conflict.url, conflict.resolution, conflict.reason);
-          });
-        }
       }
     } catch (error) {
       console.error('[PinnedTabsSync] Full sync failed:', error);
@@ -287,33 +176,21 @@ class PinnedTabsSyncService {
     }
   }
 
-  /**
-   * 同步数据（带防抖）
-   * @param {Object} tab - 发生变更的 tab
-   * @param {string} action - 操作类型：'add' | 'remove'
-   */
   async syncAfterChange(tab, action) {
     try {
-      // 只有长期固定标签页的变化才触发同步
       if (!tab || !tab.isLongTermPinned) {
-        console.log('[PinnedTabsSync] Skip sync for non-long-term-pinned tab');
         return;
       }
 
-      // 清除之前的定时器
       if (this.syncTimer) {
         clearTimeout(this.syncTimer);
       }
 
-      // 高优先级：取消长期固定（立即同步）
       if (action === 'remove') {
-        console.log('[PinnedTabsSync] Immediate sync for remove action');
         await this.fullSync();
         return;
       }
 
-      // 中优先级：设置长期固定（延迟 5 秒）
-      console.log('[PinnedTabsSync] Debounced sync for add action (delay: 5s)');
       this.syncTimer = setTimeout(async () => {
         await this.fullSync();
       }, this.DEBOUNCE_DELAY);
@@ -322,9 +199,6 @@ class PinnedTabsSyncService {
     }
   }
 
-  /**
-   * 获取需要同步的数据（仅长期固定 Tabs）
-   */
   getTabsToSync(tabs) {
     return tabs
       .filter(tab => tab.isLongTermPinned)
@@ -335,108 +209,76 @@ class PinnedTabsSyncService {
       }));
   }
 
-  /**
-   * 合并数据
-   */
   async mergeData(serverTabs, localTabs) {
     try {
-      // 分离本地的长期固定和非长期固定标签页
       const localLongTermTabs = localTabs.filter(t => t.isLongTermPinned);
       const localNonLongTermTabs = localTabs.filter(t => !t.isLongTermPinned);
-      const mergedTabs = []; // 初始化空数组，后续统一添加
-      // 使用所有本地固定标签页创建映射，避免重复添加
+      const mergedTabs = [];
       const localMap = new Map(localTabs.map(t => [t.url, t]));
-
-      console.log('[PinnedTabsSync] Merging data: serverTabs=%d, localLongTermTabs=%d, localNonLongTermTabs=%d', 
-        serverTabs.length, localLongTermTabs.length, localNonLongTermTabs.length);
 
       for (const serverTab of serverTabs) {
         const localTab = localMap.get(serverTab.url);
 
         if (!localTab) {
-          // 服务端新增，直接添加
-          console.log('[PinnedTabsSync] Adding new tab from server: %s', serverTab.url);
-          // 尝试查找当前浏览器中是否有相同 URL 的标签页
           let tabId = undefined;
           try {
             const existingTabs = await chrome.tabs.query({ url: serverTab.url });
             if (existingTabs && existingTabs.length > 0) {
               tabId = existingTabs[0].id;
-              console.log('[PinnedTabsSync] Found existing tab with id %d for URL %s', tabId, serverTab.url);
             }
           } catch (e) {
-            console.warn('[PinnedTabsSync] Failed to query existing tabs:', e);
+            // 忽略查询错误
           }
           mergedTabs.push({
             ...serverTab,
             tabId: tabId,
             isLongTermPinned: true,
-            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString() // 使用 longTermPinnedAt 作为 pinnedAt
+            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
           });
         } else {
-          // 存在本地记录，处理冲突
           const resolved = this.resolveConflict(localTab, serverTab);
           if (resolved.value) {
-            console.log('[PinnedTabsSync] Resolved conflict for %s: %s', 
-              serverTab.url, resolved.resolution);
-            // 保留本地的 tabId，确保与当前浏览器中的标签页匹配
             mergedTabs.push({
               ...resolved.value,
-              tabId: localTab.tabId, // 保留本地的 tabId
+              tabId: localTab.tabId,
               isLongTermPinned: true,
-              pinnedAt: resolved.value.longTermPinnedAt || resolved.value.pinnedAt || new Date().toISOString() // 确保有 pinnedAt 字段
+              pinnedAt: resolved.value.longTermPinnedAt || resolved.value.pinnedAt || new Date().toISOString()
             });
           }
           localMap.delete(serverTab.url);
         }
       }
 
-      // 添加本地未被服务器覆盖的标签页
       for (const [url, localTab] of localMap) {
         mergedTabs.push(localTab);
       }
 
-      // 按 pinnedAt 正序排列（时间越早排在越前面）
       mergedTabs.sort((a, b) => {
         const dateA = a.pinnedAt ? new Date(a.pinnedAt) : new Date(0);
         const dateB = b.pinnedAt ? new Date(b.pinnedAt) : new Date(0);
         return dateA - dateB;
       });
 
-      // 保存合并后的数据
       await this.pinnedTabsService.savePinnedTabs(mergedTabs);
-      console.log('[PinnedTabsSync] Merged data saved, total tabs: %d', mergedTabs.length);
     } catch (error) {
       console.error('[PinnedTabsSync] Merge data failed:', error);
       throw error;
     }
   }
 
-  /**
-   * 冲突解决
-   */
   resolveConflict(localTab, serverTab) {
     const localTime = new Date(localTab.longTermPinnedAt || 0);
     const serverTime = new Date(serverTab.longTermPinnedAt || 0);
-    
+
     if (localTime > serverTime) {
-      console.log('[PinnedTabsSync] Client wins for %s (localTime=%s, serverTime=%s)', 
-        localTab.url, localTab.longTermPinnedAt, serverTab.longTermPinnedAt);
       return { value: localTab, resolution: 'client_wins' };
     } else if (localTime < serverTime) {
-      console.log('[PinnedTabsSync] Server wins for %s (localTime=%s, serverTime=%s)', 
-        localTab.url, localTab.longTermPinnedAt, serverTab.longTermPinnedAt);
       return { value: serverTab, resolution: 'server_wins' };
     } else {
-      // 时间戳相同，数据一致，保留本地数据（含 tabId 等本地字段）
-      console.log('[PinnedTabsSync] No conflict for %s (timestamps equal)', localTab.url);
       return { value: localTab, resolution: 'equal' };
     }
   }
 
-  /**
-   * API: 同步接口
-   */
   async apiSync(data) {
     const token = await this.authService.getAccessToken();
     const deviceId = data.deviceId;
@@ -464,16 +306,11 @@ class PinnedTabsSyncService {
     return result.data;
   }
 
-  /**
-   * API: 检查同步接口
-   */
   async apiCheckSync(localVersion) {
     const token = await this.authService.getAccessToken();
     const deviceId = await this.getDeviceId();
 
-    // 检查设备ID是否存在
     if (!deviceId) {
-      console.error('[PinnedTabsSync] Device ID not found, skipping check sync');
       return { needsSync: false, serverVersion: 0 };
     }
 
@@ -499,9 +336,6 @@ class PinnedTabsSyncService {
     return result.data;
   }
 
-  /**
-   * 检测服务器是否可用
-   */
   async checkServerHealth() {
     try {
       const controller = new AbortController();
@@ -515,104 +349,66 @@ class PinnedTabsSyncService {
       clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
-      console.log('[PinnedTabsSync] Server health check failed:', error.message);
       return false;
     }
   }
 
-  /**
-   * 获取设备 ID
-   */
   async getDeviceId() {
     const userInfo = await this.authService.getUserInfo();
     return userInfo?.[this.authService.storageKey.deviceId];
   }
 
-  /**
-   * 获取本地版本号
-   */
   async getLocalVersion() {
     const result = await chrome.storage.local.get([this.LOCAL_VERSION_KEY]);
     return result[this.LOCAL_VERSION_KEY] || 0;
   }
 
-  /**
-   * 设置本地版本号
-   */
   async setLocalVersion(version) {
     await chrome.storage.local.set({ [this.LOCAL_VERSION_KEY]: version });
   }
 
-  /**
-   * 获取上次同步时间
-   */
   async getLastSyncTime() {
     const result = await chrome.storage.local.get([this.LAST_SYNC_TIME_KEY]);
     return result[this.LAST_SYNC_TIME_KEY] || null;
   }
 
-  /**
-   * 更新上次同步时间
-   */
   async updateLastSyncTime(timestamp) {
     await chrome.storage.local.set({ [this.LAST_SYNC_TIME_KEY]: timestamp });
   }
 
-  /**
-   * 记录同步失败
-   */
   async recordFailure() {
     const count = await this.getFailureCount() + 1;
     await chrome.storage.local.set({
       [this.SYNC_FAILURE_COUNT_KEY]: count,
       [this.LAST_FAILURE_TIME_KEY]: Date.now()
     });
-    console.log('[PinnedTabsSync] Failure recorded: count=%d', count);
   }
 
-  /**
-   * 获取失败计数
-   */
   async getFailureCount() {
     const result = await chrome.storage.local.get([this.SYNC_FAILURE_COUNT_KEY]);
     return result[this.SYNC_FAILURE_COUNT_KEY] || 0;
   }
 
-  /**
-   * 重置失败计数
-   */
   async resetFailureCount() {
     await chrome.storage.local.set({ [this.SYNC_FAILURE_COUNT_KEY]: 0 });
-    console.log('[PinnedTabsSync] Failure count reset');
   }
 
-  /**
-   * 检查是否可以同步
-   */
   async canSync() {
     const lastFailure = await this.getLastFailureTime();
     if (!lastFailure) return true;
 
-    // 如果上次失败在 5 分钟内，暂时跳过
     if (Date.now() - lastFailure < this.COOLDOWN_TIME) {
-      console.log('[PinnedTabsSync] In cooldown period (lastFailure: %dms ago)', Date.now() - lastFailure);
       return false;
     }
 
     return true;
   }
 
-  /**
-   * 获取上次失败时间
-   */
   async getLastFailureTime() {
     const result = await chrome.storage.local.get([this.LAST_FAILURE_TIME_KEY]);
     return result[this.LAST_FAILURE_TIME_KEY] || null;
   }
 
-  /**
-   * 获取同步状态
-   */
   async getSyncStatus() {
     const isOnline = navigator.onLine;
     const canSync = await this.canSync();
@@ -629,10 +425,6 @@ class PinnedTabsSyncService {
     return { status: 'normal', message: '' };
   }
 
-  /**
-   * 清除同步相关的存储数据
-   * 在用户登出时调用，确保新账号登录时不会使用旧账号的同步状态
-   */
   async clearSyncData() {
     try {
       const keysToRemove = [
@@ -642,25 +434,19 @@ class PinnedTabsSyncService {
         this.LAST_FAILURE_TIME_KEY
       ];
       await chrome.storage.local.remove(keysToRemove);
-      console.log('[PinnedTabsSync] Sync data cleared');
     } catch (error) {
       console.error('[PinnedTabsSync] Clear sync data error:', error);
     }
   }
 
-  /**
-   * 清理资源
-   */
   destroy() {
     this.stopPeriodicCheck();
     if (this.syncTimer) {
       clearTimeout(this.syncTimer);
     }
-    console.log('[PinnedTabsSync] Service destroyed');
   }
 }
 
-// 导出单例实例（需要在 background.js 中初始化）
 let pinnedTabsSyncService = null;
 
 function createPinnedTabsSyncService(pinnedTabsService, authService, deviceService) {
