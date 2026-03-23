@@ -513,7 +513,7 @@ async function checkUserEligibilityForAdvancedMode() {
     }
     
     // 检查是否在体验期
-    const trialStatus = await trialService.getLocalTrialStatus();
+    const trialStatus = await trialService.getTrialStatus();
     if (trialStatus && trialStatus.isInTrialPeriod) {
       return true;
     }

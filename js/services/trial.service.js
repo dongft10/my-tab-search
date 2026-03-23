@@ -12,6 +12,9 @@ class TrialService {
     this.storageKey = 'trialStatus';
     this.lastSyncAt = null;
     this.syncTimer = null;
+    this.pendingRequest = null;
+    this._isFetching = false;
+    this._requestTimeoutMs = 10000;
   }
 
   /**
@@ -53,10 +56,37 @@ class TrialService {
    * @returns {Promise<object>} - 返回体验期状态
    */
   async fetchTrialStatus(forceRefresh = false) {
+    if (this._isFetching) {
+      console.log('[Trial] Reusing pending request');
+      return this.pendingRequest;
+    }
+
+    this._isFetching = true;
+    const requestPromise = this._doFetchTrialStatus(forceRefresh);
+    this.pendingRequest = requestPromise;
+
+    try {
+      return await requestPromise;
+    } finally {
+      this._isFetching = false;
+      this.pendingRequest = null;
+    }
+  }
+
+  _withTimeout(promise) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), this._requestTimeoutMs)
+      )
+    ]);
+  }
+
+  async _doFetchTrialStatus(forceRefresh = false) {
     try {
       const localStatus = await this.getLocalTrialStatus();
       const cacheMaxAge = this.getCacheMaxAge();
-      
+
       // 检查缓存是否超过配置时间
       if (!forceRefresh && localStatus && localStatus.lastUpdateAt) {
         const cacheAge = Date.now() - new Date(localStatus.lastUpdateAt).getTime();
@@ -85,13 +115,13 @@ class TrialService {
       }
 
       // 缓存超过配置时间或没有缓存，从服务器获取
-      const accessToken = await authService.getValidAccessToken();
+      const accessToken = await this._withTimeout(authService.getValidAccessToken());
       if (!accessToken) {
         throw new Error('No access token');
       }
 
-      const response = await authApi.getTrialStatus(accessToken);
-      
+      const response = await this._withTimeout(authApi.getTrialStatus(accessToken));
+
       if (response.code === 0) {
         const trialData = response.data;
         await this.saveTrialStatus(trialData);
