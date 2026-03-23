@@ -15,6 +15,8 @@ class TrialService {
     this.pendingRequest = null;
     this._isFetching = false;
     this._requestTimeoutMs = 10000;
+    this._lastRefreshAt = 0;           // 上次刷新时间戳
+    this._minRefreshIntervalMs = 60000; // 最小刷新间隔 1 分钟
   }
 
   /**
@@ -125,6 +127,7 @@ class TrialService {
       if (response.code === 0) {
         const trialData = response.data;
         await this.saveTrialStatus(trialData);
+        this._lastRefreshAt = Date.now();
         console.log('[Trial] Fetched fresh status from server');
         return trialData;
       }
@@ -172,8 +175,14 @@ class TrialService {
       if (localStatus.lastUpdateAt) {
         const cacheAge = Date.now() - new Date(localStatus.lastUpdateAt).getTime();
         if (cacheAge >= cacheMaxAge) {
-          // 缓存已过期，后台刷新状态（不阻塞UI）
-          this.fetchTrialStatus(true);
+          // 缓存已过期，检查是否在冷却期内
+          const timeSinceLastRefresh = Date.now() - this._lastRefreshAt;
+          if (timeSinceLastRefresh >= this._minRefreshIntervalMs) {
+            // 不在冷却期，后台刷新状态（不阻塞 UI）
+            this.fetchTrialStatus(true);
+          } else {
+            console.log('[Trial] Skipping refresh, in cooldown period');
+          }
         }
       }
 

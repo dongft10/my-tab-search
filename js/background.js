@@ -845,7 +845,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       for (const window of windows) {
         try {
           await chrome.windows.remove(window.id);
-          console.log('[openMainPopup] Closed popup window:', window.id);
+          // console.log('[openMainPopup] Closed popup window:', window.id);
         } catch (error) {
           console.log('[openMainPopup] Failed to close window:', window.id, error);
         }
