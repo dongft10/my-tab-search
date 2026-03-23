@@ -285,15 +285,7 @@ class AuthApi {
    * @returns {Promise} - 返回验证结果
    */
   async verifyOAuthToken(provider, accessToken, userInfo) {
-    const data = {
-      provider,
-      accessToken,
-      email: userInfo.email,
-      name: userInfo.name,
-      picture: userInfo.picture
-    };
-    
-    // 获取浏览器信息并添加到 headers
+    // 获取浏览器信息
     const userAgent = navigator.userAgent;
     const browserInfo = this.parseUserAgent(userAgent);
     
@@ -307,20 +299,22 @@ class AuthApi {
       console.warn('Failed to get deviceId from storage:', e);
     }
     
-    const headers = {
-      'X-Browser-Name': browserInfo.name,
-      'X-Browser-Version': browserInfo.version,
-      'X-Platform': browserInfo.platform,
-      'X-Language': navigator.language,
-      'X-Extension-Version': await versionManager.getVersion()
+    // 浏览器和设备信息放到请求 body 中（避免触发 CORS 预检请求）
+    const data = {
+      provider,
+      accessToken,
+      email: userInfo.email,
+      name: userInfo.name,
+      picture: userInfo.picture,
+      deviceId: deviceId || undefined,
+      browserName: browserInfo.name,
+      browserVersion: browserInfo.version,
+      platform: browserInfo.platform,
+      language: navigator.language,
+      extensionVersion: await versionManager.getVersion()
     };
     
-    // 如果有 deviceId，传递给后端
-    if (deviceId) {
-      headers['X-Device-ID'] = deviceId;
-    }
-    
-    return apiClient.post(ENDPOINTS.AUTH.OAUTH_TOKEN_LOGIN, data, headers);
+    return apiClient.post(ENDPOINTS.AUTH.OAUTH_TOKEN_LOGIN, data);
   }
 
   /**
