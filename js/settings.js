@@ -340,73 +340,58 @@ async function loadVipStatus() {
 // 加载体验期状态
 async function loadTrialStatus() {
   try {
-    let accessToken = null;
-    try {
-      accessToken = await authService.getValidAccessToken();
-    } catch (e) {
-      return;
-    }
-    
-    if (!accessToken) {
+    const trialData = await trialService.getTrialStatus();
+
+    if (!trialData) {
       return;
     }
 
-    try {
-      const response = await authApi.getTrialStatus(accessToken);
-      
-      if (response.code === 0) {
-        const trialData = response.data;
-        
-        // 检查是否处于应用推广试用期（trial_enabled = false）
-        if (!trialData.trialEnabled) {
-          elements.trialStatus.style.display = 'block';
-          // 不显示"体验期剩余:"标签
-          elements.trialLabel.style.display = 'none';
-          elements.trialDaysLeft.textContent = i18n.getMessage('promotionPeriodMessage') || '✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄';
-          // 隐藏延展按钮
-          elements.btnExtendTrial.style.display = 'none';
-          return;
-        }
-        
-        // 对于正式体验期（trial_enabled = true），只有已验证邮箱的用户才显示
-        const isEmailVerified = await authService.isEmailVerified();
-        if (!isEmailVerified) {
-          // 未验证邮箱的用户不显示正式体验期状态
-          elements.trialStatus.style.display = 'none';
-          return;
-        }
-        
-        if (trialData.isInTrialPeriod) {
-          elements.trialStatus.style.display = 'block';
-          // 显示"体验期剩余:"标签
-          elements.trialLabel.style.display = 'inline';
-          elements.trialDaysLeft.textContent = `${trialData.trialDaysLeft} days`;
+    // 检查是否处于应用推广试用期（trial_enabled = false）
+    if (!trialData.trialEnabled) {
+      elements.trialStatus.style.display = 'block';
+      // 不显示"体验期剩余:"标签
+      elements.trialLabel.style.display = 'none';
+      elements.trialDaysLeft.textContent = i18n.getMessage('promotionPeriodMessage') || '✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄';
+      // 隐藏延展按钮
+      elements.btnExtendTrial.style.display = 'none';
+      return;
+    }
 
-          if (trialData.canExtend) {
-            elements.btnExtendTrial.style.display = 'block';
-            // 只有体验期剩余 <= 3 天或已结束，才启用延展按钮
-            const isNearExpiry = trialData.trialDaysLeft <= 3;
-            elements.btnExtendTrial.disabled = !isNearExpiry;
-          }
-        } else {
-          // 体验期已结束，显示结束状态
-          elements.trialStatus.style.display = 'block';
-          elements.trialLabel.style.display = 'inline';
-          elements.trialDaysLeft.textContent = i18n.getMessage('trialExpired') || '体验期已结束';
-          // 体验期结束，允许申请延展
-          if (trialData.canExtend) {
-            elements.btnExtendTrial.style.display = 'block';
-            elements.btnExtendTrial.disabled = false;
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Load trial status API error:', e);
-      // 不显示体验期状态（错误情况下隐藏）
+    // 对于正式体验期（trial_enabled = true），只有已验证邮箱的用户才显示
+    const isEmailVerified = await authService.isEmailVerified();
+    if (!isEmailVerified) {
+      // 未验证邮箱的用户不显示正式体验期状态
       elements.trialStatus.style.display = 'none';
+      return;
     }
-  } catch (error) {
-    console.error('Load trial status error:', error);
+
+    if (trialData.isInTrialPeriod) {
+      elements.trialStatus.style.display = 'block';
+      // 显示"体验期剩余:"标签
+      elements.trialLabel.style.display = 'inline';
+      elements.trialDaysLeft.textContent = `${trialData.trialDaysLeft} days`;
+
+      if (trialData.canExtend) {
+        elements.btnExtendTrial.style.display = 'block';
+        // 只有体验期剩余 <= 3 天或已结束，才启用延展按钮
+        const isNearExpiry = trialData.trialDaysLeft <= 3;
+        elements.btnExtendTrial.disabled = !isNearExpiry;
+      }
+    } else {
+      // 体验期已结束，显示结束状态
+      elements.trialStatus.style.display = 'block';
+      elements.trialLabel.style.display = 'inline';
+      elements.trialDaysLeft.textContent = i18n.getMessage('trialExpired') || '体验期已结束';
+      // 体验期结束，允许申请延展
+      if (trialData.canExtend) {
+        elements.btnExtendTrial.style.display = 'block';
+        elements.btnExtendTrial.disabled = false;
+      }
+    }
+  } catch (e) {
+    console.error('Load trial status error:', e);
+    // 不显示体验期状态（错误情况下隐藏）
+    elements.trialStatus.style.display = 'none';
   }
 }
 
