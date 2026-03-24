@@ -299,7 +299,7 @@ async function handleVerify() {
       });
       
       showSuccess(i18n.getMessage('loginSuccess'));
-      
+
       // 通知扩展并关闭弹窗
       setTimeout(() => {
         chrome.runtime.sendMessage({

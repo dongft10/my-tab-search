@@ -846,19 +846,29 @@ async function handleLoginVerify() {
       }
       
       await chrome.storage.local.set(storageData);
-      
+
       if (featureLimitService) {
         await featureLimitService.clearCache();
       }
-      
+
       showLoginMessage('登录成功！', 'success');
-      
-      setTimeout(() => {
+
+      setTimeout(async () => {
         closeLoginModal();
         loadAccountInfo();
         loadVipStatus();
         loadTrialStatus();
         showMessage('登录成功！', 'success');
+
+        try {
+          await chrome.runtime.sendMessage({
+            action: 'AUTH_SUCCESS',
+            data: data
+          });
+        } catch (err) {
+          console.warn('[settings] AUTH_SUCCESS send failed:', err);
+        }
+        window.location.reload();
       }, 1000);
     } else {
       showLoginMessage(response.msg || '登录失败', 'error');
@@ -964,17 +974,22 @@ async function handleLoginOAuthToken(provider, accessToken) {
         }
         
         await chrome.storage.local.set(storageData);
-        
+
         if (featureLimitService) {
           await featureLimitService.clearCache();
         }
-        
+
         showLoginMessage('登录成功！', 'success');
-        
-        // 刷新页面以更新 UI (确保 Token 被正确加载)
-        console.log('[OAuth] Login successful, will reload page in 1 second...');
-        setTimeout(() => {
-          console.log('[OAuth] Reloading page now...');
+
+        setTimeout(async () => {
+          try {
+            await chrome.runtime.sendMessage({
+              action: 'AUTH_SUCCESS',
+              data: data
+            });
+          } catch (err) {
+            console.warn('[OAuth] AUTH_SUCCESS send failed:', err);
+          }
           window.location.reload();
         }, 1000);
       } else {

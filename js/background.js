@@ -1004,6 +1004,18 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     return false;
   }
+
+  if (message.action === 'AUTH_SUCCESS') {
+    try {
+      if (self.SyncQueueService) {
+        self.SyncQueueService.scheduleSync(1000);
+      }
+    } catch (error) {
+      console.error('[background] Failed to trigger sync:', error);
+    }
+    sendResponse({ success: true });
+    return true;
+  }
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
