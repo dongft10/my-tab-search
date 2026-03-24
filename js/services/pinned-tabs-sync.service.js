@@ -157,14 +157,8 @@ class PinnedTabsSyncService {
       });
 
       if (response.success) {
-        if (response.needsPull) {
-          await this.mergeData(response.tabs, localTabs);
-          await this.setLocalVersion(response.serverVersion);
-          await this.updateLastSyncTime(Date.now());
-          return await this.fullSync();
-        }
-
-        await this.mergeData(response.tabs, localTabs);
+        console.log('[PinnedTabsSync] fullSync - success, needsPull:', response.needsPull, ', server tabs count:', response.tabs?.length || 0, ', local tabs count:', localTabs.length);
+        await this.mergeData(response.tabs || [], localTabs);
         await this.setLocalVersion(response.serverVersion);
         await this.updateLastSyncTime(Date.now());
         await this.resetFailureCount();
@@ -216,18 +210,23 @@ class PinnedTabsSyncService {
       const mergedTabs = [];
       const localMap = new Map(localTabs.map(t => [t.url, t]));
 
+      console.log('[PinnedTabsSync] mergeData - serverTabs count:', serverTabs.length);
+      console.log('[PinnedTabsSync] mergeData - localTabs count:', localTabs.length);
+
       for (const serverTab of serverTabs) {
         const localTab = localMap.get(serverTab.url);
 
         if (!localTab) {
+          console.log('[PinnedTabsSync] mergeData - localTab not found for URL:', serverTab.url);
           let tabId = undefined;
           try {
             const existingTabs = await chrome.tabs.query({ url: serverTab.url });
+            console.log('[PinnedTabsSync] mergeData - query result for URL:', serverTab.url, 'found:', existingTabs?.length || 0, 'tabs');
             if (existingTabs && existingTabs.length > 0) {
               tabId = existingTabs[0].id;
             }
           } catch (e) {
-            // 忽略查询错误
+            console.log('[PinnedTabsSync] mergeData - query error:', e.message);
           }
           mergedTabs.push({
             ...serverTab,
@@ -236,11 +235,24 @@ class PinnedTabsSyncService {
             pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
           });
         } else {
+          console.log('[PinnedTabsSync] mergeData - localTab found, localTab.tabId:', localTab.tabId);
           const resolved = this.resolveConflict(localTab, serverTab);
           if (resolved.value) {
+            let tabId = localTab.tabId;
+            if (tabId === undefined || tabId === null) {
+              try {
+                const existingTabs = await chrome.tabs.query({ url: serverTab.url });
+                console.log('[PinnedTabsSync] mergeData - query result for URL:', serverTab.url, 'found:', existingTabs?.length || 0, 'tabs');
+                if (existingTabs && existingTabs.length > 0) {
+                  tabId = existingTabs[0].id;
+                }
+              } catch (e) {
+                console.log('[PinnedTabsSync] mergeData - query error:', e.message);
+              }
+            }
             mergedTabs.push({
               ...resolved.value,
-              tabId: localTab.tabId,
+              tabId: tabId,
               isLongTermPinned: true,
               pinnedAt: resolved.value.longTermPinnedAt || resolved.value.pinnedAt || new Date().toISOString()
             });
