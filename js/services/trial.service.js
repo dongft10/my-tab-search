@@ -119,7 +119,13 @@ class TrialService {
       // 缓存超过配置时间或没有缓存，从服务器获取
       const accessToken = await this._withTimeout(authService.getValidAccessToken());
       if (!accessToken) {
-        throw new Error('No access token');
+        console.log('[Trial] No access token available, skipping fetch');
+        return {
+          isInTrialPeriod: false,
+          trialDaysLeft: 0,
+          extendedCount: 0,
+          maxExtendCount: 2
+        };
       }
 
       const response = await this._withTimeout(authApi.getTrialStatus(accessToken));
