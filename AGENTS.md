@@ -2,6 +2,8 @@
 
 This is the Chrome extension frontend for MyTabSearch project.
 
+> **项目总览**: 请先阅读 `../backend-module/docs/PROJECT_OVERVIEW.md` 了解整体架构和跨模块协作指南。
+
 ## Build, Lint, and Test Commands
 
 ```bash
