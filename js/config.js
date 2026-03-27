@@ -120,7 +120,10 @@ export const PINNED_TABS_CONFIG = {
   
   // 固定标签页弹窗尺寸
   WINDOW_WIDTH: 416,
-  WINDOW_HEIGHT: 800
+  WINDOW_HEIGHT: 800,
+
+  // 360 浏览器专用宽度
+  WINDOW_WIDTH_360: 400
 };
 
 /**

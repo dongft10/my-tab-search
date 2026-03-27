@@ -73,6 +73,9 @@ async function initialize() {
   
   // 加载固定标签页
   await loadPinnedTabs();
+  
+  // 动态调整窗口宽度（解决不同浏览器边框宽度不一致问题）
+  setTimeout(adjustWindowWidth, 100);
 }
 
 // 更新国际化文本
@@ -983,6 +986,51 @@ async function cancelLongTermPinned(tabId, tab) {
   } catch (error) {
     console.error('Cancel long term pinned error:', error);
     showToast(i18n.getMessage('cancelLongTermFailed'));
+  }
+}
+
+/**
+ * 动态调整窗口宽度
+ * 测量实际内容宽度，如果不等于 400px，则通知 background 调整窗口大小
+ * 用于解决 Chrome 和 360 浏览器窗口边框宽度不一致的问题
+ */
+function adjustWindowWidth() {
+  try {
+    var TARGET_CONTENT_WIDTH = 400;
+    var actualWidth = document.body.clientWidth;
+    
+    console.log('[pinned-list] Actual content width:', actualWidth, 'px, target:', TARGET_CONTENT_WIDTH, 'px');
+    
+    if (actualWidth === TARGET_CONTENT_WIDTH) {
+      console.log('[pinned-list] Width is correct, no adjustment needed');
+      return;
+    }
+    
+    // 计算需要调整的窗口宽度差值
+    // 如果内容宽度是 400，实际宽度是 384，说明窗口太窄，需要增加 (400-384) = 16px
+    var widthDiff = TARGET_CONTENT_WIDTH - actualWidth;
+    
+    if (Math.abs(widthDiff) < 2) {
+      // 差异太小，忽略
+      console.log('[pinned-list] Width difference too small, ignoring');
+      return;
+    }
+    
+    console.log('[pinned-list] Width mismatch detected, requesting window resize, diff:', widthDiff, 'px');
+    
+    // 通知 background 调整窗口宽度
+    chrome.runtime.sendMessage({
+      action: 'adjustPopupWidth',
+      widthDiff: widthDiff
+    }, function(response) {
+      if (response && response.success) {
+        console.log('[pinned-list] Window resize successful');
+      } else {
+        console.warn('[pinned-list] Window resize failed or ignored');
+      }
+    });
+  } catch (e) {
+    console.warn('[pinned-list] adjustWindowWidth failed:', e);
   }
 }
 
