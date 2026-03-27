@@ -96,7 +96,11 @@ if (typeof CONFIG_COMMON === 'undefined') {
     
     // 固定标签页弹窗尺寸（设大一些避免Chrome裁剪）
     WINDOW_WIDTH: 416,
-    WINDOW_HEIGHT: 800
+    WINDOW_HEIGHT: 800,
+    
+    // 同步间隔配置（毫秒）
+    // 开发环境：1分钟，生产环境：30分钟
+    SYNC_INTERVAL: ENV_TYPE === 'dev' ? 1 * 60 * 1000 : 30 * 60 * 1000
   };
 
   const SEARCH_CONFIG = {

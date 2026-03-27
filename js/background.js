@@ -1521,8 +1521,10 @@ async function initializeSyncQueue() {
   try {
     // 使用全局同步队列服务（通过 importScripts 加载）
     if (self.SyncQueueService) {
-      self.SyncQueueService.startPeriodicSync(60000);
-      console.log('[Background] Sync queue service initialized');
+      // 从配置中获取同步间隔：开发环境1分钟，生产环境30分钟
+      const syncInterval = CONFIG_COMMON?.PINNED_TABS_CONFIG?.SYNC_INTERVAL || 30 * 60 * 1000;
+      self.SyncQueueService.startPeriodicSync(syncInterval);
+      console.log('[Background] Sync queue service initialized with interval:', syncInterval / 1000 / 60, 'minutes');
     } else {
       console.warn('[Background] SyncQueueService not available');
     }
