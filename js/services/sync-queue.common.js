@@ -270,8 +270,20 @@ async function processSyncOperation(item, accessToken) {
       for (const serverTab of syncData.tabs) {
         const localTab = localLongTermMap.get(serverTab.url);
         if (!localTab) {
+          // 本地没有该长期固定标签，检查浏览器中是否有相同 URL 的已打开标签
+          let existingTabId = undefined;
+          try {
+            const existingTabs = await chrome.tabs.query({ url: serverTab.url });
+            if (existingTabs && existingTabs.length > 0) {
+              existingTabId = existingTabs[0].id;
+            }
+          } catch (e) {
+            console.warn('[SyncQueue] Error querying existing tabs:', e.message);
+          }
+          
           mergedTabs.push({
             ...serverTab,
+            tabId: existingTabId,
             isLongTermPinned: true,
             longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
             pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
@@ -315,8 +327,20 @@ async function processSyncOperation(item, accessToken) {
       const localTab = localLongTermMap.get(serverTab.url);
 
       if (!localTab) {
+        // 本地没有该长期固定标签，检查浏览器中是否有相同 URL 的已打开标签
+        let existingTabId = undefined;
+        try {
+          const existingTabs = await chrome.tabs.query({ url: serverTab.url });
+          if (existingTabs && existingTabs.length > 0) {
+            existingTabId = existingTabs[0].id;
+          }
+        } catch (e) {
+          console.warn('[SyncQueue] Error querying existing tabs:', e.message);
+        }
+        
         mergedTabs.push({
           ...serverTab,
+          tabId: existingTabId,
           isLongTermPinned: true,
           longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
           pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()

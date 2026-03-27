@@ -53,8 +53,17 @@ class PinnedTabsSyncService {
         return true;
       }
 
-      const trialEnabled = await this.checkTrialEnabled();
-      if (!trialEnabled) {
+      // 获取体验期状态
+      const trialStatus = await this.getTrialStatus();
+      
+      // 推广期（trialEnabled = false）：已验证邮箱的用户可用
+      if (!trialStatus.trialEnabled) {
+        const isEmailVerified = await this.authService.isEmailVerified();
+        return isEmailVerified;
+      }
+
+      // 正式体验期（trialEnabled = true）：体验期内已验证邮箱的用户可用
+      if (trialStatus.isInTrialPeriod) {
         const isEmailVerified = await this.authService.isEmailVerified();
         return isEmailVerified;
       }
@@ -66,10 +75,10 @@ class PinnedTabsSyncService {
     }
   }
 
-  async checkTrialEnabled() {
+  async getTrialStatus() {
     try {
       const token = await this.authService.getAccessToken();
-      const response = await fetch(getApiUrl('/system/trial'), {
+      const response = await fetch(getApiUrl('/trial/status'), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -77,14 +86,14 @@ class PinnedTabsSyncService {
       });
 
       if (!response.ok) {
-        return false;
+        return { trialEnabled: false, isInTrialPeriod: false };
       }
 
       const result = await response.json();
-      return result.data && result.data.enabled === true;
+      return result.data || { trialEnabled: false, isInTrialPeriod: false };
     } catch (error) {
-      console.error('[PinnedTabsSync] Check trial enabled failed:', error);
-      return false;
+      console.error('[PinnedTabsSync] Get trial status failed:', error);
+      return { trialEnabled: false, isInTrialPeriod: false };
     }
   }
 
