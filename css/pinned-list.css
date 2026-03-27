@@ -110,9 +110,9 @@
 }
 
 body {
-  min-width: 400px;
-  max-width: 400px;
-  width: 100%;
+  width: 400px !important; /* 强制固定宽度，防止 360 浏览器覆盖 */
+  min-width: 400px !important; /* 防止 360 浏览器缩小 */
+  max-width: 400px !important; /* 防止 360 浏览器放大 */
   height: auto; /* 让高度自适应内容，但在限制范围内 */
   padding: 0;
   margin: 0;
@@ -130,7 +130,7 @@ body {
   display: flex;
   flex-direction: column;
   resize: none; /* 确保不能调整大小 */
-  box-sizing: border-box; /* 确保padding和border包含在宽高中 */
+  box-sizing: border-box; /* 确保 padding 和 border 包含在宽高中 */
 }
 
 body::after {

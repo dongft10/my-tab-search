@@ -94,9 +94,12 @@ if (typeof CONFIG_COMMON === 'undefined') {
     // 已完成注册用户（体验期/VIP）：100个
     MAX_PINNED_TABS: 100,
     
-    // 固定标签页弹窗尺寸（设大一些避免Chrome裁剪）
+    // 固定标签页弹窗尺寸（适配所有浏览器）
     WINDOW_WIDTH: 416,
-    WINDOW_HEIGHT: 800
+    WINDOW_HEIGHT: 800,
+
+    // 360 浏览器专用宽度
+    WINDOW_WIDTH_360: 400
   };
 
   const SEARCH_CONFIG = {

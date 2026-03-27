@@ -14,6 +14,13 @@ try {
   console.error('[background] Failed to import sync-queue.common.js:', error);
 }
 
+// 导入浏览器检测工具
+try {
+  importScripts('./utils/browser-detector.js');
+} catch (error) {
+  console.error('[background] Failed to import browser-detector.js:', error);
+}
+
 // 从全局配置中获取配置
 var API_CONFIG = null;
 var PINNED_TABS_CONFIG = null;
@@ -669,6 +676,23 @@ chrome.commands.onCommand.addListener(async (command) => {
       var windowWidth = PINNED_TABS_CONFIG ? PINNED_TABS_CONFIG.WINDOW_WIDTH : 400;
       var windowHeight = PINNED_TABS_CONFIG ? PINNED_TABS_CONFIG.WINDOW_HEIGHT : 600;
 
+      // 使用浏览器检测模块调整宽度（异步版本，支持 getPlatformInfo 检测）
+      try {
+        var browserInfo = await detectBrowserAsync();
+        console.log('[background] Browser detected: is360=' + browserInfo.is360 + ', method=' + browserInfo.method);
+
+        if (browserInfo.is360) {
+          windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH_360 || 400;
+        } else {
+          windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 416;
+        }
+      } catch (error) {
+        console.warn('[background] Browser detection failed:', error);
+        windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 416;
+      }
+
+      console.log('[background] Creating window with width:', windowWidth, 'height:', windowHeight);
+
       // 获取屏幕信息
       var screenWidth = 1920;
       var screenHeight = 1080;
@@ -905,6 +929,23 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       var windowWidth = PINNED_TABS_CONFIG ? PINNED_TABS_CONFIG.WINDOW_WIDTH : 400;
       var windowHeight = PINNED_TABS_CONFIG ? PINNED_TABS_CONFIG.WINDOW_HEIGHT : 600;
 
+      // 使用浏览器检测模块调整宽度（异步版本，支持 getPlatformInfo 检测）
+      try {
+        var browserInfo = await detectBrowserAsync();
+        console.log('[background] Browser detected: is360=' + browserInfo.is360 + ', method=' + browserInfo.method);
+
+        if (browserInfo.is360) {
+          windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH_360 || 400;
+        } else {
+          windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 416;
+        }
+      } catch (error) {
+        console.warn('[background] Browser detection failed:', error);
+        windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 416;
+      }
+
+      console.log('[background] Creating window with width:', windowWidth, 'height:', windowHeight);
+
       // 获取屏幕信息
       var screenWidth = 1920;
       var screenHeight = 1080;
@@ -944,6 +985,40 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       sendResponse({ success: true });
     } catch (error) {
       console.error('[background] Error opening pinned tabs:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
+  }
+
+  // 处理弹窗宽度调整请求（动态适配不同浏览器的边框宽度）
+  if (message.action === 'adjustPopupWidth') {
+    try {
+      var widthDiff = message.widthDiff || 0;
+      if (Math.abs(widthDiff) < 2) {
+        sendResponse({ success: true, skipped: true });
+        return true;
+      }
+
+      // 获取当前窗口 ID
+      var result = await chrome.storage.local.get('pinnedTabsWindowId');
+      var windowId = result.pinnedTabsWindowId;
+      
+      if (!windowId) {
+        sendResponse({ success: false, error: 'No window ID found' });
+        return true;
+      }
+
+      // 获取当前窗口信息
+      var win = await chrome.windows.get(windowId);
+      var newWidth = win.width + widthDiff;
+      
+      console.log('[background] Adjusting popup width from', win.width, 'to', newWidth);
+      
+      // 调整窗口宽度
+      await chrome.windows.update(windowId, { width: newWidth });
+      sendResponse({ success: true, newWidth: newWidth });
+    } catch (error) {
+      console.warn('[background] adjustPopupWidth failed:', error);
       sendResponse({ success: false, error: error.message });
     }
     return true;
