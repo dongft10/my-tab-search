@@ -27,7 +27,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (setupBtn) {
     setupBtn.addEventListener('click', () => {
       // Open Chrome keyboard shortcuts settings page
-      chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+      chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
+        if (tabs.length > 0) {
+          // 如果已存在 chrome://extensions 标签页，切换到该标签页并导航到快捷键设置
+          chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
+          chrome.windows.update(tabs[0].windowId, { focused: true });
+        } else {
+          // 如果没有，创建新标签页
+          chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+        }
+      });
     });
   }
 
