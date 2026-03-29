@@ -1139,3 +1139,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     applyI18n();
   }
 });
+
+// 全局调试方法：强制刷新体验期状态
+window.forceRefreshTrialStatus = async function() {
+  try {
+    const trialData = await trialService.getTrialStatus(true);
+    console.log('[Debug] Trial status refreshed:', trialData);
+    await loadTrialStatus();
+    return trialData;
+  } catch (e) {
+    console.error('[Debug] Force refresh failed:', e);
+  }
+};
