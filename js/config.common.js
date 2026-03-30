@@ -98,6 +98,10 @@ if (typeof CONFIG_COMMON === 'undefined') {
     WINDOW_WIDTH: 416,
     WINDOW_HEIGHT: 800,
 
+    // 同步间隔配置（毫秒）
+    // 开发环境：1分钟，生产环境：30分钟
+    SYNC_INTERVAL: ENV_TYPE === 'dev' ? 1 * 60 * 1000 : 30 * 60 * 1000
+
     // 360 浏览器专用宽度
     WINDOW_WIDTH_360: 400
   };

@@ -128,7 +128,7 @@ class TrialService {
         };
       }
 
-      const response = await this._withTimeout(authApi.getTrialStatus(accessToken));
+      const response = await this._withTimeout(authApi.getTrialStatus(accessToken, forceRefresh));
 
       if (response.code === 0) {
         const trialData = response.data;
@@ -153,25 +153,42 @@ class TrialService {
 
   /**
    * 获取体验期状态（优先使用本地，必要时从服务器获取）
+   * @param {boolean} forceRefresh - 是否强制刷新（绕过所有缓存）
    * @returns {Promise<object>} - 返回体验期状态
    */
-  async getTrialStatus() {
+  async getTrialStatus(forceRefresh = false) {
     try {
+      // 强制刷新时，直接从服务器获取
+      if (forceRefresh) {
+        return await this.fetchTrialStatus(true);
+      }
+
       const localStatus = await this.getLocalTrialStatus();
       const cacheMaxAge = this.getCacheMaxAge();
-      
+
       // 如果本地没有状态，需要获取
       if (!localStatus) {
         return await this.fetchTrialStatus();
       }
 
-      // 检查是否过期（根据 trialEndsAt 判断）
-      if (localStatus.trialEndsAt) {
+      // 如果有 trialEndsAt，实时计算剩余天数
+      if (localStatus.trialEndsAt && localStatus.isInTrialPeriod) {
         const endsAt = new Date(localStatus.trialEndsAt).getTime();
-        if (endsAt < Date.now()) {
-          // 已过期，更新本地状态为过期
+        const now = Date.now();
+
+        if (endsAt > now) {
+          // 实时计算剩余天数，而不是使用缓存的值
+          const daysLeft = Math.ceil((endsAt - now) / (24 * 60 * 60 * 1000));
+          localStatus.trialDaysLeft = daysLeft;
+        } else {
+          // 已过期
           localStatus.isInTrialPeriod = false;
           localStatus.trialDaysLeft = 0;
+          // 更新状态类型（如果后端返回了新字段）
+          if (localStatus.statusType === 'active') {
+            localStatus.statusType = 'expired';
+            localStatus.displayText = '体验期已结束';
+          }
           await this.saveTrialStatus(localStatus);
           return localStatus;
         }

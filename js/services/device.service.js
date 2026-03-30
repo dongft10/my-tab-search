@@ -235,10 +235,21 @@ class DeviceService {
       // 清除固定标签页
       await pinnedTabsService.clearPinnedTabs();
       
-      // 清除同步相关数据
+      // 清除同步相关数据（包括版本号）
       if (pinnedTabsSyncService) {
         await pinnedTabsSyncService.clearSyncData();
+      } else {
+        // 如果 pinnedTabsSyncService 未初始化，直接清除版本号
+        await chrome.storage.local.remove([
+          'pinnedTabsVersion',
+          'pinnedTabsLastSyncTime',
+          'pinnedTabsSyncFailureCount',
+          'pinnedTabsLastFailureTime'
+        ]);
       }
+      
+      // 清除体验期状态
+      await chrome.storage.local.remove(['trialStatus']);
       
       // 使用 authService 的 storageKey 清除登录相关数据
       const keysToRemove = [

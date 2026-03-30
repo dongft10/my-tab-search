@@ -157,10 +157,14 @@ class AuthApi {
   /**
    * 获取体验期状态
    * @param {string} accessToken - 访问令牌
+   * @param {boolean} forceRefresh - 是否强制刷新（绕过后端缓存）
    * @returns {Promise} - 返回体验期状态
    */
-  async getTrialStatus(accessToken) {
-    return apiClient.get(ENDPOINTS.TRIAL.STATUS, {
+  async getTrialStatus(accessToken, forceRefresh = false) {
+    const url = forceRefresh 
+      ? `${ENDPOINTS.TRIAL.STATUS}?force=true` 
+      : ENDPOINTS.TRIAL.STATUS;
+    return apiClient.get(url, {
       'Authorization': `Bearer ${accessToken}`
     });
   }
