@@ -80,6 +80,7 @@ class ApiClient {
           const errorData = await response.json().catch(() => ({}));
           const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
           error.status = response.status;
+          error.endpoint = endpoint;
           throw error;
         }
 
@@ -93,15 +94,26 @@ class ApiClient {
           throw error;
         }
         
+        // 对于 5xx 服务器错误，添加特殊标记以便优雅降级
+        if (error.status >= 500 && error.status < 600) {
+          error.isServerError = true;
+        }
+        
         // 其他错误尝试重试
         attempt++;
         if (attempt < this.maxRetries) {
-          console.warn(`Request failed, retrying (${attempt}/${this.maxRetries})...`);
+          console.warn(`Request failed, retrying (${attempt}/${this.maxRetries})...`, { endpoint, status: error.status });
           await this.delay(this.retryDelay);
         }
       }
     }
 
+    // 最终失败时，在 error 上添加更多信息
+    if (lastError) {
+      lastError.endpoint = endpoint;
+      lastError.attempts = attempt;
+    }
+    
     throw lastError;
   }
 
