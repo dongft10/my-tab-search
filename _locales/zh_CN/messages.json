@@ -198,11 +198,11 @@
     "description": "Heading for the usage tips section on the about page"
   },
   "tipShortcutKey": {
-    "message": "调出标签页列表的快捷键是 Ctrl+Shift+A。",
+    "message": "调出标签页列表的快捷键是 Alt+Q。",
     "description": "Tip about the main shortcut key"
   },
   "tipPrevTabShortcut": {
-    "message": "快速切换到之前打开标签页的快捷键是 Ctrl+Shift+S (自v1.6.0起)。",
+    "message": "快速切换到之前打开标签页的快捷键是 Alt+W。",
     "description": "Tip about the previous tab shortcut key"
   },
   "tipShortcutConflict": {
@@ -288,7 +288,7 @@
     "description": "Message shown when there are no pinned tabs"
   },
   "pinTabsHint": {
-    "message": "使用 Ctrl+Shift+A 打开搜索并固定标签页",
+    "message": "使用 Alt+Q 打开搜索并固定标签页",
     "description": "Hint text for how to pin tabs"
   },
   "longTermPinnedNeedLogin": {

@@ -29,7 +29,7 @@ async function checkAndReportActive() {
       console.log('[Device] Active status reported for today');
     } catch (error) {
       // 上报失败不影响用户体验，使用 warn 而非 error
-      console.warn('[Device] Failed to report active status:', error.message);
+      console.info('[Device] Failed to report active status:', error.message);
     }
   }
 }
@@ -395,7 +395,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           chrome.tabs.get(tab.id, (tab) => {
             if (chrome.runtime.lastError) {
               const errorMessage = i18n.getMessage('errorGetTabInfo', chrome.runtime.lastError.message);
-              console.warn(errorMessage || `Failed to get tab information: ${chrome.runtime.lastError.message}`);
+              console.info(errorMessage || `Failed to get tab information: ${chrome.runtime.lastError.message}`);
               window.close();
               return;
             }
@@ -557,7 +557,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             title: tab.title,
             isLongTermPinned: existingTab.isLongTermPinned,
             longTermPinnedAt: existingTab.longTermPinnedAt
-          }).catch(err => console.warn('Sync updateTab failed:', err));
+          }).catch(err => console.info('Sync updateTab failed:', err));
         }
         
         return { success: true, message: '已重新固定' };
@@ -575,7 +575,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
           limit = await featureLimitService.getFeatureLimit('pinnedTabs', false, true);
         } catch (e) {
-          console.warn('[pinTab] Failed to get feature limit, using default 100');
+          console.info('[pinTab] Failed to get feature limit, using default 100');
           limit = 100;
         }
       }
@@ -590,7 +590,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           try {
             localTrialStatus = await trialService.getTrialStatus();
           } catch (e) {
-            console.warn('[pinTab] Failed to get trial status:', e);
+            console.info('[pinTab] Failed to get trial status:', e);
           }
           
           const trialEnabled = localTrialStatus && localTrialStatus.trialEnabled;
@@ -630,12 +630,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         title: tab.title,
         url: tab.url,
         icon: faviconURL(tab.url)
-      }).catch(err => console.warn('Sync pinTab failed:', err));
+      }).catch(err => console.info('Sync pinTab failed:', err));
 
       return { success: true, message: '固定成功' };
     } catch (error) {
       // 固定标签页失败不应阻止用户操作，使用 warn
-      console.warn('Error pinning tab:', error.message);
+      console.info('Error pinning tab:', error.message);
       return { success: false, message: '固定失败' };
     }
   }
@@ -665,12 +665,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       // 异步同步到服务器（不阻塞用户操作）
       syncQueueService.addOperation('unpinTab', {
         tabId: tabId
-      }).catch(err => console.warn('Sync unpinTab failed:', err));
+      }).catch(err => console.info('Sync unpinTab failed:', err));
 
       return { success: true, message: '取消固定成功' };
     } catch (error) {
       // 取消固定标签页失败不应阻止用户操作，使用 warn
-      console.warn('Error unpinning tab:', error.message);
+      console.info('Error unpinning tab:', error.message);
       return { success: false, message: '取消固定失败' };
     }
   }
@@ -697,7 +697,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       chrome.tabs.remove(tabId, () => {
         if (chrome.runtime.lastError) {
           const errorMessage = i18n.getMessage('closeTabFailed', chrome.runtime.lastError.message);
-          console.warn(errorMessage || `Failed to close tab: ${chrome.runtime.lastError.message}`);
+            console.info(errorMessage || `Failed to close tab: ${chrome.runtime.lastError.message}`);
           return;
         }
         let nextTabId;

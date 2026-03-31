@@ -198,11 +198,11 @@
     "description": "Heading for the usage tips section on the about page"
   },
   "tipShortcutKey": {
-    "message": "The shortcut key to bring up the tab list is Ctrl+Shift+A.",
+    "message": "The shortcut key to bring up the tab list is Alt+Q.",
     "description": "Tip about the main shortcut key"
   },
   "tipPrevTabShortcut": {
-    "message": "The shortcut key to quickly switch to the previously opened tab is Ctrl+Shift+S (since v1.6.0).",
+    "message": "The shortcut key to quickly switch to the previously opened tab is Alt+W.",
     "description": "Tip about the previous tab shortcut key"
   },
   "tipShortcutConflict": {
@@ -288,7 +288,7 @@
     "description": "Message shown when there are no pinned tabs"
   },
   "pinTabsHint": {
-    "message": "Use Ctrl+Shift+A to open search and pin tabs",
+    "message": "Use Alt+Q to open search and pin tabs",
     "description": "Hint text for how to pin tabs"
   },
   "longTermPinnedNeedLogin": {

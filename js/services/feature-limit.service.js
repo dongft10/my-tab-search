@@ -264,7 +264,7 @@ class FeatureLimitService {
             return freshLimits.limits?.[limitKey] !== undefined ? freshLimits.limits[limitKey] : 0;
           }
         } catch (e) {
-          console.warn('[FeatureLimit] Force refresh failed, using cached data:', e.message);
+          console.info('[FeatureLimit] Force refresh failed, using cached data:', e.message);
         }
       }
 
@@ -285,7 +285,7 @@ class FeatureLimitService {
               return freshFeatureLimits[limitKey] !== undefined ? freshFeatureLimits[limitKey] : 0;
             }
           } catch (e) {
-            console.warn('[FeatureLimit] Cache refresh failed, using cached data:', e.message);
+            console.info('[FeatureLimit] Cache refresh failed, using cached data:', e.message);
           }
         }
       }

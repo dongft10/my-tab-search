@@ -52,6 +52,9 @@ function showToast(message, duration = 3000) {
 
 // 初始化
 async function initialize() {
+  // 加载快捷键配置
+  await loadShortcutConfig();
+  
   await i18n.initialize();
   
   // 更新页面国际化元素
@@ -145,19 +148,92 @@ function bindEvents() {
   });
 }
 
-// 处理键盘事件
-  function handleKeydown(event) {
-    // 检查是否是 Ctrl+Shift+A 快捷键
-    if (event.ctrlKey && event.shiftKey && event.key === 'A') {
-      event.preventDefault();
-      console.log('[pinned-list] Ctrl+Shift+A pressed, requesting to close window and open main popup');
-      // 通知 background script 关闭当前窗口并打开主搜索弹窗
-      chrome.runtime.sendMessage({ action: 'openMainPopup' });
-      return;
+// 存储快捷键配置
+let shortcutConfig = {
+  openPopup: 'Alt+Q',
+  openPinnedTabs: 'Alt+E'
+};
+
+// 加载快捷键配置
+async function loadShortcutConfig() {
+  try {
+    const commands = await chrome.commands.getAll();
+    console.log('[pinned-list] Loaded commands:', commands);
+    
+    for (const cmd of commands) {
+      if (cmd.name === '_execute_action') {
+        shortcutConfig.openPopup = cmd.shortcut || 'Ctrl+Shift+A';
+      } else if (cmd.name === 'open-pinned-tabs') {
+        shortcutConfig.openPinnedTabs = cmd.shortcut || 'Ctrl+Shift+D';
+      }
     }
     
-    if (!lis || lis.length === 0) return;  
-    switch (event.key) {
+    console.log('[pinned-list] Shortcut config:', shortcutConfig);
+  } catch (error) {
+    console.error('[pinned-list] Failed to load shortcut config:', error);
+  }
+}
+
+// 解析快捷键字符串，返回 { key, ctrl, shift, alt, meta }
+function parseShortcut(shortcut) {
+  if (!shortcut) return null;
+  
+  const parts = shortcut.split('+');
+  const key = parts[parts.length - 1].toUpperCase();
+  const modifiers = parts.slice(0, -1).map(p => p.toUpperCase());
+  
+  return {
+    key: key,
+    ctrl: modifiers.includes('CTRL'),
+    shift: modifiers.includes('SHIFT'),
+    alt: modifiers.includes('ALT'),
+    meta: modifiers.includes('COMMAND') || modifiers.includes('CMD') || modifiers.includes('META')
+  };
+}
+
+// 检查事件是否匹配快捷键
+function matchesShortcut(event, shortcut) {
+  const parsed = parseShortcut(shortcut);
+  if (!parsed) return false;
+  
+  const keyMatch = event.key.toUpperCase() === parsed.key;
+  const ctrlMatch = event.ctrlKey === parsed.ctrl;
+  const shiftMatch = event.shiftKey === parsed.shift;
+  const altMatch = event.altKey === parsed.alt;
+  const metaMatch = event.metaKey === parsed.meta;
+  
+  console.log('[pinned-list] Checking shortcut match:', {
+    eventKey: event.key.toUpperCase(),
+    eventCtrl: event.ctrlKey,
+    eventShift: event.shiftKey,
+    eventAlt: event.altKey,
+    eventMeta: event.metaKey,
+    parsed,
+    keyMatch,
+    ctrlMatch,
+    shiftMatch,
+    altMatch,
+    metaMatch
+  });
+  
+  return keyMatch && ctrlMatch && shiftMatch && altMatch && metaMatch;
+}
+
+// 处理键盘事件
+function handleKeydown(event) {
+  console.log('[pinned-list] Keydown event:', event.key, 'ctrlKey:', event.ctrlKey, 'metaKey:', event.metaKey, 'shiftKey:', event.shiftKey, 'altKey:', event.altKey);
+  
+  // 检查是否匹配打开主弹窗的快捷键
+  if (matchesShortcut(event, shortcutConfig.openPopup)) {
+    event.preventDefault();
+    console.log('[pinned-list] Open popup shortcut detected, sending message to background...');
+    // 通知 background 关闭当前窗口并打开主弹窗
+    chrome.runtime.sendMessage({ action: 'openMainPopup' });
+    return;
+  }
+  
+  if (!lis || lis.length === 0) return;  
+  switch (event.key) {
       case 'ArrowUp':
         event.preventDefault();
         selectedIndex = (selectedIndex <= 0) ? lis.length - 1 : selectedIndex - 1;
@@ -634,7 +710,7 @@ async function switchToTab(tabId) {
     
     if (!targetTab) {
       // 没找到对应的固定tab记录，直接返回
-      console.warn('[switchToTab] Target tab not found in pinned list:', tabId);
+      console.info('[switchToTab] Target tab not found in pinned list:', tabId);
       return;
     }
     
@@ -696,7 +772,7 @@ async function removeFromPinnedList(tabId) {
     
     // 只有长期固定标签页的变化才同步到服务器
     if (targetTab && targetTab.isLongTermPinned) {
-      syncQueueService.addOperation('unpinTab', { tabId }).catch(err => console.warn('Sync unpinTab failed:', err));
+      syncQueueService.addOperation('unpinTab', { tabId }).catch(err => console.info('Sync unpinTab failed:', err));
     }
     
     // 确定要滚动到的标签页ID
@@ -805,7 +881,7 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned, tab) 
       // 使用 getTrialStatus 获取本地缓存状态
       localTrialStatus = await trialService.getTrialStatus();
     } catch (e) {
-      console.warn('[pinned-list] Failed to get local trial status:', e);
+      console.info('[pinned-list] Failed to get local trial status:', e);
       trialStatusError = e;
     }
     
@@ -826,7 +902,7 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned, tab) 
         await setLongTermPinned(tabId, currentTab);
       }
       // 后台异步刷新状态
-      trialService.fetchTrialStatus().catch(err => console.warn('[pinned-list] Failed to fetch trial status:', err));
+      trialService.fetchTrialStatus().catch(err => console.info('[pinned-list] Failed to fetch trial status:', err));
       return;
     }
     
@@ -836,7 +912,7 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned, tab) 
     try {
       vipStatus = await vipService.getVipStatus(false);
     } catch (e) {
-      console.warn('[pinned-list] Failed to get VIP status:', e);
+      console.info('[pinned-list] Failed to get VIP status:', e);
       vipStatusError = e;
     }
     
@@ -933,7 +1009,7 @@ async function setLongTermPinned(tabId, tab) {
         url: syncUrl,
         isLongTermPinned: true,
         longTermPinnedAt: new Date().toISOString()
-      }).catch(err => console.warn('Sync updateTab failed:', err));
+      }).catch(err => console.info('Sync updateTab failed:', err));
     }
     
     showToast(i18n.getMessage('longTermPinnedSuccess'));
@@ -975,7 +1051,7 @@ async function cancelLongTermPinned(tabId, tab) {
         url: syncUrl,
         isLongTermPinned: false,
         longTermPinnedAt: null
-      }).catch(err => console.warn('Sync updateTab failed:', err));
+      }).catch(err => console.info('Sync updateTab failed:', err));
     }
     
     showToast(i18n.getMessage('cancelLongTermSuccess'));
