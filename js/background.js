@@ -241,7 +241,7 @@ async function initializeState() {
           // 检查标签页是否仍然存在（不再检查是否在同一窗口，因为用户可能切换了窗口）
           curTabId = tab.id;
         } catch (e) {
-          console.warn('[initializeState] 保存的标签页不存在，需要重新初始化');
+          console.info('[initializeState] 保存的标签页不存在，需要重新初始化');
         }
       }
 
@@ -391,7 +391,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     try {
       await chrome.tabs.get(tabId);
       if (chrome.runtime.lastError) {
-        console.warn('获取标签页失败:', chrome.runtime.lastError.message);
+        console.info('获取标签页失败:', chrome.runtime.lastError.message);
         return;
       }
 
@@ -591,7 +591,7 @@ chrome.commands.onCommand.addListener(async (command) => {
         } catch (e) {
           console.error('[快捷键] Could not switch to the previous tab:', e);
           if ((e.message && e.message.includes('Tabs cannot be edited right now'))) {
-            console.warn('[快捷键] 标签页正在被拖拽，无法切换到上一个标签页');
+          console.info('[快捷键] 标签页正在被拖拽，无法切换到上一个标签页');
             // 标签页拖拽时不重置preTabId，等待拖拽完成后重试
             return;
           }
@@ -681,7 +681,7 @@ chrome.commands.onCommand.addListener(async (command) => {
           screenHeight = primaryDisplay.workArea.height || 1080;
         }
       } catch (error) {
-        console.warn('[background] Failed to get screen info:', error);
+        console.info('[background] Failed to get screen info:', error);
       }
 
       const left = Math.round((screenWidth - windowWidth) / 2);
@@ -704,14 +704,17 @@ chrome.commands.onCommand.addListener(async (command) => {
       await chrome.storage.local.remove('pinnedTabsWindowId');
     }
   } else if (command === "_execute_action") {
+    console.log('[background] _execute_action command received');
     // 打开主搜索弹窗
     try {
       // 获取所有 popup 类型的窗口
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
+      console.log('[background] Found popup windows:', windows.length);
 
       // 检查是否有固定标签页弹窗
       let hasPinnedTabsWindow = false;
       for (const window of windows) {
+        console.log('[background] Closing popup window:', window.id, 'URL:', window.tabs?.[0]?.url);
         // 由于窗口 URL 可能是 undefined，我们通过窗口数量来判断
         // 如果有 popup 窗口，我们假设它是固定标签页弹窗
         hasPinnedTabsWindow = true;
@@ -721,7 +724,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 
       // 如果有固定标签页弹窗，已经关闭了，现在打开主搜索弹窗
       if (hasPinnedTabsWindow) {
-        // 已关闭固定标签页弹窗
+        console.log('[background] Closed pinned tabs window, popup should open on next keypress');
       }
 
       // 等待一小段时间确保窗口关闭完成
@@ -729,9 +732,11 @@ chrome.commands.onCommand.addListener(async (command) => {
 
       // 打开主搜索弹窗（通过 chrome.action.openPopup）
       try {
+        console.log('[background] Attempting to open popup...');
         chrome.action.openPopup();
+        console.log('[background] Popup opened successfully');
       } catch (error) {
-        console.warn('[background] Failed to open popup:', error.message);
+        console.info('[background] Failed to open popup:', error.message);
         // 如果无法打开弹窗（例如扩展图标未固定到工具栏），可以在这里添加备用方案
       }
     } catch (error) {
@@ -858,7 +863,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       try {
         chrome.action.openPopup();
       } catch (error) {
-        console.warn('[background] Failed to open popup:', error.message);
+        console.info('[background] Failed to open popup:', error.message);
         // 如果无法打开弹窗（例如扩展图标未固定到工具栏），可以在这里添加备用方案
       }
       sendResponse({ success: true });
@@ -1129,14 +1134,14 @@ class ApiClient {
         
         // 429 (Rate Limit) 错误不重试，直接返回失败
         if (error.status === 429) {
-          console.warn('[ApiClient] Rate limited, no retry');
+          console.info('[ApiClient] Rate limited, no retry');
           throw error;
         }
         
         // 其他错误尝试重试
         attempt++;
         if (attempt < this.maxRetries) {
-          console.warn(`Request failed, retrying (${attempt}/${this.maxRetries})...`);
+          console.info(`Request failed, retrying (${attempt}/${this.maxRetries})...`);
           await this.delay(this.retryDelay);
         }
       }
@@ -1215,7 +1220,7 @@ class AuthService {
         deviceId = result[STORAGE_KEYS_LOCAL.deviceId] || null;
         console.log('[silentRegister] Got deviceId from storage:', deviceId ? 'exists' : 'null');
       } catch (e) {
-        console.warn('Failed to get deviceId from storage:', e);
+        console.info('Failed to get deviceId from storage:', e);
       }
 
       // 发送注册请求
@@ -1526,7 +1531,7 @@ async function initializeSyncQueue() {
       self.SyncQueueService.startPeriodicSync(syncInterval);
       console.log('[Background] Sync queue service initialized with interval:', syncInterval / 1000 / 60, 'minutes');
     } else {
-      console.warn('[Background] SyncQueueService not available');
+      console.info('[Background] SyncQueueService not available');
     }
   } catch (error) {
     console.error('[Background] Failed to initialize sync queue:', error);

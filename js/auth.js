@@ -276,7 +276,7 @@ async function handleVerify() {
         extensionVersion
       };
     } catch (e) {
-      console.warn('Failed to get device info:', e);
+      console.info('Failed to get device info:', e);
     }
     
     // 必须传递 deviceId，否则提示升级

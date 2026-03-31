@@ -235,7 +235,7 @@ async function loadSettings() {
     // await loadDevices();
   } catch (error) {
     // 设置加载失败时的优雅降级处理
-    console.warn('[Settings] Failed to load settings:', error.message);
+    console.info('[Settings] Failed to load settings:', error.message);
     showMessage(i18n.getMessage('loadSettingsFailed') || 'Failed to load settings', 'error');
   }
 }
@@ -290,7 +290,7 @@ async function loadAccountInfo() {
     }
   } catch (error) {
     // 账户信息加载失败时的优雅降级处理
-    console.warn('[Account Info] Failed to load account info:', error.message);
+    console.info('[Account Info] Failed to load account info:', error.message);
     elements.accountEmail.textContent = i18n.getMessage('notLoggedIn') || '未登录';
     elements.avatarLetter.textContent = '?';
     if (elements.btnLogout) elements.btnLogout.style.display = 'none';
@@ -335,11 +335,11 @@ async function loadVipStatus() {
       // 后端服务不稳定时的优雅降级处理
       // 不记录 console.error 以避免在扩展管理页面显示错误
       // 因为这种情况不影响用户正常使用
-      console.warn('[VIP Status] Backend service temporarily unavailable, using cached data');
+      console.info('[VIP Status] Backend service temporarily unavailable, using cached data');
     }
   } catch (error) {
     // 外层错误也使用 warn 而非 error
-    console.warn('[VIP Status] Failed to load VIP status:', error.message);
+    console.info('[VIP Status] Failed to load VIP status:', error.message);
   }
 }
 
@@ -430,7 +430,7 @@ async function loadTrialStatus() {
     }
   } catch (e) {
     // 后端服务不可用时的优雅降级处理
-    console.warn('[Trial Status] Failed to load trial status:', e.message);
+    console.info('[Trial Status] Failed to load trial status:', e.message);
     elements.trialStatus.style.display = 'none';
   }
 }
@@ -857,7 +857,7 @@ async function handleLoginVerify() {
         extensionVersion
       };
     } catch (e) {
-      console.warn('Failed to get device info:', e);
+      console.info('Failed to get device info:', e);
     }
 
     // 必须传递 deviceId，否则提示升级
@@ -906,7 +906,7 @@ async function handleLoginVerify() {
             data: data
           });
         } catch (err) {
-          console.warn('[settings] AUTH_SUCCESS send failed:', err);
+          console.info('[settings] AUTH_SUCCESS send failed:', err);
         }
         window.location.reload();
       }, 1000);
@@ -1028,7 +1028,7 @@ async function handleLoginOAuthToken(provider, accessToken) {
               data: data
             });
           } catch (err) {
-            console.warn('[OAuth] AUTH_SUCCESS send failed:', err);
+            console.info('[OAuth] AUTH_SUCCESS send failed:', err);
           }
           window.location.reload();
         }, 1000);

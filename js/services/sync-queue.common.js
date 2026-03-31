@@ -99,7 +99,7 @@ async function processQueue(queue, processItem) {
       console.error('[SyncQueue] Process operation error:', error);
       item.retryCount = (item.retryCount || 0) + 1;
       if (item.retryCount >= SYNC_QUEUE_MAX_RETRIES) {
-        console.warn('[SyncQueue] Operation max retries reached, removing:', item.type);
+        console.info('[SyncQueue] Operation max retries reached, removing:', item.type);
         processedIds.push(getOperationId(item));
       }
     }
@@ -215,7 +215,7 @@ async function performSyncQueue() {
  */
 async function processSyncOperation(item, accessToken) {
   if (!item.data || !item.data.tabId) {
-    console.warn('[SyncQueue] Skip invalid operation: missing tabId', item);
+    console.info('[SyncQueue] Skip invalid operation: missing tabId', item);
     throw new Error('Invalid operation: missing tabId');
   }
 
@@ -278,7 +278,7 @@ async function processSyncOperation(item, accessToken) {
               existingTabId = existingTabs[0].id;
             }
           } catch (e) {
-            console.warn('[SyncQueue] Error querying existing tabs:', e.message);
+            console.info('[SyncQueue] Error querying existing tabs:', e.message);
           }
           
           mergedTabs.push({
