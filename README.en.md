@@ -16,7 +16,7 @@ Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for deta
 - ⌨️ **Keyboard Navigation**: Use arrow keys to select target tabs
 - ⚡ **Fast Switching**: Press Enter to quickly switch to target tab
 - 🗑️ **Direct Closing**: Press Delete to close selected tab
-- 🔄 **History**: Support for quickly switching to previous tab (Ctrl+Shift+S)
+- 🔄 **History**: Support for quickly switching to previous tab (Alt+W)
 - 🌐 **Internationalization**: Bilingual support for English and Chinese
 - 🎨 **Icon Display**: Display website icons for quick identification
 - 💾 **State Memory**: Remember's last active tab state
@@ -51,7 +51,7 @@ Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for deta
 
 ### Basic Usage
 
-1. **Open Extension**: Click the extension icon in the Chrome toolbar, or use the shortcut `Ctrl+Shift+A` (Mac: `Cmd+Shift+A`)
+1. **Open Extension**: Click the extension icon in the Chrome toolbar, or use the shortcut `Alt+Q`
 2. **Search Tabs**: Enter keywords in the input box to filter tabs
 3. **Select Tab**: Use arrow keys or mouse click to select the target tab
 4. **Switch Tab**: Press Enter to switch to the selected tab
@@ -61,8 +61,9 @@ Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for deta
 
 | Shortcut | Function | Description |
 |----------|-----------|-------------|
-| `Ctrl+Shift+A` / `Cmd+Shift+A` | Open Search Popup | Quickly bring up the tab search interface |
-| `Ctrl+Shift+S` / `Cmd+Shift+S` | Switch to Previous Tab | Quickly return to the last visited tab |
+| `Alt+Q` | Open Search Popup | Quickly bring up the tab search interface |
+| `Alt+W` | Switch to Previous Tab | Quickly return to the last visited tab |
+| `Alt+E` | Open Pinned Tabs List | Open the list of pinned tabs |
 | `↑` / `↓` | Navigate Results | Move up and down in search results |
 | `Enter` | Switch to Selected Tab | Jump to the currently selected tab |
 | `Delete` | Close Selected Tab | Directly close the currently selected tab |
@@ -220,7 +221,7 @@ A: No. This extension runs entirely locally and does not collect, store, or tran
 - Updated privacy policy and permission descriptions
 
 ### v1.6.0
-- Added quick switch to previous tab feature (Ctrl+Shift+S)
+- Added quick switch to previous tab feature (Alt+W)
 - Support for tab history
 
 For more version history, please visit the [Releases](../../releases) page.

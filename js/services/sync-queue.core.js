@@ -104,7 +104,7 @@ export async function processQueue(queue, processItem) {
       console.error('[SyncQueue] Process operation error:', error);
       item.retryCount = (item.retryCount || 0) + 1;
       if (item.retryCount >= SYNC_QUEUE_MAX_RETRIES) {
-        console.warn('[SyncQueue] Operation max retries reached, removing:', item.type);
+        console.info('[SyncQueue] Operation max retries reached, removing:', item.type);
         processedIds.push(getOperationId(item));
       }
     }

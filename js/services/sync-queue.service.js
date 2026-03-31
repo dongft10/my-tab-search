@@ -36,7 +36,7 @@ class SyncQueueService {
       type: type,
       data: data
     }).catch(err => {
-      console.warn('[SyncQueue] Failed to notify background:', err);
+      console.info('[SyncQueue] Failed to notify background:', err);
       this.scheduleSync();
     });
   }
@@ -87,7 +87,7 @@ class SyncQueueService {
 
   async processOperation(item, accessToken) {
     if (!item.data || !item.data.tabId) {
-      console.warn('[SyncQueue] Skip invalid operation: missing tabId', item);
+      console.info('[SyncQueue] Skip invalid operation: missing tabId', item);
       throw new Error('Invalid operation: missing tabId');
     }
 
@@ -97,7 +97,7 @@ class SyncQueueService {
 
       await syncService.fullSync();
     } catch (error) {
-      console.warn('[SyncQueue] Sync operation failed (will retry):', item.type, error.message);
+      console.info('[SyncQueue] Sync operation failed (will retry):', item.type, error.message);
       throw error;
     }
   }
