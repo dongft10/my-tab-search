@@ -23,7 +23,7 @@ class AuthApi {
       deviceId = result.deviceId || null;
       console.log('[silentRegister] Got deviceId from storage:', deviceId ? 'exists' : 'null');
     } catch (e) {
-      console.warn('Failed to get deviceId from storage:', e);
+      console.info('Failed to get deviceId from storage:', e);
     }
     
     const data = { ...deviceInfo };
@@ -263,7 +263,7 @@ class AuthApi {
       const userInfo = await authService.default.getUserInfo();
       deviceId = userInfo[authService.default.storageKey.deviceId];
     } catch (e) {
-      console.warn('Failed to get deviceId from storage:', e);
+      console.info('Failed to get deviceId from storage:', e);
     }
     
     const data = {
@@ -300,7 +300,7 @@ class AuthApi {
       const storedUserInfo = await authService.default.getUserInfo();
       deviceId = storedUserInfo[authService.default.storageKey.deviceId];
     } catch (e) {
-      console.warn('Failed to get deviceId from storage:', e);
+      console.info('Failed to get deviceId from storage:', e);
     }
     
     // 浏览器和设备信息放到请求 body 中（避免触发 CORS 预检请求）

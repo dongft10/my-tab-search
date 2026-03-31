@@ -45,7 +45,7 @@ class ApiClient {
     const startTime = Date.now();
     while (!this.versionHeaders) {
       if (Date.now() - startTime > 5000) {
-        console.warn('[ApiClient] Timeout waiting for headers, using empty headers');
+        console.info('[ApiClient] Timeout waiting for headers, using empty headers');
         this.versionHeaders = {};
         break;
       }
@@ -90,7 +90,7 @@ class ApiClient {
         
         // 429 (Rate Limit) 错误不重试，直接返回失败
         if (error.status === 429) {
-          console.warn('[ApiClient] Rate limited, no retry');
+          console.info('[ApiClient] Rate limited, no retry');
           throw error;
         }
         
@@ -102,7 +102,7 @@ class ApiClient {
         // 其他错误尝试重试
         attempt++;
         if (attempt < this.maxRetries) {
-          console.warn(`Request failed, retrying (${attempt}/${this.maxRetries})...`, { endpoint, status: error.status });
+          console.info(`Request failed, retrying (${attempt}/${this.maxRetries})...`, { endpoint, status: error.status });
           await this.delay(this.retryDelay);
         }
       }
