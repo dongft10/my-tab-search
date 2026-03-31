@@ -234,7 +234,8 @@ async function loadSettings() {
     // 加载设备列表（已移除，替换为快捷键设置）
     // await loadDevices();
   } catch (error) {
-    console.error('Load settings error:', error);
+    // 设置加载失败时的优雅降级处理
+    console.warn('[Settings] Failed to load settings:', error.message);
     showMessage(i18n.getMessage('loadSettingsFailed') || 'Failed to load settings', 'error');
   }
 }
@@ -288,7 +289,8 @@ async function loadAccountInfo() {
       if (elements.btnLogin) elements.btnLogin.style.display = 'block';
     }
   } catch (error) {
-    console.error('Load account info error:', error);
+    // 账户信息加载失败时的优雅降级处理
+    console.warn('[Account Info] Failed to load account info:', error.message);
     elements.accountEmail.textContent = i18n.getMessage('notLoggedIn') || '未登录';
     elements.avatarLetter.textContent = '?';
     if (elements.btnLogout) elements.btnLogout.style.display = 'none';
@@ -330,10 +332,14 @@ async function loadVipStatus() {
         }
       }
     } catch (e) {
-      console.error('Load VIP status API error:', e);
+      // 后端服务不稳定时的优雅降级处理
+      // 不记录 console.error 以避免在扩展管理页面显示错误
+      // 因为这种情况不影响用户正常使用
+      console.warn('[VIP Status] Backend service temporarily unavailable, using cached data');
     }
   } catch (error) {
-    console.error('Load VIP status error:', error);
+    // 外层错误也使用 warn 而非 error
+    console.warn('[VIP Status] Failed to load VIP status:', error.message);
   }
 }
 
@@ -423,7 +429,8 @@ async function loadTrialStatus() {
         }
     }
   } catch (e) {
-    console.error('Load trial status error:', e);
+    // 后端服务不可用时的优雅降级处理
+    console.warn('[Trial Status] Failed to load trial status:', e.message);
     elements.trialStatus.style.display = 'none';
   }
 }

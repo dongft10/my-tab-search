@@ -28,7 +28,8 @@ async function checkAndReportActive() {
       await authApi.reportDeviceActive(result.deviceId);
       console.log('[Device] Active status reported for today');
     } catch (error) {
-      console.error('[Device] Failed to report active status:', error);
+      // 上报失败不影响用户体验，使用 warn 而非 error
+      console.warn('[Device] Failed to report active status:', error.message);
     }
   }
 }
@@ -633,7 +634,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       return { success: true, message: '固定成功' };
     } catch (error) {
-      console.error('Error pinning tab:', error);
+      // 固定标签页失败不应阻止用户操作，使用 warn
+      console.warn('Error pinning tab:', error.message);
       return { success: false, message: '固定失败' };
     }
   }
@@ -667,7 +669,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       return { success: true, message: '取消固定成功' };
     } catch (error) {
-      console.error('Error unpinning tab:', error);
+      // 取消固定标签页失败不应阻止用户操作，使用 warn
+      console.warn('Error unpinning tab:', error.message);
       return { success: false, message: '取消固定失败' };
     }
   }
