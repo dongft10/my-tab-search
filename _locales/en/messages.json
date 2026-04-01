@@ -674,5 +674,9 @@
   "setupShortcutsBtn": {
     "message": "Set Up Shortcuts",
     "description": "Setup shortcuts button text"
+  },
+  "firstSyncCompleted": {
+    "message": "First sync completed, pinned tabs data has been synchronized",
+    "description": "Toast message when first sync is completed with data pulled from server"
   }
 }

@@ -1,7 +1,33 @@
 // Import i18n manager
 import i18n from './i18n.js';
 
-// Apply internationalization and dynamically load the extension version
+// Toast 提示函数
+function showToast(message, duration = 3000) {
+  // 移除已存在的 toast
+  const existingToast = document.querySelector('.toast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  // 创建 toast 元素
+  const toast = document.createElement('div');
+  toast.classList.add('toast');
+  toast.textContent = message;
+
+  // 添加到 body
+  document.body.appendChild(toast);
+
+  // 自动移除
+  setTimeout(() => {
+    toast.classList.add('toast-fade-out');
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove();
+      }
+    }, 300);
+  }, duration);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize i18n
   await i18n.initialize();
@@ -52,6 +78,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyI18n();
       });
     }
+    if (message.action === 'SHOW_TOAST') {
+      showToast(message.message);
+    }
+    sendResponse({ success: true });
+    return true;
   });
 });
 

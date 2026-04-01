@@ -10,17 +10,44 @@ import trialService from './services/trial.service.js';
 import deviceService from './services/device.service.js';
 import featureLimitService from './services/feature-limit.service.js';
 import searchMatchService from './services/search-match.service.js';
-
-// Import i18n manager
 import i18n from './i18n.js';
 
-// DOM 元素
+// Toast 提示函数
+function showToast(message, duration = 3000) {
+  // 移除已存在的 toast
+  const existingToast = document.querySelector('.toast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  // 创建 toast 元素
+  const toast = document.createElement('div');
+  toast.classList.add('toast');
+  toast.textContent = message;
+
+  // 添加到 body
+  document.body.appendChild(toast);
+
+  // 自动移除
+  setTimeout(() => {
+    toast.classList.add('toast-fade-out');
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove();
+      }
+    }, 300);
+  }, duration);
+}
+
+// DOM 元素缓存
 const elements = {
-  accountSection: document.getElementById('account-section'),
-  accountAvatar: document.getElementById('account-avatar'),
-  avatarLetter: document.getElementById('avatar-letter'),
+  languageSelect: document.getElementById('language-select'),
+  searchMatchModeSelect: document.getElementById('search-match-mode'),
+  appVersion: document.getElementById('app-version'),
+  btnLogout: document.getElementById('btn-logout'),
+  btnLogin: document.getElementById('btn-login'),
   accountEmail: document.getElementById('account-email'),
-  accountStatus: document.getElementById('account-status'),
+  avatarLetter: document.getElementById('avatar-letter'),
   vipBadge: document.getElementById('vip-badge'),
   vipStatus: document.getElementById('vip-status'),
   vipStatusValue: document.getElementById('vip-status-value'),
@@ -29,17 +56,9 @@ const elements = {
   trialLabel: document.getElementById('trial-label'),
   trialDaysLeft: document.getElementById('trial-days-left'),
   btnExtendTrial: document.getElementById('btn-extend-trial'),
-  btnLogin: document.getElementById('btn-login'),
-  btnLogout: document.getElementById('btn-logout'),
-  shortcutsSection: document.getElementById('shortcuts-section'),
-  btnSetupShortcut: document.getElementById('btn-setup-shortcut'),
-  languageSelect: document.getElementById('language-select'),
-  searchMatchModeSelect: document.getElementById('search-match-mode'),
-  appVersion: document.getElementById('app-version'),
-  statusMessage: document.getElementById('status-message')
+  btnSetupShortcut: document.getElementById('btn-setup-shortcut')
 };
 
-// 初始化
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize i18n
   await i18n.initialize();
@@ -50,6 +69,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Apply internationalization
   applyI18n();
 
+  // 检查是否有待显示的初次同步 toast
+  try {
+    const result = await chrome.storage.local.get(['pendingFirstSyncToast']);
+    if (result.pendingFirstSyncToast) {
+      const toastMessage = result.pendingFirstSyncToast;
+      // 清除存储的 toast 消息
+      await chrome.storage.local.remove(['pendingFirstSyncToast']);
+      // 延迟显示 toast，确保页面已完全加载
+      setTimeout(() => {
+        showToast(toastMessage);
+      }, 500);
+    }
+  } catch (e) {
+    console.error('[Settings] Failed to check pending toast:', e);
+  }
+
   // 监听 OAuth 登录成功消息
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'AUTH_SUCCESS') {
@@ -57,6 +92,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       setTimeout(() => {
         window.location.reload();
       }, 500);
+    }
+    if (message.action === 'SHOW_TOAST') {
+      showToast(message.message);
     }
     sendResponse({ success: true });
     return true;
@@ -1145,6 +1183,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'languageChanged') {
     applyI18n();
   }
+  if (message.action === 'SHOW_TOAST') {
+    showToast(message.message);
+  }
+  sendResponse({ success: true });
+  return true;
 });
 
 // 全局调试方法：强制刷新体验期状态

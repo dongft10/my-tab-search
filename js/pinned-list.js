@@ -76,6 +76,22 @@ async function initialize() {
   
   // 加载固定标签页
   await loadPinnedTabs();
+
+  // 检查是否有待显示的初次同步 toast
+  try {
+    const result = await chrome.storage.local.get(['pendingFirstSyncToast']);
+    if (result.pendingFirstSyncToast) {
+      const toastMessage = result.pendingFirstSyncToast;
+      // 清除存储的 toast 消息
+      await chrome.storage.local.remove(['pendingFirstSyncToast']);
+      // 延迟显示 toast，确保页面已完全加载
+      setTimeout(() => {
+        showToast(toastMessage);
+      }, 500);
+    }
+  } catch (e) {
+    console.error('[PinnedList] Failed to check pending toast:', e);
+  }
 }
 
 // 更新国际化文本
@@ -145,6 +161,11 @@ function bindEvents() {
         loadPinnedTabs();
       });
     }
+    if (message.action === 'SHOW_TOAST') {
+      showToast(message.message);
+    }
+    sendResponse({ success: true });
+    return true;
   });
 }
 
