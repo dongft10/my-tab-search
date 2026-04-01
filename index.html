@@ -1551,59 +1551,65 @@
 </footer>
 
 <script>
-    // Use temporary variable to store theme state for index.html only
-    let currentTheme;
+    const THEME_STORAGE_KEY = 'mytabsearch-theme-preference';
 
-    // Set default theme based on system time
-    function setDefaultTheme() {
+    function getSavedTheme() {
         try {
-            const now = new Date();
-            const hour = now.getHours();
-            const html = document.documentElement;
-            const btn = document.querySelector('.theme-toggle i');
-            
-            // Set light theme from 6:00 to 19:00, dark theme otherwise
-            if (hour >= 6 && hour < 19) {
-                html.setAttribute('data-theme', 'light');
-                if (btn) {
-                    btn.className = 'fas fa-sun';
-                }
-                currentTheme = 'light';
-            } else {
-                html.removeAttribute('data-theme');
-                if (btn) {
-                    btn.className = 'fas fa-moon';
-                }
-                currentTheme = 'dark';
-            }
+            return localStorage.getItem(THEME_STORAGE_KEY);
         } catch (error) {
-            console.error('Set default theme error:', error);
-            // Fallback to dark theme if error occurs
-            currentTheme = 'dark';
+            console.error('Get saved theme error:', error);
+            return null;
         }
+    }
+
+    function saveTheme(theme) {
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch (error) {
+            console.error('Save theme error:', error);
+        }
+    }
+
+    function applyTheme(theme) {
+        const html = document.documentElement;
+        const btn = document.querySelector('.theme-toggle i');
+        
+        if (theme === 'light') {
+            html.setAttribute('data-theme', 'light');
+            if (btn) btn.className = 'fas fa-sun';
+        } else {
+            html.removeAttribute('data-theme');
+            if (btn) btn.className = 'fas fa-moon';
+        }
+    }
+
+    function getDefaultTheme() {
+        const now = new Date();
+        const hour = now.getHours();
+        return (hour >= 6 && hour < 19) ? 'light' : 'dark';
+    }
+
+    function initTheme() {
+        const savedTheme = getSavedTheme();
+        const theme = savedTheme || getDefaultTheme();
+        applyTheme(theme);
     }
 
     function toggleTheme() {
         try {
             const html = document.documentElement;
-            const btn = document.querySelector('.theme-toggle i');
+            const currentTheme = html.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             
-            if (currentTheme === 'light') {
-                html.removeAttribute('data-theme');
-                btn.className = 'fas fa-moon';
-                currentTheme = 'dark';
-            } else {
-                html.setAttribute('data-theme', 'light');
-                btn.className = 'fas fa-sun';
-                currentTheme = 'light';
-            }
+            applyTheme(newTheme);
+            saveTheme(newTheme);
         } catch (error) {
             console.error('Theme toggle error:', error);
         }
     }
 
     // Initialize theme on page load
-    setDefaultTheme();
+    initTheme();
 
     let slideIndex = 1;
 
