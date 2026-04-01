@@ -1315,7 +1315,7 @@
                         <li><a href="README.md">Docs</a></li>
                     </ul>
                 </nav>
-                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+                <button class="theme-toggle" title="Toggle theme">
                     <i class="fas fa-moon"></i>
                 </button>
             </div>
@@ -1358,17 +1358,17 @@
                 <img src="website/images/pic-3.png" alt="MyTabSearch Screenshot 3">
             </div>
             <div class="carousel-controls">
-                <button class="prev" onclick="changeSlide(-1)">
+                <button class="prev">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-                <button class="next" onclick="changeSlide(1)">
+                <button class="next">
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
             <div class="carousel-indicators">
-                <span class="indicator active" onclick="currentSlide(1)"></span>
-                <span class="indicator" onclick="currentSlide(2)"></span>
-                <span class="indicator" onclick="currentSlide(3)"></span>
+                <span class="indicator active" data-slide="1"></span>
+                <span class="indicator" data-slide="2"></span>
+                <span class="indicator" data-slide="3"></span>
             </div>
         </div>
     </div>
@@ -1551,43 +1551,119 @@
 </footer>
 
 <script>
-    function toggleTheme() {
-        const html = document.documentElement;
-        const btn = document.querySelector('.theme-toggle i');
-        
-        if (html.getAttribute('data-theme') === 'light') {
-            html.removeAttribute('data-theme');
-            btn.className = 'fas fa-moon';
-            localStorage.setItem('theme', 'dark');
-        } else {
-            html.setAttribute('data-theme', 'light');
-            btn.className = 'fas fa-sun';
-            localStorage.setItem('theme', 'light');
+    // Use temporary variable to store theme state for index.html only
+    let currentTheme;
+
+    // Set default theme based on system time
+    function setDefaultTheme() {
+        try {
+            const now = new Date();
+            const hour = now.getHours();
+            const html = document.documentElement;
+            const btn = document.querySelector('.theme-toggle i');
+            
+            // Set light theme from 6:00 to 19:00, dark theme otherwise
+            if (hour >= 6 && hour < 19) {
+                html.setAttribute('data-theme', 'light');
+                if (btn) {
+                    btn.className = 'fas fa-sun';
+                }
+                currentTheme = 'light';
+            } else {
+                html.removeAttribute('data-theme');
+                if (btn) {
+                    btn.className = 'fas fa-moon';
+                }
+                currentTheme = 'dark';
+            }
+        } catch (error) {
+            console.error('Set default theme error:', error);
+            // Fallback to dark theme if error occurs
+            currentTheme = 'dark';
         }
     }
 
-    // Load saved theme
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    if (savedTheme === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        document.querySelector('.theme-toggle i').className = 'fas fa-sun';
+    function toggleTheme() {
+        try {
+            const html = document.documentElement;
+            const btn = document.querySelector('.theme-toggle i');
+            
+            if (currentTheme === 'light') {
+                html.removeAttribute('data-theme');
+                btn.className = 'fas fa-moon';
+                currentTheme = 'dark';
+            } else {
+                html.setAttribute('data-theme', 'light');
+                btn.className = 'fas fa-sun';
+                currentTheme = 'light';
+            }
+        } catch (error) {
+            console.error('Theme toggle error:', error);
+        }
     }
 
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
+    // Initialize theme on page load
+    setDefaultTheme();
 
     let slideIndex = 1;
-    showSlides(slideIndex);
+
+    // Bind event listeners - works both for local files and served files
+    function bindEventListeners() {
+        // Theme toggle event listener
+        const themeToggle = document.querySelector('.theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+
+        // Carousel event listeners
+        const prevBtn = document.querySelector('.carousel-controls .prev');
+        const nextBtn = document.querySelector('.carousel-controls .next');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function() {
+                changeSlide(-1);
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                changeSlide(1);
+            });
+        }
+
+        // Carousel indicators event listeners
+        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        indicators.forEach(indicator => {
+            indicator.addEventListener('click', function() {
+                const slideNumber = parseInt(this.getAttribute('data-slide'));
+                currentSlide(slideNumber);
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Initialize carousel
+        showSlides(slideIndex);
+    }
+
+    // Check if DOM is already loaded
+    if (document.readyState === 'loading') {
+        // DOM is still loading, wait for DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', bindEventListeners);
+    } else {
+        // DOM is already loaded, bind listeners immediately
+        bindEventListeners();
+    }
 
     function changeSlide(n) {
         showSlides(slideIndex += n);
