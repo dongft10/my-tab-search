@@ -1012,8 +1012,24 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
   if (message.action === 'AUTH_SUCCESS') {
     try {
+      console.log('[background] AUTH_SUCCESS received, starting sync...');
       if (self.SyncQueueService) {
-        self.SyncQueueService.scheduleSync(1000);
+        const syncResult = await self.SyncQueueService.performSync();
+        console.log('[background] Sync result:', syncResult);
+        if (syncResult && syncResult.success && syncResult.isFirstSync && syncResult.pulledData) {
+          const toastMessage = i18n.getMessage('firstSyncCompleted');
+          console.log('[background] First sync completed with data, saving toast for later display:', toastMessage);
+          // 保存 toast 消息到 storage，让页面刷新后显示
+          await chrome.storage.local.set({ pendingFirstSyncToast: toastMessage });
+        } else {
+          console.log('[background] Sync result does not meet toast conditions:', {
+            success: syncResult?.success,
+            isFirstSync: syncResult?.isFirstSync,
+            pulledData: syncResult?.pulledData
+          });
+        }
+      } else {
+        console.log('[background] SyncQueueService not available');
       }
     } catch (error) {
       console.error('[background] Failed to trigger sync:', error);

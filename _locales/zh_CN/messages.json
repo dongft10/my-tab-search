@@ -674,5 +674,9 @@
   "setupShortcutsBtn": {
     "message": "设置快捷键",
     "description": "Setup shortcuts button text"
+  },
+  "firstSyncCompleted": {
+    "message": "已完成初次数据同步，已同步固定标签页数据",
+    "description": "Toast message when first sync is completed with data pulled from server"
   }
 }

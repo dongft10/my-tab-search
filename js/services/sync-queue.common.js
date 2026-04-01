@@ -7,6 +7,7 @@
 const SYNC_QUEUE_STORAGE_KEY = 'syncQueue';
 const SYNC_QUEUE_MAX_RETRIES = 3;
 const SYNC_QUEUE_DEBOUNCE_DELAY = 2000;
+const FIRST_SYNC_COMPLETED_KEY = 'firstSyncCompleted';
 
 let syncTimer = null;
 let isSyncing = false;
@@ -165,14 +166,45 @@ async function addToSyncQueue(type, data) {
 }
 
 /**
+ * 检查是否已完成初次同步
+ */
+async function isFirstSyncCompleted() {
+  try {
+    const result = await chrome.storage.local.get([FIRST_SYNC_COMPLETED_KEY]);
+    return !!result[FIRST_SYNC_COMPLETED_KEY];
+  } catch (error) {
+    console.error('[SyncQueue] Check first sync status error:', error);
+    return false;
+  }
+}
+
+/**
+ * 标记初次同步已完成
+ */
+async function markFirstSyncCompleted() {
+  try {
+    await chrome.storage.local.set({ [FIRST_SYNC_COMPLETED_KEY]: true });
+  } catch (error) {
+    console.error('[SyncQueue] Mark first sync completed error:', error);
+  }
+}
+
+/**
  * 执行同步
  */
 async function performSyncQueue() {
   if (isSyncing) {
-    return;
+    return { success: false, reason: 'already_syncing' };
   }
 
   isSyncing = true;
+  let syncResult = {
+    success: false,
+    isFirstSync: false,
+    pulledData: false,
+    tabsCount: 0
+  };
+
   try {
     const queue = await getSyncQueue();
 
@@ -180,15 +212,27 @@ async function performSyncQueue() {
     const accessToken = storageData.accessToken;
 
     if (!accessToken) {
-      return;
+      return { success: false, reason: 'no_token' };
     }
+
+    const wasFirstSync = !(await isFirstSyncCompleted());
 
     if (shouldSync(queue)) {
       try {
-        await processSyncOperation({
+        const processResult = await processSyncOperation({
           type: 'sync',
           data: { tabId: queue.length > 0 ? 'queue-sync' : 'sync-check' }
         }, accessToken);
+
+        syncResult.success = true;
+        syncResult.isFirstSync = wasFirstSync;
+        syncResult.pulledData = processResult?.pulledData || false;
+        syncResult.tabsCount = processResult?.tabsCount || 0;
+
+        if (wasFirstSync) {
+          await markFirstSyncCompleted();
+          console.log('[SyncQueue] First sync completed, pulledData:', syncResult.pulledData, 'tabsCount:', syncResult.tabsCount);
+        }
 
         if (queue.length > 0) {
           await saveSyncQueue([]);
@@ -208,6 +252,8 @@ async function performSyncQueue() {
   } finally {
     isSyncing = false;
   }
+
+  return syncResult;
 }
 
 /**
@@ -259,8 +305,12 @@ async function processSyncOperation(item, accessToken) {
   const syncResult = await response.json();
   const syncData = syncResult.data || {};
 
+  let pulledData = false;
+  let tabsCount = 0;
+
   if (syncData.needsPull) {
     if (syncData.tabs && Array.isArray(syncData.tabs)) {
+      const serverTabsCount = syncData.tabs.length;
       const currentTabs = await pinnedTabsService.getPinnedTabs();
       const localLongTermTabs = currentTabs.filter(tab => tab.isLongTermPinned);
       const nonLongTermTabs = currentTabs.filter(tab => !tab.isLongTermPinned);
@@ -270,7 +320,6 @@ async function processSyncOperation(item, accessToken) {
       for (const serverTab of syncData.tabs) {
         const localTab = localLongTermMap.get(serverTab.url);
         if (!localTab) {
-          // 本地没有该长期固定标签，检查浏览器中是否有相同 URL 的已打开标签
           let existingTabId = undefined;
           try {
             const existingTabs = await chrome.tabs.query({ url: serverTab.url });
@@ -288,6 +337,7 @@ async function processSyncOperation(item, accessToken) {
             longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
             pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
           });
+          pulledData = true;
         } else {
           mergedTabs.push({
             ...serverTab,
@@ -307,16 +357,18 @@ async function processSyncOperation(item, accessToken) {
       });
 
       await chrome.storage.local.set({ pinnedTabs: mergedTabs });
+      tabsCount = serverTabsCount;
     }
 
     if (syncData.serverVersion) {
       await chrome.storage.local.set({ pinnedTabsVersion: syncData.serverVersion });
     }
 
-    return;
+    return { pulledData, tabsCount };
   }
 
   if (syncData.tabs && Array.isArray(syncData.tabs)) {
+    const serverTabsCount = syncData.tabs.length;
     const currentTabs = await pinnedTabsService.getPinnedTabs();
     const localLongTermTabs = currentTabs.filter(tab => tab.isLongTermPinned);
     const nonLongTermTabs = currentTabs.filter(tab => !tab.isLongTermPinned);
@@ -327,7 +379,6 @@ async function processSyncOperation(item, accessToken) {
       const localTab = localLongTermMap.get(serverTab.url);
 
       if (!localTab) {
-        // 本地没有该长期固定标签，检查浏览器中是否有相同 URL 的已打开标签
         let existingTabId = undefined;
         try {
           const existingTabs = await chrome.tabs.query({ url: serverTab.url });
@@ -345,6 +396,7 @@ async function processSyncOperation(item, accessToken) {
           longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
           pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
         });
+        pulledData = true;
       } else {
         mergedTabs.push({
           ...serverTab,
@@ -364,11 +416,14 @@ async function processSyncOperation(item, accessToken) {
     });
 
     await chrome.storage.local.set({ pinnedTabs: mergedTabs });
+    tabsCount = serverTabsCount;
   }
 
   if (syncData.serverVersion) {
     await chrome.storage.local.set({ pinnedTabsVersion: syncData.serverVersion });
   }
+
+  return { pulledData, tabsCount };
 }
 
 /**

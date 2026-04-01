@@ -63,6 +63,22 @@ function showToast(message, duration = 3000) {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
+  // 检查是否有待显示的初次同步 toast
+  try {
+    const result = await chrome.storage.local.get(['pendingFirstSyncToast']);
+    if (result.pendingFirstSyncToast) {
+      const toastMessage = result.pendingFirstSyncToast;
+      // 清除存储的 toast 消息
+      await chrome.storage.local.remove(['pendingFirstSyncToast']);
+      // 延迟显示 toast，确保页面已完全加载
+      setTimeout(() => {
+        showToast(toastMessage);
+      }, 500);
+    }
+  } catch (e) {
+    console.error('[Popup] Failed to check pending toast:', e);
+  }
+
   // 监听 OAuth 登录成功消息
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'AUTH_SUCCESS') {
@@ -71,6 +87,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       setTimeout(() => {
         window.location.reload();
       }, 500);
+    }
+    if (message.action === 'SHOW_TOAST') {
+      showToast(message.message);
     }
     sendResponse({ success: true });
     return true;
