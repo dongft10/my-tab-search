@@ -154,14 +154,16 @@ class PinnedTabsSyncService {
       const localVersion = await this.getLocalVersion();
 
       if (!deviceId) {
-        return;
+        return { success: false };
       }
 
       const tabsToSync = this.getTabsToSync(localTabs);
+      const removedTabs = this.getRemovedTabs(localTabs);
 
       const response = await this.apiSync({
         deviceId,
         localTabs: tabsToSync,
+        removedTabs: removedTabs,
         lastKnownVersion: localVersion
       });
 
@@ -171,7 +173,9 @@ class PinnedTabsSyncService {
         await this.setLocalVersion(response.serverVersion);
         await this.updateLastSyncTime(Date.now());
         await this.resetFailureCount();
+        return { success: true };
       }
+      return { success: false };
     } catch (error) {
       console.error('[PinnedTabsSync] Full sync failed:', error);
       await this.recordFailure();
@@ -212,6 +216,15 @@ class PinnedTabsSyncService {
       }));
   }
 
+  getRemovedTabs(tabs) {
+    return tabs
+      .filter(tab => !tab.isLongTermPinned && tab.longTermPinnedRemovedAt)
+      .map(tab => ({
+        url: tab.url,
+        longTermPinnedRemovedAt: tab.longTermPinnedRemovedAt
+      }));
+  }
+
   async mergeData(serverTabs, localTabs) {
     try {
       const localLongTermTabs = localTabs.filter(t => t.isLongTermPinned);
@@ -244,7 +257,24 @@ class PinnedTabsSyncService {
             pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
           });
         } else {
-          console.log('[PinnedTabsSync] mergeData - localTab found, localTab.tabId:', localTab.tabId);
+          console.log('[PinnedTabsSync] mergeData - localTab found, localTab.tabId:', localTab.tabId, ', localTab.isLongTermPinned:', localTab.isLongTermPinned, ', localTab.longTermPinnedRemovedAt:', localTab.longTermPinnedRemovedAt);
+          
+          // 检查本地是否已取消长期固定（有 longTermPinnedRemovedAt 时间戳）
+          if (localTab.longTermPinnedRemovedAt) {
+            const removedTime = new Date(localTab.longTermPinnedRemovedAt).getTime();
+            const serverTime = new Date(serverTab.longTermPinnedAt || 0).getTime();
+            
+            // 如果本地的取消操作比服务器的固定操作更新，则保持取消状态
+            if (removedTime > serverTime) {
+              console.log('[PinnedTabsSync] mergeData - local removal is newer, keeping as non-long-term-pinned:', serverTab.url);
+              // 从 localMap 中移除，避免重复添加
+              localMap.delete(serverTab.url);
+              continue;
+            }
+          }
+          
+          // 如果本地不是长期固定但没有取消时间戳，说明是服务器端的数据更新
+          // 使用冲突解决逻辑
           const resolved = this.resolveConflict(localTab, serverTab);
           if (resolved.value) {
             let tabId = localTab.tabId;

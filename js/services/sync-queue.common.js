@@ -283,10 +283,18 @@ async function processSyncOperation(item, accessToken) {
       longTermPinnedAt: tab.longTermPinnedAt
     }));
 
+  const removedTabs = localTabs
+    .filter(tab => !tab.isLongTermPinned && tab.longTermPinnedRemovedAt)
+    .map(tab => ({
+      url: tab.url,
+      longTermPinnedRemovedAt: tab.longTermPinnedRemovedAt
+    }));
+
   const endpoint = '/pinned-tabs/sync';
   const body = {
     deviceId: deviceId,
     localTabs: longTermTabs,
+    removedTabs: removedTabs,
     lastKnownVersion: localVersion
   };
 
@@ -312,13 +320,12 @@ async function processSyncOperation(item, accessToken) {
     if (syncData.tabs && Array.isArray(syncData.tabs)) {
       const serverTabsCount = syncData.tabs.length;
       const currentTabs = await pinnedTabsService.getPinnedTabs();
-      const localLongTermTabs = currentTabs.filter(tab => tab.isLongTermPinned);
-      const nonLongTermTabs = currentTabs.filter(tab => !tab.isLongTermPinned);
-      const mergedTabs = [...nonLongTermTabs];
-      const localLongTermMap = new Map(localLongTermTabs.map(t => [t.url, t]));
+      const localMap = new Map(currentTabs.map(t => [t.url, t]));
+      const mergedTabs = [];
 
       for (const serverTab of syncData.tabs) {
-        const localTab = localLongTermMap.get(serverTab.url);
+        const localTab = localMap.get(serverTab.url);
+        
         if (!localTab) {
           let existingTabId = undefined;
           try {
@@ -339,6 +346,19 @@ async function processSyncOperation(item, accessToken) {
           });
           pulledData = true;
         } else {
+          // 检查本地是否已取消长期固定（有 longTermPinnedRemovedAt 时间戳）
+          if (localTab.longTermPinnedRemovedAt) {
+            const removedTime = new Date(localTab.longTermPinnedRemovedAt).getTime();
+            const serverTime = new Date(serverTab.longTermPinnedAt || 0).getTime();
+            
+            // 如果本地的取消操作比服务器的固定操作更新，则保持取消状态
+            if (removedTime > serverTime) {
+              console.log('[SyncQueue] Local removal is newer, keeping as non-long-term-pinned:', serverTab.url);
+              localMap.delete(serverTab.url);
+              continue;
+            }
+          }
+          
           mergedTabs.push({
             ...serverTab,
             tabId: localTab.tabId,
@@ -346,8 +366,13 @@ async function processSyncOperation(item, accessToken) {
             longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
             pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
           });
-          localLongTermMap.delete(serverTab.url);
+          localMap.delete(serverTab.url);
         }
+      }
+
+      // 添加剩余的本地 tab（包括已取消长期固定的）
+      for (const [url, localTab] of localMap) {
+        mergedTabs.push(localTab);
       }
 
       mergedTabs.sort((a, b) => {
@@ -370,13 +395,11 @@ async function processSyncOperation(item, accessToken) {
   if (syncData.tabs && Array.isArray(syncData.tabs)) {
     const serverTabsCount = syncData.tabs.length;
     const currentTabs = await pinnedTabsService.getPinnedTabs();
-    const localLongTermTabs = currentTabs.filter(tab => tab.isLongTermPinned);
-    const nonLongTermTabs = currentTabs.filter(tab => !tab.isLongTermPinned);
-    const mergedTabs = [...nonLongTermTabs];
-    const localLongTermMap = new Map(localLongTermTabs.map(t => [t.url, t]));
+    const localMap = new Map(currentTabs.map(t => [t.url, t]));
+    const mergedTabs = [];
 
     for (const serverTab of syncData.tabs) {
-      const localTab = localLongTermMap.get(serverTab.url);
+      const localTab = localMap.get(serverTab.url);
 
       if (!localTab) {
         let existingTabId = undefined;
@@ -398,6 +421,19 @@ async function processSyncOperation(item, accessToken) {
         });
         pulledData = true;
       } else {
+        // 检查本地是否已取消长期固定（有 longTermPinnedRemovedAt 时间戳）
+        if (localTab.longTermPinnedRemovedAt) {
+          const removedTime = new Date(localTab.longTermPinnedRemovedAt).getTime();
+          const serverTime = new Date(serverTab.longTermPinnedAt || 0).getTime();
+          
+          // 如果本地的取消操作比服务器的固定操作更新，则保持取消状态
+          if (removedTime > serverTime) {
+            console.log('[SyncQueue] Local removal is newer, keeping as non-long-term-pinned:', serverTab.url);
+            localMap.delete(serverTab.url);
+            continue;
+          }
+        }
+        
         mergedTabs.push({
           ...serverTab,
           tabId: localTab.tabId,
@@ -405,8 +441,13 @@ async function processSyncOperation(item, accessToken) {
           longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
           pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
         });
-        localLongTermMap.delete(serverTab.url);
+        localMap.delete(serverTab.url);
       }
+    }
+
+    // 添加剩余的本地 tab（包括已取消长期固定的）
+    for (const [url, localTab] of localMap) {
+      mergedTabs.push(localTab);
     }
 
     mergedTabs.sort((a, b) => {

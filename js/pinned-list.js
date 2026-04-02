@@ -1048,6 +1048,7 @@ async function cancelLongTermPinned(tabId, tab) {
   try {
     const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
+    const removedAt = new Date().toISOString();
     
     const updatedTabs = tabs.map(t => {
       // 优先使用 URL 匹配（服务器同步的tab没有有效tabId，tabId可能为undefined）
@@ -1056,9 +1057,36 @@ async function cancelLongTermPinned(tabId, tab) {
         return {
           ...t,
           isLongTermPinned: false,
-          longTermPinnedAt: null
+          longTermPinnedAt: null,
+          longTermPinnedRemovedAt: removedAt
         };
       }
+      return t;
+    });
+    
+    await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+    
+    // 异步同步到服务器（携带 tabId 用于队列去重，url 用于实际标识）
+    const syncUrl = (tab && tab.url) || updatedTabs.find(t => (tabId !== undefined && t.tabId === tabId))?.url;
+    if (syncUrl) {
+      syncQueueService.addOperation('updateTab', {
+        tabId: tabId || 'url:' + syncUrl,
+        url: syncUrl,
+        isLongTermPinned: false,
+        longTermPinnedAt: null,
+        longTermPinnedRemovedAt: removedAt
+      }).catch(err => console.info('Sync updateTab failed:', err));
+    }
+    
+    showToast(i18n.getMessage('cancelLongTermSuccess'));
+    
+    // 重新加载列表
+    await loadPinnedTabs();
+  } catch (error) {
+    console.error('Cancel long term pinned error:', error);
+    showToast(i18n.getMessage('cancelLongTermFailed'));
+  }
+}
       return t;
     });
     
