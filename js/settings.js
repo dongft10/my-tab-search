@@ -702,6 +702,17 @@ function setupLoginModalEvents() {
       }
     });
   }
+
+  // 验证码输入框 Enter 键监听
+  const codeInput = document.getElementById('login-code-input');
+  if (codeInput) {
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleLoginVerify();
+      }
+    });
+  }
 }
 
 // 登录弹窗 - 发送验证码
