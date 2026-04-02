@@ -214,8 +214,6 @@ class PinnedTabsSyncService {
 
   async mergeData(serverTabs, localTabs) {
     try {
-      const localLongTermTabs = localTabs.filter(t => t.isLongTermPinned);
-      const localNonLongTermTabs = localTabs.filter(t => !t.isLongTermPinned);
       const mergedTabs = [];
       const localMap = new Map(localTabs.map(t => [t.url, t]));
 
