@@ -691,6 +691,17 @@ function setupLoginModalEvents() {
   if (btnSkip) {
     btnSkip.addEventListener('click', closeLoginModal);
   }
+
+  // 邮箱输入框 Enter 键监听
+  const emailInput = document.getElementById('login-email-input');
+  if (emailInput) {
+    emailInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleLoginSendCode();
+      }
+    });
+  }
 }
 
 // 登录弹窗 - 发送验证码
