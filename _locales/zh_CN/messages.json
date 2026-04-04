@@ -528,8 +528,8 @@
     "description": "Trial expired status text"
   },
   "trialDaysLeft": {
-    "message": "体验期剩余 $1$ 天",
-    "description": "Trial days left message, $1$ will be replaced with number of days",
+    "message": "体验期剩余 $days$ 天",
+    "description": "Trial days left message, $days$ will be replaced with number of days",
     "placeholders": {
       "days": {
         "content": "$1",
