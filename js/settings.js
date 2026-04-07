@@ -403,7 +403,7 @@ async function loadTrialStatus() {
         // 推广期（trialEnabled = false）
         elements.trialStatus.style.display = 'block';
         elements.trialLabel.style.display = 'none';
-        elements.trialDaysLeft.textContent = trialData.displayText || i18n.getMessage('promotionPeriodMessage') || '✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄';
+        elements.trialDaysLeft.textContent = i18n.getMessage('promotionPeriodMessage') || '✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄';
         elements.btnExtendTrial.style.display = 'none';
         break;
 
@@ -417,14 +417,18 @@ async function loadTrialStatus() {
         // 体验中或已结束
         elements.trialStatus.style.display = 'block';
         elements.trialLabel.style.display = 'inline';
-        elements.trialDaysLeft.textContent = trialData.displayText || (trialData.statusType === 'expired' ? i18n.getMessage('trialExpired') || '体验期已结束' : `${trialData.trialDaysLeft} days`);
+        
+        if (trialData.statusType === 'expired') {
+          elements.trialDaysLeft.textContent = i18n.getMessage('trialExpired') || '体验期已结束';
+        } else {
+          const daysLeftText = i18n.getMessage('trialDaysLeft', [trialData.trialDaysLeft.toString()]) || `体验期剩余 ${trialData.trialDaysLeft} 天`;
+          elements.trialDaysLeft.textContent = daysLeftText;
+        }
 
         if (trialData.showExtendButton) {
           elements.btnExtendTrial.style.display = 'block';
           elements.btnExtendTrial.disabled = !trialData.extendButtonEnabled;
-          if (trialData.extendButtonText) {
-            elements.btnExtendTrial.textContent = trialData.extendButtonText;
-          }
+          elements.btnExtendTrial.textContent = i18n.getMessage('extendTrial') || '延展体验期';
         } else {
           elements.btnExtendTrial.style.display = 'none';
         }
@@ -447,12 +451,14 @@ async function loadTrialStatus() {
           if (trialData.isInTrialPeriod) {
             elements.trialStatus.style.display = 'block';
             elements.trialLabel.style.display = 'inline';
-            elements.trialDaysLeft.textContent = `${trialData.trialDaysLeft} days`;
+            const daysLeftText = i18n.getMessage('trialDaysLeft', [trialData.trialDaysLeft.toString()]) || `体验期剩余 ${trialData.trialDaysLeft} 天`;
+            elements.trialDaysLeft.textContent = daysLeftText;
 
             if (trialData.canExtend) {
               elements.btnExtendTrial.style.display = 'block';
               const isNearExpiry = trialData.trialDaysLeft <= 3;
               elements.btnExtendTrial.disabled = !isNearExpiry;
+              elements.btnExtendTrial.textContent = i18n.getMessage('extendTrial') || '延展体验期';
             }
           } else {
             elements.trialStatus.style.display = 'block';
@@ -462,6 +468,7 @@ async function loadTrialStatus() {
             if (trialData.canExtend) {
               elements.btnExtendTrial.style.display = 'block';
               elements.btnExtendTrial.disabled = false;
+              elements.btnExtendTrial.textContent = i18n.getMessage('extendTrial') || '延展体验期';
             }
           }
         }
