@@ -527,6 +527,16 @@
     "message": "Trial Expired",
     "description": "Trial expired status text"
   },
+  "trialDaysLeft": {
+    "message": "$days$ days left in trial",
+    "description": "Trial days left message, $days$ will be replaced with number of days",
+    "placeholders": {
+      "days": {
+        "content": "$1",
+        "example": "7"
+      }
+    }
+  },
   "promotionPeriodMessage": {
     "message": "✨App Promotion Period: All features are free to use. Welcome to provide valuable feedback!🎯😄",
     "description": "Message shown during promotion period when trial is disabled"

@@ -17,5 +17,6 @@ jobs:
           static_list: "my-tab-search"
           dst_key: ${{ secrets.SSH_PRIVATE_KEY }}
           dst_token:  ${{ secrets.GIT_TOKEN }}
+          src_token: ${{ secrets.GITEE_TOKEN }}
           force_update: true
           debug: true
