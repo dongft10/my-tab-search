@@ -1021,12 +1021,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
           console.log('[background] First sync completed with data, saving toast for later display:', toastMessage);
           // 保存 toast 消息到 storage，让页面刷新后显示
           await chrome.storage.local.set({ pendingFirstSyncToast: toastMessage });
-        } else {
-          console.log('[background] Sync result does not meet toast conditions:', {
-            success: syncResult?.success,
-            isFirstSync: syncResult?.isFirstSync,
-            pulledData: syncResult?.pulledData
-          });
         }
       } else {
         console.log('[background] SyncQueueService not available');
