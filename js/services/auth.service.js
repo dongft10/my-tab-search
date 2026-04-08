@@ -16,6 +16,8 @@ class AuthService {
     };
     // Token 刷新提前时间（过期前 5 天）
     this.refreshThreshold = 5 * 24 * 60 * 60 * 1000; // 5天，单位毫秒
+    // Token 请求去重：防止并发请求
+    this._tokenRequestPromise = null;
   }
 
   /**
@@ -60,10 +62,30 @@ class AuthService {
   }
 
   /**
-   * 获取访问令牌
+   * 获取访问令牌（带去重机制）
    * @returns {Promise} - 返回令牌
    */
   async getAccessToken() {
+    // 如果已有正在进行的请求，复用它
+    if (this._tokenRequestPromise) {
+      return this._tokenRequestPromise;
+    }
+
+    this._tokenRequestPromise = this._doGetAccessToken();
+    
+    try {
+      const result = await this._tokenRequestPromise;
+      return result;
+    } finally {
+      this._tokenRequestPromise = null;
+    }
+  }
+
+  /**
+   * 内部方法：实际获取访问令牌
+   * @returns {Promise} - 返回令牌
+   */
+  async _doGetAccessToken() {
     try {
       const userInfo = await this.getUserInfo();
       if (!userInfo || !userInfo.userId || !userInfo.deviceId) {
@@ -299,34 +321,42 @@ class AuthService {
   }
 
   /**
-   * 获取有效的访问令牌（自动刷新）
+   * 获取有效的访问令牌（自动刷新或获取新token）
    * @returns {Promise<string|null>} - 返回有效的令牌
    */
   async getValidAccessToken() {
-    // 先尝试直接获取已存储的 token
-    const storageKey = this.storageKey.accessToken;
-    const result = await chrome.storage.local.get(storageKey);
-    const accessToken = result[storageKey];
+    const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
+      this.storageKey.accessToken,
+      this.storageKey.tokenExpiresAt
+    ]);
     
-    if (accessToken) {
-      return accessToken;
-    }
-    
-    // 如果没有 token，尝试刷新
-    const needsRefresh = await this.shouldRefreshToken();
-    
-    if (needsRefresh) {
-      try {
-        const refreshed = await this.refreshAccessToken();
-        if (refreshed) {
-          return refreshed;
-        }
-      } catch (e) {
-        // 刷新失败，继续返回 null
+    // 如果有token且未过期，直接返回
+    if (accessToken && tokenExpiresAt) {
+      const expiresAt = new Date(tokenExpiresAt).getTime();
+      if (expiresAt > Date.now()) {
+        return accessToken;
       }
     }
-
-    return null;
+    
+    // token不存在或已过期，尝试刷新或获取新token
+    try {
+      // 先尝试刷新现有token
+      if (accessToken) {
+        const needsRefresh = await this.shouldRefreshToken();
+        if (needsRefresh) {
+          const refreshed = await this.refreshAccessToken();
+          if (refreshed) {
+            return refreshed;
+          }
+        }
+      }
+      
+      // 刷新失败或没有token，获取新token
+      return await this.getAccessToken();
+    } catch (e) {
+      console.error('Failed to get valid access token:', e);
+      return null;
+    }
   }
 }
 

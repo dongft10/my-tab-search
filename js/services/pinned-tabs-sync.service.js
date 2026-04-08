@@ -77,7 +77,10 @@ class PinnedTabsSyncService {
 
   async getTrialStatus() {
     try {
-      const token = await this.authService.getAccessToken();
+      const token = await this.authService.getValidAccessToken();
+      if (!token) {
+        return { trialEnabled: false, isInTrialPeriod: false };
+      }
       const response = await fetch(getApiUrl('/trial/status'), {
         method: 'GET',
         headers: {
@@ -167,10 +170,43 @@ class PinnedTabsSyncService {
 
       if (response.success) {
         console.log('[PinnedTabsSync] fullSync - success, needsPull:', response.needsPull, ', server tabs count:', response.tabs?.length || 0, ', local tabs count:', localTabs.length);
-        await this.mergeData(response.tabs || [], localTabs);
-        await this.setLocalVersion(response.serverVersion);
-        await this.updateLastSyncTime(Date.now());
-        await this.resetFailureCount();
+        
+        if (response.needsPull && response.tabs) {
+          // 服务端返回需要拉取，合并数据后检查是否有新数据需要同步
+          const mergedTabs = await this.mergeData(response.tabs, localTabs);
+          await this.setLocalVersion(response.serverVersion);
+          
+          // 检查合并后是否有本地独有的新tab需要同步
+          const mergedTabsToSync = this.getTabsToSync(mergedTabs);
+          const serverUrls = new Set(response.tabs.map(t => t.url));
+          const hasNewLocalTabs = mergedTabsToSync.some(tab => !serverUrls.has(tab.url));
+          
+          if (hasNewLocalTabs) {
+            console.log('[PinnedTabsSync] fullSync - has new local tabs after merge, re-syncing');
+            // 使用合并后的版本号再次同步
+            const reSyncResponse = await this.apiSync({
+              deviceId,
+              localTabs: mergedTabsToSync,
+              lastKnownVersion: response.serverVersion
+            });
+            if (reSyncResponse.success) {
+              await this.setLocalVersion(reSyncResponse.serverVersion);
+              await this.updateLastSyncTime(Date.now());
+              await this.resetFailureCount();
+            }
+          } else {
+            await this.updateLastSyncTime(Date.now());
+            await this.resetFailureCount();
+          }
+        } else {
+          // 正常同步完成
+          if (response.tabs) {
+            await this.mergeData(response.tabs, localTabs);
+          }
+          await this.setLocalVersion(response.serverVersion);
+          await this.updateLastSyncTime(Date.now());
+          await this.resetFailureCount();
+        }
       }
     } catch (error) {
       console.error('[PinnedTabsSync] Full sync failed:', error);
@@ -279,6 +315,7 @@ class PinnedTabsSyncService {
       });
 
       await this.pinnedTabsService.savePinnedTabs(mergedTabs);
+      return mergedTabs;
     } catch (error) {
       console.error('[PinnedTabsSync] Merge data failed:', error);
       throw error;
@@ -299,7 +336,10 @@ class PinnedTabsSyncService {
   }
 
   async apiSync(data) {
-    const token = await this.authService.getAccessToken();
+    const token = await this.authService.getValidAccessToken();
+    if (!token) {
+      throw new Error('No valid access token');
+    }
     const deviceId = data.deviceId;
 
     const response = await fetch(getApiUrl('/pinned-tabs/sync'), {
@@ -326,7 +366,10 @@ class PinnedTabsSyncService {
   }
 
   async apiCheckSync(localVersion) {
-    const token = await this.authService.getAccessToken();
+    const token = await this.authService.getValidAccessToken();
+    if (!token) {
+      return { needsSync: false, serverVersion: 0 };
+    }
     const deviceId = await this.getDeviceId();
 
     if (!deviceId) {
