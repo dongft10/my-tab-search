@@ -89,7 +89,7 @@ class AuthService {
     try {
       const userInfo = await this.getUserInfo();
       if (!userInfo || !userInfo.userId || !userInfo.deviceId) {
-        throw new Error('User not registered');
+        return null;
       }
 
       const response = await authApi.getToken(userInfo.userId, userInfo.deviceId);
@@ -97,7 +97,6 @@ class AuthService {
       const accessToken = data.accessToken;
       const expiresAt = data.expiresAt;
 
-      // 存储访问令牌和过期时间
       const storageData = {
         [this.storageKey.accessToken]: accessToken,
         [this.storageKey.tokenExpiresAt]: expiresAt
@@ -108,7 +107,7 @@ class AuthService {
       return accessToken;
     } catch (error) {
       console.warn('Failed to get access token:', error);
-      throw error;
+      return null;
     }
   }
 
