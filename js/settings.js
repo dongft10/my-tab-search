@@ -993,6 +993,11 @@ async function handleLoginVerify() {
 
 // 登录弹窗 - OAuth 登录
 async function handleLoginOAuth(provider) {
+  if (provider === 'microsoft') {
+    showLoginMessage(i18n.getMessage('microsoftLoginDeveloping'), 'info');
+    return;
+  }
+  
   try {
     const clientId = provider === 'google'
       ? '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'

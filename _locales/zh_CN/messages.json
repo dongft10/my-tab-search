@@ -499,6 +499,10 @@
     "message": "使用 Microsoft 账号登录",
     "description": "Microsoft login button text"
   },
+  "microsoftLoginDeveloping": {
+    "message": "目前正在火速开发设计实现中，请耐心等待",
+    "description": "Message when Microsoft login is not implemented yet"
+  },
   "skipForNow": {
     "message": "暂时跳过",
     "description": "Skip button text"
