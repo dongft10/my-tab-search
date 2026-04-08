@@ -766,7 +766,8 @@ async function handleLoginSendCode() {
     }
   } catch (error) {
     console.error('Send code error:', error);
-    showLoginMessage('发送失败，请重试', 'error');
+    const errorMsg = error.message || '发送失败，请重试';
+    showLoginMessage(errorMsg, 'error');
     btnSendCode.disabled = false;
     btnSendCode.textContent = '发送验证码';
   }
