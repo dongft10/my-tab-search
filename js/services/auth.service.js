@@ -107,7 +107,7 @@ class AuthService {
 
       return accessToken;
     } catch (error) {
-      console.error('Failed to get access token:', error);
+      console.warn('Failed to get access token:', error);
       throw error;
     }
   }

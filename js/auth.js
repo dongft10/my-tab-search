@@ -358,37 +358,7 @@ async function handleOAuthGoogle() {
 
 // OAuth 登录 - Microsoft
 async function handleOAuthMicrosoft() {
-  try {
-    const clientId = 'YOUR_MICROSOFT_CLIENT_ID'; // 生产环境替换为实际 Client ID
-    const redirectUri = chrome.identity.getRedirectURL();
-    
-    const authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
-    authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', 'openid email profile');
-    authUrl.searchParams.set('state', 'microsoft');
-    
-    const responseUrl = await chrome.identity.launchWebAuthFlow({
-      url: authUrl.toString(),
-      interactive: true
-    });
-    
-    if (responseUrl) {
-      const url = new URL(responseUrl);
-      const code = url.searchParams.get('code');
-      const error = url.searchParams.get('error');
-      
-      if (code) {
-        window.location.href = `auth.html?provider=microsoft&code=${code}`;
-      } else if (error) {
-        showError(decodeURIComponent(error));
-      }
-    }
-  } catch (error) {
-    console.error('Microsoft OAuth error:', error);
-    showError('授权失败，请重试');
-  }
+  showError(i18n.getMessage('microsoftLoginDeveloping'));
 }
 
 // 显示验证码输入区域

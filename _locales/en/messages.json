@@ -499,6 +499,10 @@
     "message": "Sign in with Microsoft",
     "description": "Microsoft login button text"
   },
+  "microsoftLoginDeveloping": {
+    "message": "This feature is under rapid development, please wait patiently",
+    "description": "Message when Microsoft login is not implemented yet"
+  },
   "skipForNow": {
     "message": "Skip for now",
     "description": "Skip button text"
