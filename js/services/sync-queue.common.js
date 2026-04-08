@@ -97,7 +97,7 @@ async function processQueue(queue, processItem) {
       await processItem(item);
       processedIds.push(getOperationId(item));
     } catch (error) {
-      console.error('[SyncQueue] Process operation error:', error);
+      console.warn('[SyncQueue] Process operation error:', error);
       item.retryCount = (item.retryCount || 0) + 1;
       if (item.retryCount >= SYNC_QUEUE_MAX_RETRIES) {
         console.info('[SyncQueue] Operation max retries reached, removing:', item.type);
@@ -238,7 +238,7 @@ async function performSyncQueue() {
           await saveSyncQueue([]);
         }
       } catch (error) {
-        console.error('[SyncQueue] Process sync error:', error);
+        console.warn('[SyncQueue] Process sync error:', error);
 
         if (queue.length > 0) {
           await processQueue(queue, async (item) => {
@@ -248,7 +248,7 @@ async function performSyncQueue() {
       }
     }
   } catch (error) {
-    console.error('[SyncQueue] Perform sync error:', error);
+    console.warn('[SyncQueue] Perform sync error:', error);
   } finally {
     isSyncing = false;
   }
