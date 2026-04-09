@@ -272,10 +272,9 @@ function handleKeydown(event) {
         if (selectedIndex >= 0 && selectedIndex < lis.length) {
           const li = lis[selectedIndex];
           if (li) {
-            const tabId = parseInt(li.dataset.tabId);
-            if (!isNaN(tabId)) {
-              switchToTab(tabId);
-            }
+            // 构造一个模拟的 event 对象，包含 target 元素
+            const mockEvent = { target: li };
+            switchToTab(li.dataset.tabId ? parseInt(li.dataset.tabId) : undefined, mockEvent);
           }
         }
         break;
@@ -507,7 +506,9 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
   pinnedTabs.forEach((tab, index) => {
     try {
       const li = document.createElement('li');
-      li.dataset.tabId = tab.tabId;
+      // 存储 tabId 和 url，便于后续查找（tabId 可能无效，url 作为备选）
+      li.dataset.tabId = tab.tabId !== undefined && tab.tabId !== null ? tab.tabId : '';
+      li.dataset.tabUrl = tab.url || '';
       
       // 如果是长期固定的Tab，添加专属底色
       if (tab.isLongTermPinned) {
@@ -636,8 +637,8 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       li.appendChild(actionContainer);
       
       // 点击切换到标签页
-      li.addEventListener('click', () => {
-        switchToTab(tab.tabId);
+      li.addEventListener('click', (e) => {
+        switchToTab(tab.tabId, e);
       });
       
       pinnedTabList.appendChild(li);
@@ -704,45 +705,93 @@ function renderEmptyState() {
 }
 
 // 切换到标签页
-async function switchToTab(tabId) {
+// @param tabOrId - tab对象或tabId（tab对象可能包含url信息）
+// @param event - 点击事件（可选）
+async function switchToTab(tabOrId, event) {
   try {
-    // 先尝试通过tabId直接获取标签页
-    let tab;
-    try {
-      tab = await chrome.tabs.get(tabId);
-    } catch (e) {
-      // tab不存在，后续处理
+    // 优先从 tabOrId 中获取 URL（如果它是对象）
+    let targetUrl = null;
+    let tabId = null;
+    
+    if (tabOrId && typeof tabOrId === 'object') {
+      // 传入的是 tab 对象
+      targetUrl = tabOrId.url;
+      tabId = tabOrId.tabId;
+    } else {
+      // 传入的是 tabId
+      tabId = tabOrId;
     }
     
-    // 如果标签页存在，直接切换
-    if (tab) {
-      await chrome.tabs.update(tabId, { active: true });
-      if (tab.windowId) {
-        await chrome.windows.update(tab.windowId, { focused: true });
+    // 检查 tabId 有效性
+    const isTabIdValid = tabId !== undefined && tabId !== null && !isNaN(tabId);
+    
+    if (isTabIdValid) {
+      // 先尝试通过tabId直接获取标签页
+      let tab;
+      try {
+        tab = await chrome.tabs.get(tabId);
+      } catch (e) {
+        // tab不存在，后续处理
       }
-      window.close();
+      
+      // 如果标签页存在，检查 URL 是否完全匹配
+      if (tab) {
+        const result = await chrome.storage.local.get('pinnedTabs');
+        const pinnedTabs = result.pinnedTabs || [];
+        const storedTab = pinnedTabs.find(t => t.tabId === tabId);
+        
+        if (storedTab && storedTab.url && storedTab.url !== tab.url) {
+          // URL 不匹配，用存储中的 URL 作为目标
+          targetUrl = storedTab.url;
+        } else {
+          // URL 完全匹配，切换到该 tab
+          await chrome.tabs.update(tabId, { active: true });
+          if (tab.windowId) {
+            await chrome.windows.update(tab.windowId, { focused: true });
+          }
+          return;
+        }
+      } else {
+        // tab 不存在，需要通过 URL 查找
+        targetUrl = null;
+      }
+    }
+    
+    // 如果还没有 targetUrl，从点击事件或存储中获取
+    if (!targetUrl && event?.target) {
+      const clickedLi = event.target.closest('li');
+      if (clickedLi) {
+        targetUrl = clickedLi.dataset.tabUrl || clickedLi.querySelector('.tab-url-hostname')?.title;
+      }
+    }
+    
+    // 如果还没有，从存储中查找
+    if (!targetUrl) {
+      const result = await chrome.storage.local.get('pinnedTabs');
+      const pinnedTabs = result.pinnedTabs || [];
+      const tab = pinnedTabs.find(t => t.tabId === tabId);
+      if (tab) {
+        targetUrl = tab.url;
+      }
+    }
+    
+    if (!targetUrl) {
       return;
     }
     
-    // 标签页不存在，查找对应的固定tab记录
+    // 用 targetUrl 查找浏览器中已打开的标签页
+    const allTabs = await chrome.tabs.query({});
+    // 使用直接比较方式查找（chrome.tabs.query 对包含 hash 的 URL 匹配有问题）
+    const existingTabs = allTabs.filter(t => t.url === targetUrl);
+    
     const result = await chrome.storage.local.get('pinnedTabs');
     const pinnedTabs = result.pinnedTabs || [];
-    const targetTab = pinnedTabs.find(t => t.tabId === tabId);
-    
-    if (!targetTab) {
-      // 没找到对应的固定tab记录，直接返回
-      console.info('[switchToTab] Target tab not found in pinned list:', tabId);
-      return;
-    }
-    
-    // 查找当前浏览器中是否有相同URL的已打开标签页
-    const existingTabs = await chrome.tabs.query({ url: targetTab.url });
     
     if (existingTabs.length > 0) {
-      // 找到已打开的标签页，切换到它并更新tabId
+      // 找到已打开的标签页，切换过去并更新存储中的 tabId
       const existingTab = existingTabs[0];
       const updatedTabs = pinnedTabs.map(t => {
-        if (t.tabId === tabId) {
+        if (t.url === targetUrl) {
           return { ...t, tabId: existingTab.id };
         }
         return t;
@@ -753,10 +802,10 @@ async function switchToTab(tabId) {
         await chrome.windows.update(existingTab.windowId, { focused: true });
       }
     } else {
-      // 没有找到相同URL的标签页，创建新标签页并更新tabId
-      const newTab = await chrome.tabs.create({ url: targetTab.url });
+      // 没找到，创建新标签页并更新存储中的 tabId
+      const newTab = await chrome.tabs.create({ url: targetUrl });
       const updatedTabs = pinnedTabs.map(t => {
-        if (t.tabId === tabId) {
+        if (t.url === targetUrl) {
           return { ...t, tabId: newTab.id };
         }
         return t;
