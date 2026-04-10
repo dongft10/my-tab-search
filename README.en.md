@@ -112,7 +112,7 @@ cd pack
 
 ```bash
 npm run build    # Production build (with code compression)
-npm run build-dev # Development build (skip compression)
+npm run build:dev  # Development build (skip compression)
 npm run clean    # Clean build output
 ```
 

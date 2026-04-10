@@ -16,7 +16,7 @@ npm install
 npm run build
 
 # Build for development (no compression)
-npm run build-dev
+npm run build:dev
 
 # Create zip package
 npm run package
