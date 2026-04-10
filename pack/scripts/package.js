@@ -45,6 +45,18 @@ function replaceEnvPlaceholders(buildDir, envType) {
     replaceEnvPlaceholder(configPath, placeholder, envType);
   }
   
+  // 替换 config.sw.js（Service Worker 版本）
+  const configSwPath = path.join(buildDir, 'js', 'config.sw.js');
+  if (fs.existsSync(configSwPath)) {
+    replaceEnvPlaceholder(configSwPath, placeholder, envType);
+  }
+  
+  // 替换 config.esm.js（ES6 模块版本）
+  const configEsmPath = path.join(buildDir, 'js', 'config.esm.js');
+  if (fs.existsSync(configEsmPath)) {
+    replaceEnvPlaceholder(configEsmPath, placeholder, envType);
+  }
+  
   console.log(`  Environment replaced: ${envType}`);
 }
 

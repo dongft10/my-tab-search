@@ -4,10 +4,10 @@ import i18n from './i18n.js';
 import featureLimitService from './services/feature-limit.service.js';
 // Import sync queue service
 import syncQueueService from './services/sync-queue.service.js';
-// Import auth service
-import authService from './services/auth.service.js';
-// Import auth API
-import authApi from './api/auth.js';
+// Import auth service (ESM version for popup)
+import authService from './services/auth.service.esm.js';
+// Import auth API (ESM version for popup)
+import authApi from './api/auth.esm.js';
 // Import trial service
 import trialService from './services/trial.service.js';
 // Import search match service

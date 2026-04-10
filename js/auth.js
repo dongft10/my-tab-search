@@ -3,8 +3,8 @@
  * 处理邮箱验证码登录流程
  */
 
-import authApi from '../api/auth.js';
-import authService from '../services/auth.service.js';
+import authApi from '../api/auth.esm.js';
+import authService from '../services/auth.service.esm.js';
 import i18n from './i18n.js';
 
 // 状态管理
