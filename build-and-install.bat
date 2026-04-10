@@ -10,7 +10,7 @@ echo.
 cd /d "%~dp0.."
 
 echo [1/3] 正在构建扩展...
-call npm run build-dev
+call npm run build:dev
 if %ERRORLEVEL% neq 0 (
     echo 构建失败！
     pause

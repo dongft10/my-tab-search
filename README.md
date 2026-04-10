@@ -112,7 +112,7 @@ cd pack
 
 ```bash
 npm run build    # 生产构建（包含代码压缩）
-npm run build-dev # 开发构建（跳过压缩）
+npm run build:dev  # 开发构建（跳过压缩）
 npm run clean    # 清理构建输出
 ```
 

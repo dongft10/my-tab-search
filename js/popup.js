@@ -1,12 +1,12 @@
-// Import i18n manager
+﻿// Import i18n manager
 import i18n from './i18n.js';
 // Import feature limit service
 import featureLimitService from './services/feature-limit.service.js';
 // Import sync queue service
 import syncQueueService from './services/sync-queue.service.js';
-// Import auth service
+// Import auth service (ESM version for popup)
 import authService from './services/auth.service.js';
-// Import auth API
+// Import auth API (ESM version for popup)
 import authApi from './api/auth.js';
 // Import trial service
 import trialService from './services/trial.service.js';
