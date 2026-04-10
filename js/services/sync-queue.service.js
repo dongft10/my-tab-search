@@ -1,11 +1,11 @@
-/**
+﻿/**
  * 同步队列服务
  * 处理需要后台同步的操作队列
  * 用户操作先存本地，后台定时同步到服务器
  */
 
-import authService from './auth.service.esm.js';
-import authApi from '../api/auth.esm.js';
+import authService from './auth.service.js';
+import authApi from '../api/auth.js';
 import pinnedTabsService from './pinned-tabs.service.js';
 import deviceService from './device.service.js';
 import {

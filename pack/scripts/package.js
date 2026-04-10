@@ -163,20 +163,28 @@ async function main() {
 
   const buildDir = path.join(outputDir, 'build');
 
+  // 如果源目录和构建目录相同（已构建完毕），则直接使用
+    const useSourceDirectly = sourceDir === buildDir;
+
   console.log('Starting packaging of Chrome extension...');
   console.log(`Source directory: ${sourceDir}`);
   console.log(`Output directory: ${outputDir}`);
   console.log(`Skip compression: ${skipCompression}`);
 
   try {
-    // 清理并创建构建目录
-    if (fs.existsSync(buildDir)) {
-      fs.rmSync(buildDir, { recursive: true, force: true });
-    }
+    if (!useSourceDirectly) {
+      // 清理并创建构建目录
+      if (fs.existsSync(buildDir)) {
+        fs.rmSync(buildDir, { recursive: true, force: true });
+      }
 
-    // 复制源文件到构建目录
-    console.log('Copying source files...');
-    copySourceFiles(sourceDir, buildDir);
+      // 复制源文件到构建目录
+      console.log('Copying source files...');
+      copySourceFiles(sourceDir, buildDir);
+    } else {
+      console.log('Using pre-built files directly...');
+      const buildDirForCompression = buildDir;
+    }
 
     // 替换环境变量占位符
     const envType = process.env.EXTENSION_ENV || 'dev';
