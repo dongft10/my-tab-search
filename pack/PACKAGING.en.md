@@ -37,7 +37,7 @@ npm install
 npm run build
 
 # Development build (skips compression, faster)
-npm run build-dev
+npm run build:dev
 
 # Clean build output
 npm run clean

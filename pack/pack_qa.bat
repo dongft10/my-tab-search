@@ -43,7 +43,7 @@ echo.
 
 REM Build and package (without compression)
 echo [2/2] Building and packaging extension...
-call npm run build:qa
+call npm run build:qa && npm run package -- --skip-compression
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed
     pause
