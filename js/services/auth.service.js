@@ -348,6 +348,19 @@ class AuthService {
    * @returns {Promise<string|null>} - 返回有效的令牌
    */
   async getValidAccessToken() {
+    // 检查是否在错误冷却期内
+    if (this._lastTokenError && (Date.now() - this._lastTokenErrorTime) < this._errorCooldown) {
+      console.log('Token request in cooldown period, skipping');
+      return null;
+    }
+
+    // 检查用户是否已完成邮箱验证
+    const isVerified = await this.isEmailVerified();
+    if (!isVerified) {
+      console.log('User not verified, skipping token request');
+      return null;
+    }
+
     const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
       this.storageKey.accessToken,
       this.storageKey.tokenExpiresAt
@@ -369,15 +382,27 @@ class AuthService {
         if (needsRefresh) {
           const refreshed = await this.refreshAccessToken();
           if (refreshed) {
+            // 重置错误状态
+            this._lastTokenError = null;
+            this._lastTokenErrorTime = 0;
             return refreshed;
           }
         }
       }
       
       // 刷新失败或没有token，获取新token
-      return await this.getAccessToken();
+      const newToken = await this.getAccessToken();
+      if (newToken) {
+        // 重置错误状态
+        this._lastTokenError = null;
+        this._lastTokenErrorTime = 0;
+      }
+      return newToken;
     } catch (e) {
       console.error('Failed to get valid access token:', e);
+      // 记录错误信息和时间
+      this._lastTokenError = e;
+      this._lastTokenErrorTime = Date.now();
       return null;
     }
   }
