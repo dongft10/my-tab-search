@@ -18,6 +18,10 @@ class AuthService {
     this.refreshThreshold = 5 * 24 * 60 * 60 * 1000; // 5天，单位毫秒
     // Token 请求去重：防止并发请求
     this._tokenRequestPromise = null;
+    // Token 请求失败缓存：避免短时间内重复请求失败的接口
+    this._lastTokenError = null;
+    this._lastTokenErrorTime = 0;
+    this._errorCooldown = 30000; // 失败后30秒内不再尝试
   }
 
   /**
@@ -87,6 +91,19 @@ class AuthService {
    */
   async _doGetAccessToken() {
     try {
+      // 检查是否在错误冷却期内
+      if (this._lastTokenError && (Date.now() - this._lastTokenErrorTime) < this._errorCooldown) {
+        console.log('Token request in cooldown period, skipping');
+        return null;
+      }
+
+      // 检查用户是否已完成邮箱验证
+      const isVerified = await this.isEmailVerified();
+      if (!isVerified) {
+        console.log('User not verified, skipping token request');
+        return null;
+      }
+
       const userInfo = await this.getUserInfo();
       if (!userInfo || !userInfo.userId || !userInfo.deviceId) {
         return null;
@@ -104,9 +121,16 @@ class AuthService {
 
       await chrome.storage.local.set(storageData);
 
+      // 重置错误状态
+      this._lastTokenError = null;
+      this._lastTokenErrorTime = 0;
+
       return accessToken;
     } catch (error) {
       console.warn('Failed to get access token:', error);
+      // 记录错误信息和时间
+      this._lastTokenError = error;
+      this._lastTokenErrorTime = Date.now();
       return null;
     }
   }
