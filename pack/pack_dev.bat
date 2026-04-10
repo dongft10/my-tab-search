@@ -44,7 +44,7 @@ echo.
 
 REM Build and package (with compression)
 echo [2/2] Building and packaging extension...
-call npm run build:dev
+call npm run build:dev && npm run package
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed
     pause

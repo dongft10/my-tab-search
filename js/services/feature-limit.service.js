@@ -1,11 +1,11 @@
-/**
+﻿/**
  * 功能限制服务
  * 处理用户功能权限检查和限制
  */
 
-import authApi from '../api/auth.esm.js';
-import authService from './auth.service.esm.js';
-import { getCacheTime } from '../config.esm.js';
+import authApi from '../api/auth.js';
+import authService from './auth.service.js';
+import { getCacheTime } from '../config.js';
 
 class FeatureLimitService {
   constructor() {
@@ -13,36 +13,6 @@ class FeatureLimitService {
     this.cacheTimeout = getCacheTime(); // 根据环境配置缓存时间
     this.cachedLimits = null;
     this.cacheTime = null;
-  }
-
-  /**
-   * 获取本地缓存的功能限制
-   * @returns {Promise<object|null>} - 返回缓存的功能限制
-   */
-  async getLocalLimits() {
-    try {
-      const data = await chrome.storage.local.get(this.storageKey);
-      return data[this.storageKey] || null;
-    } catch (error) {
-      console.error('Get local limits error:', error);
-      return null;
-    }
-  }
-
-  /**
-   * 清除功能限制缓存
-   * 在用户登录/注册后调用，确保获取最新的限制
-   * @returns {Promise} - 返回结果
-   */
-  async clearCache() {
-    try {
-      this.cachedLimits = null;
-      this.cacheTime = null;
-      await chrome.storage.local.remove(this.storageKey);
-      console.log('[FeatureLimit] Cache cleared');
-    } catch (error) {
-      console.error('Clear cache error:', error);
-    }
   }
 
   /**

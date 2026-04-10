@@ -1,11 +1,11 @@
-/**
+﻿/**
  * VIP 状态管理服务
  * 处理VIP状态的本地存储和同步
  */
 
-import authApi from '../api/auth.esm.js';
-import authService from './auth.service.esm.js';
-import { getCacheTime } from '../config.esm.js';
+import authApi from '../api/auth.js';
+import authService from './auth.service.js';
+import { getCacheTime } from '../config.js';
 
 class VipService {
   constructor() {

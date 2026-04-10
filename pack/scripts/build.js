@@ -27,8 +27,8 @@ async function main() {
     args.splice(compressFalseIndex, 1);
   }
   
-  const sourceDir = args[0] || '.'; // 当前目录作为源目录
-  let outputDir = args[1];
+  const sourceDir = args[0] && !args[0].startsWith('--') ? args[0] : path.join(__dirname, '..', 'out', 'build'); // 默认从 pack/out/build 读取
+  let outputDir = args[1] && !args[1].startsWith('--') ? args[1] : undefined;
 
   // 如果没有指定输出目录，则默认为项目根目录下的 pack/out
   if (!outputDir) {

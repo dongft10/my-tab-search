@@ -1,10 +1,10 @@
-/**
+﻿/**
  * 设置页面脚本
  * 处理用户账户信息、VIP状态、设备管理等功能
  */
 
-import authApi from './api/auth.esm.js';
-import authService from './services/auth.service.esm.js';
+import authApi from './api/auth.js';
+import authService from './services/auth.service.js';
 import vipService from './services/vip.service.js';
 import trialService from './services/trial.service.js';
 import deviceService from './services/device.service.js';
