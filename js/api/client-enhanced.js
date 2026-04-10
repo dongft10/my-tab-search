@@ -3,7 +3,7 @@
  * 处理 Token 过期和离线降级策略
  */
 
-import authService from '../services/auth.service.js';
+import authService from '../services/auth.service.esm.js';
 import vipService from '../services/vip.service.js';
 
 class ApiClientEnhanced {

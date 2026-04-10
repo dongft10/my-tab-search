@@ -145,4 +145,25 @@ if (typeof CONFIG_COMMON === 'undefined') {
     STORAGE_KEYS,
     getApiUrl
   };
+
+  // 同时设置单独的全局变量（供其他脚本使用）
+  // 先检查是否已经存在，避免重复声明
+  if (typeof self.API_CONFIG === 'undefined') {
+    self.API_CONFIG = API_CONFIG;
+  }
+  if (typeof self.PINNED_TABS_CONFIG === 'undefined') {
+    self.PINNED_TABS_CONFIG = PINNED_TABS_CONFIG;
+  }
+  if (typeof self.SEARCH_CONFIG === 'undefined') {
+    self.SEARCH_CONFIG = SEARCH_CONFIG;
+  }
+  if (typeof self.UI_CONFIG === 'undefined') {
+    self.UI_CONFIG = UI_CONFIG;
+  }
+  if (typeof self.STORAGE_KEYS === 'undefined') {
+    self.STORAGE_KEYS = STORAGE_KEYS;
+  }
+  if (typeof self.getApiUrl === 'undefined') {
+    self.getApiUrl = getApiUrl;
+  }
 }

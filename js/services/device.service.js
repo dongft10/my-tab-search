@@ -3,13 +3,13 @@
  * 处理设备列表、删除设备、设备登出等功能
  */
 
-import authApi from '../api/auth.js';
-import authService from './auth.service.js';
+import authApi from '../api/auth.esm.js';
+import authService from './auth.service.esm.js';
 import vipService from './vip.service.js';
 import featureLimitService from './feature-limit.service.js';
 import pinnedTabsService from './pinned-tabs.service.js';
 import { pinnedTabsSyncService } from './pinned-tabs-sync.service.js';
-import { getCacheTime } from '../config.js';
+import { getCacheTime } from '../config.esm.js';
 
 class DeviceService {
   constructor() {

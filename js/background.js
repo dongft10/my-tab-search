@@ -1,10 +1,42 @@
 // background.js
 
-// 导入通用配置文件
+// 导入通用配置文件（Service Worker 版本）
 try {
-  importScripts('./config.common.js');
+  importScripts('./config.sw.js');
 } catch (error) {
-  console.error('[background] Failed to import config.common.js:', error);
+  console.error('[background] Failed to import config.sw.js:', error);
+}
+
+// 导入版本管理器（必须在 client.js 之前）
+try {
+  importScripts('./utils/version-manager.sw.js');
+  console.log('[background] Successfully imported version-manager.sw.js');
+} catch (error) {
+  console.error('[background] Failed to import version-manager.sw.js:', error);
+}
+
+// 导入客户端服务（依赖 version-manager）
+try {
+  importScripts('./api/client.sw.js');
+  console.log('[background] Successfully imported client.sw.js');
+} catch (error) {
+  console.error('[background] Failed to import client.sw.js:', error);
+}
+
+// 导入API服务（依赖 client.js）
+try {
+  importScripts('./api/auth.sw.js');
+  console.log('[background] Successfully imported auth.sw.js');
+} catch (error) {
+  console.error('[background] Failed to import auth.sw.js:', error);
+}
+
+// 导入认证服务（依赖 auth.js）
+try {
+  importScripts('./services/auth.service.sw.js');
+  console.log('[background] Successfully imported auth.service.sw.js');
+} catch (error) {
+  console.error('[background] Failed to import auth.service.sw.js:', error);
 }
 
 // 导入同步队列服务（Service Worker 版本）
@@ -14,27 +46,32 @@ try {
   console.error('[background] Failed to import sync-queue.common.js:', error);
 }
 
-// 从全局配置中获取配置
-var API_CONFIG = null;
-var PINNED_TABS_CONFIG = null;
-var STORAGE_KEYS = null;
-
+// 注意：API_CONFIG, PINNED_TABS_CONFIG 等全局变量已通过 importScripts 导入的文件设置
+// 如果需要从 CONFIG_COMMON 获取配置，可以使用以下方式：
+const _bgGlobal = typeof self !== 'undefined' ? self : {};
 if (typeof CONFIG_COMMON !== 'undefined') {
-  var { API_CONFIG: _apiConfig, PINNED_TABS_CONFIG: _pinnedConfig, STORAGE_KEYS: _storageKeys } = CONFIG_COMMON;
-  API_CONFIG = _apiConfig;
-  PINNED_TABS_CONFIG = _pinnedConfig;
-  STORAGE_KEYS = _storageKeys;
-} else {
-  console.error('[background] CONFIG_COMMON is not defined after importScripts');
+  if (!_bgGlobal.API_CONFIG && CONFIG_COMMON.API_CONFIG) {
+    _bgGlobal.API_CONFIG = CONFIG_COMMON.API_CONFIG;
+  }
+  if (!_bgGlobal.PINNED_TABS_CONFIG && CONFIG_COMMON.PINNED_TABS_CONFIG) {
+    _bgGlobal.PINNED_TABS_CONFIG = CONFIG_COMMON.PINNED_TABS_CONFIG;
+  }
+  if (!_bgGlobal.STORAGE_KEYS && CONFIG_COMMON.STORAGE_KEYS) {
+    _bgGlobal.STORAGE_KEYS = CONFIG_COMMON.STORAGE_KEYS;
+  }
 }
 
 // 存储键名常量（转换为小写驼峰格式以兼容现有代码）
+// 优先使用 CONFIG_COMMON 中导出的 STORAGE_KEYS，如果没有则使用默认值
+const _storageKeys = (typeof CONFIG_COMMON !== 'undefined' && CONFIG_COMMON.STORAGE_KEYS) 
+  ? CONFIG_COMMON.STORAGE_KEYS 
+  : null;
 const STORAGE_KEYS_LOCAL = {
-  userId: STORAGE_KEYS ? STORAGE_KEYS.USER_ID : 'userId',
-  deviceId: STORAGE_KEYS ? STORAGE_KEYS.DEVICE_ID : 'deviceId',
-  accessToken: STORAGE_KEYS ? STORAGE_KEYS.ACCESS_TOKEN : 'accessToken',
-  tokenExpiresAt: STORAGE_KEYS ? STORAGE_KEYS.TOKEN_EXPIRES_AT : 'tokenExpiresAt',
-  registeredAt: STORAGE_KEYS ? STORAGE_KEYS.REGISTERED_AT : 'registeredAt'
+  userId: _storageKeys ? _storageKeys.USER_ID : 'userId',
+  deviceId: _storageKeys ? _storageKeys.DEVICE_ID : 'deviceId',
+  accessToken: _storageKeys ? _storageKeys.ACCESS_TOKEN : 'accessToken',
+  tokenExpiresAt: _storageKeys ? _storageKeys.TOKEN_EXPIRES_AT : 'tokenExpiresAt',
+  registeredAt: _storageKeys ? _storageKeys.REGISTERED_AT : 'registeredAt'
 };
 
 // 使用 chrome.storage 持久化固定标签页弹窗的窗口 ID
@@ -1194,205 +1231,8 @@ class ApiClient {
   }
 }
 
-/**
- * 认证服务
- * 处理认证相关的业务逻辑
- */
-class AuthService {
-  constructor() {
-    this.apiClient = new ApiClient();
-  }
-
-  /**
-  /**
-   * 静默注册
-   * @returns {Promise} - 返回注册结果
-   */
-  async silentRegister() {
-    try {
-      // 检查是否已注册
-      const isRegistered = await this.isRegistered();
-      if (isRegistered) {
-        console.log('Already registered, skipping...');
-        return await this.getUserInfo();
-      }
-
-      // 获取浏览器信息
-      const browserInfo = this.getBrowserInfo();
-
-      // 获取扩展版本
-      const extensionVersion = chrome.runtime.getManifest().version;
-
-      // 获取本地存储的 deviceId（如果有）
-      let deviceId = null;
-      try {
-        const result = await chrome.storage.local.get([STORAGE_KEYS_LOCAL.deviceId]);
-        deviceId = result[STORAGE_KEYS_LOCAL.deviceId] || null;
-        console.log('[silentRegister] Got deviceId from storage:', deviceId ? 'exists' : 'null');
-      } catch (e) {
-        console.info('Failed to get deviceId from storage:', e);
-      }
-
-      // 发送注册请求
-      const silentRegEndpoint = API_CONFIG ? API_CONFIG.ENDPOINTS.AUTH.SILENT_REGISTER : '/auth/silent-register';
-      
-      // 准备 headers
-      const headers = {};
-      if (deviceId) {
-        headers['X-Device-ID'] = deviceId;
-        console.log('[silentRegister] Sending X-Device-ID header:', deviceId);
-      } else {
-        console.log('[silentRegister] No deviceId found, will create new device');
-      }
-      
-      const response = await this.apiClient.post(silentRegEndpoint, {
-        browserInfo,
-        extensionVersion
-      }, headers);
-
-      // 存储用户信息（静默注册不设置 registeredAt）
-      await this.saveUserInfo({
-        userId: response.data.userId,
-        deviceId: response.data.deviceId
-        // 注意：不设置 registeredAt，只有邮箱验证或 OAuth 登录后才设置
-      });
-
-      console.log('Silent registration successful:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Silent registration failed:', error);
-      // 注册失败不影响扩展使用
-      return null;
-    }
-  }
-
-  /**
-   * 检查是否已注册
-   * @returns {Promise} - 返回注册状态
-   */
-  async isRegistered() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get([STORAGE_KEYS_LOCAL.userId, STORAGE_KEYS_LOCAL.deviceId], (result) => {
-        resolve(!!result[STORAGE_KEYS_LOCAL.userId] && !!result[STORAGE_KEYS_LOCAL.deviceId]);
-      });
-    });
-  }
-
-  /**
-   * 获取用户信息
-   * @returns {Promise} - 返回用户信息
-   */
-  async getUserInfo() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get([
-        STORAGE_KEYS_LOCAL.userId,
-        STORAGE_KEYS_LOCAL.deviceId,
-        STORAGE_KEYS_LOCAL.accessToken,
-        STORAGE_KEYS_LOCAL.registeredAt
-      ], (result) => {
-        resolve(result);
-      });
-    });
-  }
-
-  /**
-   * 保存用户信息
-   * @param {object} userInfo - 用户信息
-   * @returns {Promise} - 返回结果
-   */
-  async saveUserInfo(userInfo) {
-    const storageData = {};
-    
-    if (userInfo.userId) {
-      storageData[STORAGE_KEYS_LOCAL.userId] = userInfo.userId;
-    }
-    if (userInfo.deviceId) {
-      storageData[STORAGE_KEYS_LOCAL.deviceId] = userInfo.deviceId;
-    }
-    if (userInfo.accessToken) {
-      storageData[STORAGE_KEYS_LOCAL.accessToken] = userInfo.accessToken;
-    }
-    if (userInfo.registeredAt) {
-      storageData[STORAGE_KEYS_LOCAL.registeredAt] = userInfo.registeredAt;
-    }
-
-    return new Promise((resolve) => {
-      chrome.storage.local.set(storageData, () => {
-        resolve();
-      });
-    });
-  }
-
-  /**
-   * 获取访问令牌
-   * @returns {Promise} - 返回令牌
-   */
-  async getAccessToken() {
-    try {
-      const userInfo = await this.getUserInfo();
-      if (!userInfo || !userInfo[STORAGE_KEYS_LOCAL.userId] || !userInfo[STORAGE_KEYS_LOCAL.deviceId]) {
-        throw new Error('User not registered');
-      }
-
-      const getTokenEndpoint = API_CONFIG ? API_CONFIG.ENDPOINTS.AUTH.GET_TOKEN : '/auth/token';
-      const response = await this.apiClient.post(getTokenEndpoint, {
-        userId: userInfo[STORAGE_KEYS_LOCAL.userId],
-        deviceId: userInfo[STORAGE_KEYS_LOCAL.deviceId]
-      });
-
-      const accessToken = response.data.accessToken;
-      const expiresAt = response.data.expiresAt;
-
-      // 存储访问令牌和过期时间
-      await chrome.storage.local.set({
-        [STORAGE_KEYS_LOCAL.accessToken]: accessToken,
-        [STORAGE_KEYS_LOCAL.tokenExpiresAt]: expiresAt
-      });
-
-      return accessToken;
-    } catch (error) {
-      console.warn('Failed to get access token:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取浏览器信息
-   * @returns {object} - 浏览器信息
-   */
-  getBrowserInfo() {
-    const ua = navigator.userAgent;
-    let browserName = 'Unknown';
-    let browserVersion = 'Unknown';
-    let platform = navigator.platform;
-    let language = navigator.language || navigator.userLanguage;
-
-    // 检测浏览器
-    if (ua.includes('Chrome') && !ua.includes('Edg')) {
-      browserName = 'Chrome';
-      browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)[1];
-    } else if (ua.includes('Edg')) {
-      browserName = 'Edge';
-      browserVersion = ua.match(/Edg\/(\d+\.\d+)/)[1];
-    } else if (ua.includes('Firefox')) {
-      browserName = 'Firefox';
-      browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)[1];
-    } else if (ua.includes('Safari') && !ua.includes('Chrome')) {
-      browserName = 'Safari';
-      browserVersion = ua.match(/Version\/(\d+\.\d+)/)[1];
-    }
-
-    return {
-      name: browserName,
-      version: browserVersion,
-      platform,
-      language
-    };
-  }
-}
-
-// 创建服务实例
-const authService = new AuthService();
+// 注意：authService 已经在上面通过 importScripts 导入
+// 这里不再需要创建新的 AuthService 实例
 
 /**
  * 检查 Token 是否需要刷新

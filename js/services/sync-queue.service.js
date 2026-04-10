@@ -4,8 +4,8 @@
  * 用户操作先存本地，后台定时同步到服务器
  */
 
-import authService from './auth.service.js';
-import authApi from '../api/auth.js';
+import authService from './auth.service.esm.js';
+import authApi from '../api/auth.esm.js';
 import pinnedTabsService from './pinned-tabs.service.js';
 import deviceService from './device.service.js';
 import {

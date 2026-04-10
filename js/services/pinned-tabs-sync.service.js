@@ -3,7 +3,7 @@
  * 负责 VIP 用户长期固定标签页的跨设备同步
  */
 
-import { API_CONFIG, getApiUrl } from '../config.js';
+import { API_CONFIG, getApiUrl } from '../config.esm.js';
 
 class PinnedTabsSyncService {
   constructor(pinnedTabsService, authService, deviceService) {

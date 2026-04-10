@@ -2,8 +2,8 @@
 import i18n from './i18n.js';
 // Import feature limit service
 import featureLimitService from './services/feature-limit.service.js';
-// Import auth service
-import authService from './services/auth.service.js';
+// Import auth service (ESM version)
+import authService from './services/auth.service.esm.js';
 // Import trial service
 import trialService from './services/trial.service.js';
 // Import VIP service
