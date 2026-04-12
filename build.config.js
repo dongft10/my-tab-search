@@ -23,7 +23,7 @@ console.log(`Building for environment: ${env}`);
 const API_BASE_URLS = {
   dev: 'http://localhost:41532',
   qa: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com',
-  prod: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com'
+  prod: 'https://mytabsearch.us.kg'
 };
 
 // 定义环境变量替换
