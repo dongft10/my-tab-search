@@ -1,66 +1,80 @@
 import i18n from '../i18n.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (window.ThemeManager) {
-    window.ThemeManager.init();
-    
-    // 确保默认主题已设�?
-    if (!localStorage.getItem('theme')) {
-      window.ThemeManager.setTheme('light');
-    }
-    
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    const themeRadio = document.querySelector(`input[name="theme"][value="${savedTheme}"]`);
-    if (themeRadio) {
-      themeRadio.checked = true;
-    }
-    
-    document.querySelectorAll('input[name="theme"]').forEach(radio => {
-      radio.addEventListener('change', async (e) => {
-        const newTheme = e.target.value;
-        
-        // 如果切换到暗色主题，检查邮箱验�?
-        if (newTheme === 'dark') {
-          const isVerified = await checkEmailVerification();
-          if (!isVerified) {
-            // 验证失败，恢复之前的选中状�?
-            e.target.checked = false;
-            const savedRadio = document.querySelector(`input[name="theme"][value="${savedTheme}"]`);
-            if (savedRadio) {
-              savedRadio.checked = true;
-            }
-            return;
-          }
-        }
-        
-        window.ThemeManager.setTheme(newTheme);
-      });
-    });
+const THEME_KEY = 'theme';
+
+let currentTheme = 'light';
+let i18nInitialized = false;
+
+function applyTheme(theme) {
+  const html = document.documentElement;
+  if (theme === 'light') {
+    html.setAttribute('data-theme', 'light');
+  } else {
+    html.removeAttribute('data-theme');
   }
+  localStorage.setItem(THEME_KEY, theme);
+}
+
+function initThemeSettings() {
+  if (!localStorage.getItem(THEME_KEY)) {
+    applyTheme('light');
+  }
+  
+  currentTheme = localStorage.getItem(THEME_KEY) || 'light';
+  
+  const themeRadio = document.querySelector(`input[name="theme"][value="${currentTheme}"]`);
+  if (themeRadio) {
+    themeRadio.checked = true;
+  }
+  
+  document.querySelectorAll('input[name="theme"]').forEach(radio => {
+    radio.addEventListener('change', async (e) => {
+      const newTheme = e.target.value;
+      
+      if (newTheme === 'dark') {
+        const isVerified = await checkEmailVerification();
+        if (!isVerified) {
+          e.target.checked = false;
+          const savedRadio = document.querySelector(`input[name="theme"][value="${currentTheme}"]`);
+          if (savedRadio) {
+            savedRadio.checked = true;
+          }
+          return;
+        }
+      }
+      
+      applyTheme(newTheme);
+      currentTheme = newTheme;
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await i18n.initialize();
+  i18nInitialized = true;
+  initThemeSettings();
 });
 
-// 检查邮箱验�?
 async function checkEmailVerification() {
   try {
     const data = await chrome.storage.local.get('registeredAt');
     const isRegistered = !!(data.registeredAt);
     
     if (!isRegistered) {
-      // 获取国际化消�?
-      const message = i18n.getMessage('featureRequireVerification') || 
-                     'Please complete email verification to use this feature';
-      showMessage(message);
+      const message = i18nInitialized 
+        ? i18n.getMessage('featureRequireVerification')
+        : 'Please complete email verification to use this feature';
+      showMessage(message || 'Please complete email verification to use this feature');
       return false;
     }
     
     return true;
   } catch (error) {
     console.error('Check email verification error:', error);
-    return true; // 出错时允许操�?
+    return true;
   }
 }
 
-// 显示提示消息（使�?settings.js 相同的样式）
 function showMessage(message) {
   const statusEl = document.getElementById('status-message');
   if (statusEl) {
