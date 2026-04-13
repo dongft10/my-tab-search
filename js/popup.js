@@ -1,5 +1,7 @@
 ﻿// Import i18n manager
 import i18n from './i18n.js';
+// Import config for environment detection
+import { ENV_TYPE } from './config.js';
 // Import feature limit service
 import featureLimitService from './services/feature-limit.service.js';
 // Import sync queue service
@@ -62,6 +64,14 @@ function showToast(message, duration = 3000) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+
+  // 显示环境标识（仅 dev/qa 环境显示）
+  const envBadge = document.getElementById('env-badge');
+  if (envBadge && ENV_TYPE !== 'prod') {
+    envBadge.style.display = 'block';
+    envBadge.textContent = ENV_TYPE.toUpperCase();
+    envBadge.classList.add(`env-${ENV_TYPE}`);
+  }
 
   // 检查是否有待显示的初次同步 toast
   try {

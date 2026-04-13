@@ -3,7 +3,7 @@
  * 集中管理所有可配置�? */
 
 // 环境配置
-const ENV_TYPE = globalThis.ENV_TYPE || 'dev';
+export const ENV_TYPE = globalThis.ENV_TYPE || 'dev';
 
 const ENV_CONFIG = {
   DEBUG: ENV_TYPE !== 'prod',
