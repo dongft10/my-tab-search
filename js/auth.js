@@ -230,10 +230,14 @@ async function handleSendEmail() {
     
     const response = await authApi.sendVerificationCode(state.email);
     
-    if (response.code === 0) {
+    if (response.code === 0 && response.data?.success) {
       showCodeInput();
       startCountdown(60);
       showSuccess(i18n.getMessage('verificationCodeSent'));
+    } else if (response.data?.code) {
+      const errorKey = 'errorCode' + response.data.code;
+      const errorMsg = i18n.getMessage(errorKey) || i18n.getMessage('sendFailed');
+      showError(errorMsg);
     } else {
       showError(response.msg || i18n.getMessage('sendFailed'));
     }
@@ -289,7 +293,7 @@ async function handleVerify() {
     
     const response = await authApi.verifyEmail(state.email, state.code, deviceId, deviceInfo);
     
-    if (response.code === 0) {
+    if (response.code === 0 && response.data?.success) {
       // 保存用户信息
       await authService.saveUserInfo({
         userId: response.data.userId,
@@ -297,7 +301,7 @@ async function handleVerify() {
         accessToken: response.data.accessToken,
         registeredAt: new Date().toISOString()
       });
-      
+
       showSuccess(i18n.getMessage('loginSuccess'));
 
       // 通知扩展并关闭弹窗
@@ -308,6 +312,10 @@ async function handleVerify() {
         });
         window.close();
       }, 1000);
+    } else if (response.data?.code) {
+      const errorKey = 'errorCode' + response.data.code;
+      const errorMsg = i18n.getMessage(errorKey) || i18n.getMessage('codeError');
+      showError(errorMsg);
     } else {
       showError(response.msg || i18n.getMessage('codeError'));
     }
