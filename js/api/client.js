@@ -34,9 +34,9 @@ class ApiClient {
       }
       await new Promise(resolve => setTimeout(resolve, 10));
     }
-    
+
     const url = getApiUrl(endpoint);
-    
+
     const defaultHeaders = {
       'Content-Type': 'application/json',
       ...this.versionHeaders,
@@ -56,9 +56,22 @@ class ApiClient {
     let lastError;
 
     while (attempt < this.maxRetries) {
+      let timeoutId = null;
       try {
+        // 创建 AbortController 用于超时控制
+        const controller = new AbortController();
+        const timeout = API_CONFIG.REQUEST.TIMEOUT || 30000;
+        timeoutId = setTimeout(() => controller.abort(), timeout);
+
+        config.signal = controller.signal;
+
+        console.log(`[ApiClient] Requesting: ${method} ${url}, attempt: ${attempt + 1}`);
         const response = await fetch(url, config);
-        
+        clearTimeout(timeoutId);
+        timeoutId = null;
+
+        console.log(`[ApiClient] Response status: ${response.status} for ${endpoint}`);
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -69,17 +82,27 @@ class ApiClient {
 
         return await response.json();
       } catch (error) {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
         lastError = error;
-        
+
+        // 超时错误特殊处理
+        if (error.name === 'AbortError') {
+          console.error(`[ApiClient] Request timeout after ${API_CONFIG.REQUEST.TIMEOUT}ms for ${endpoint}`);
+          error.message = 'Request timeout';
+          error.isTimeout = true;
+        }
+
         if (error.status === 429) {
           console.info('[ApiClient] Rate limited, no retry');
           throw error;
         }
-        
+
         if (error.status >= 500 && error.status < 600) {
           error.isServerError = true;
         }
-        
+
         attempt++;
         if (attempt < this.maxRetries) {
           console.info(`Request failed, retrying (${attempt}/${this.maxRetries})...`, { endpoint, status: error.status });
@@ -92,7 +115,7 @@ class ApiClient {
       lastError.endpoint = endpoint;
       lastError.attempts = attempt;
     }
-    
+
     throw lastError;
   }
 
