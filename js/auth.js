@@ -32,22 +32,77 @@ const elements = {
 };
 
 // 初始化
-function init() {
+async function init() {
+  // 重置状态（确保每次打开页面都是干净的状态）
+  resetState();
+
+  // 确保 deviceId 存在（静默注册可能失败）
+  try {
+    const userInfo = await authService.getUserInfo();
+    if (!userInfo[authService.storageKey.deviceId]) {
+      console.log('[Auth] deviceId not found, triggering silent registration...');
+      const result = await authService.silentRegister();
+      if (result) {
+        console.log('[Auth] Silent registration successful, deviceId:', result.deviceId);
+      } else {
+        console.error('[Auth] Silent registration failed');
+      }
+    } else {
+      console.log('[Auth] deviceId exists:', userInfo[authService.storageKey.deviceId]);
+    }
+  } catch (e) {
+    console.error('[Auth] Failed to check/perform silent registration:', e);
+  }
+
   // 初始化 i18n（添加错误处理，避免卡住）
   i18n.initialize().then(() => {
     i18n.updatePageI18n();
   }).catch(err => {
     console.error('i18n init error:', err);
   });
-  
+
   // 检查是否是 OAuth 回调（非阻塞）
   try {
     checkOAuthCallback();
   } catch (err) {
     console.error('OAuth callback check error:', err);
   }
-  
+
   bindEvents();
+}
+
+// 重置状态
+function resetState() {
+  // 重置状态对象
+  state.email = '';
+  state.code = '';
+  state.step = 'email';
+  state.countdown = 0;
+  state.loading = false;
+
+  // 重置 DOM 元素状态
+  if (elements.inputEmail) elements.inputEmail.value = '';
+  if (elements.inputCode) elements.inputCode.value = '';
+  if (elements.codeGroup) elements.codeGroup.style.display = 'none';
+  if (elements.btnSendEmail) elements.btnSendEmail.style.display = 'none';
+  if (elements.btnVerify) elements.btnVerify.style.display = 'none';
+  if (elements.btnSendCode) {
+    elements.btnSendCode.disabled = false;
+    elements.btnSendCode.textContent = i18n.getMessage('sendVerificationCode') || '发送验证码';
+  }
+  if (elements.authTip) elements.authTip.style.display = 'block';
+  if (elements.authStatus) {
+    elements.authStatus.style.display = 'none';
+    elements.authStatus.className = 'auth-status';
+    elements.authStatus.textContent = '';
+  }
+  if (elements.codeHint) {
+    elements.codeHint.className = 'form-hint';
+    elements.codeHint.textContent = '';
+  }
+  if (elements.btnVerify) {
+    elements.btnVerify.disabled = true;
+  }
 }
 
 // 检查是否是 OAuth 回调
@@ -223,13 +278,15 @@ async function handleSendEmail() {
     showError(i18n.getMessage('emailRequired'));
     return;
   }
-  
+
   try {
     setLoading(true);
     elements.btnSendEmail.disabled = true;
-    
+    console.log('[Auth] Sending verification code to:', state.email);
+
     const response = await authApi.sendVerificationCode(state.email);
-    
+    console.log('[Auth] sendVerificationCode response:', response);
+
     if (response.code === 0 && response.data?.success) {
       showCodeInput();
       startCountdown(60);
@@ -242,8 +299,15 @@ async function handleSendEmail() {
       showError(response.msg || i18n.getMessage('sendFailed'));
     }
   } catch (error) {
-    console.error('Send verification code error:', error);
-    showError(i18n.getMessage('networkError'));
+    console.error('[Auth] Send verification code error:', error);
+    // 根据错误类型显示不同的错误信息
+    if (error.isTimeout) {
+      showError('The request has timed out. Please check the network connection and try again');
+    } else if (error.message === 'Failed to fetch' || error.message === 'NetworkError') {
+      showError('The network connection failed. Please check the network Settings');
+    } else {
+      showError(i18n.getMessage('networkError'));
+    }
   } finally {
     setLoading(false);
     elements.btnSendEmail.disabled = false;
@@ -261,15 +325,17 @@ async function handleVerify() {
     showError(i18n.getMessage('codeRequired'));
     return;
   }
-  
+
   try {
     setLoading(true);
     elements.btnVerify.disabled = true;
-    
+    console.log('[Auth] Starting email verification for:', state.email);
+
     // 获取本地存储的设备信息
     const userInfo = await authService.getUserInfo();
     const deviceId = userInfo[authService.storageKey.deviceId];
-    
+    console.log('[Auth] Device ID from storage:', deviceId);
+
     // 获取浏览器信息
     let deviceInfo = null;
     try {
@@ -279,20 +345,24 @@ async function handleVerify() {
         browserInfo,
         extensionVersion
       };
+      console.log('[Auth] Device info:', deviceInfo);
     } catch (e) {
       console.info('Failed to get device info:', e);
     }
-    
-    // 必须传递 deviceId，否则提示升级
+
+    // 必须传递 deviceId
     if (!deviceId) {
-      showError('请升级扩展到最新版本');
+      console.error('[Auth] No deviceId found in storage after silent registration attempt');
+      showError('设备注册失败，请刷新页面重试');
       setLoading(false);
       elements.btnVerify.disabled = false;
       return;
     }
-    
+
+    console.log('[Auth] Calling verifyEmail API...');
     const response = await authApi.verifyEmail(state.email, state.code, deviceId, deviceInfo);
-    
+    console.log('[Auth] verifyEmail response:', response);
+
     if (response.code === 0 && response.data?.success) {
       // 保存用户信息
       await authService.saveUserInfo({
@@ -320,8 +390,15 @@ async function handleVerify() {
       showError(response.msg || i18n.getMessage('codeError'));
     }
   } catch (error) {
-    console.error('Verify code error:', error);
-    showError(i18n.getMessage('networkError'));
+    console.error('[Auth] Verify code error:', error);
+    // 根据错误类型显示不同的错误信息
+    if (error.isTimeout) {
+      showError('The request has timed out. Please check the network connection and try again');
+    } else if (error.message === 'Failed to fetch' || error.message === 'NetworkError') {
+      showError('The network connection failed. Please check the network Settings');
+    } else {
+      showError(i18n.getMessage('networkError'));
+    }
   } finally {
     setLoading(false);
     elements.btnVerify.disabled = false;
@@ -398,10 +475,11 @@ function startCountdown(seconds) {
 function updateCountdown() {
   if (state.countdown > 0) {
     elements.btnSendCode.disabled = true;
-    elements.btnSendCode.textContent = `${state.countdown}秒后重发`;
+    const countdownText = i18n.getMessage('resendCountdown') || '{seconds}秒后重发';
+    elements.btnSendCode.textContent = countdownText.replace('{seconds}', state.countdown).replace('{seconds}s', state.countdown);
   } else {
     elements.btnSendCode.disabled = false;
-    elements.btnSendCode.textContent = '发送验证码';
+    elements.btnSendCode.textContent = i18n.getMessage('sendVerificationCode') || '发送验证码';
   }
 }
 
@@ -414,10 +492,10 @@ function isValidEmail(email) {
 // 显示加载状态
 function setLoading(loading) {
   state.loading = loading;
-  
+
   if (loading) {
     elements.authStatus.className = 'auth-status loading';
-    elements.authStatus.textContent = '请稍候...';
+    elements.authStatus.textContent = i18n.getMessage('loadingText') || '请稍候...';
     elements.authStatus.style.display = 'block';
   } else {
     elements.authStatus.style.display = 'none';
