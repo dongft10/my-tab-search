@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 设置页面脚本
  * 处理用户账户信息、VIP状态、设备管理等功能
  */
@@ -753,23 +753,29 @@ async function handleLoginSendCode() {
     const { default: authApi } = await import('./api/auth.js');
     const response = await authApi.sendVerificationCode(email);
 
-    if (response.code === 0) {
-      showLoginMessage('验证码已发送到您的邮箱', 'success');
+    if (response.code === 0 && response.data?.success) {
+      showLoginMessage(i18n.getMessage('verificationCodeSent'), 'success');
       document.getElementById('login-verify-section').style.display = 'block';
       btnSendCode.style.display = 'none';
       emailInput.disabled = true;
       startLoginResendCountdown(email);
-    } else {
-      showLoginMessage(response.msg || '发送失败', 'error');
+    } else if (response.data?.code) {
+      const errorKey = 'errorCode' + response.data.code;
+      const errorMsg = i18n.getMessage(errorKey) || i18n.getMessage('sendFailed');
+      showLoginMessage(errorMsg, 'error');
       btnSendCode.disabled = false;
-      btnSendCode.textContent = '发送验证码';
+      btnSendCode.textContent = i18n.getMessage('sendCode');
+    } else {
+      showLoginMessage(response.msg || i18n.getMessage('sendFailed'), 'error');
+      btnSendCode.disabled = false;
+      btnSendCode.textContent = i18n.getMessage('sendCode');
     }
   } catch (error) {
     console.error('Send code error:', error);
-    const errorMsg = error.message || '发送失败，请重试';
+    const errorMsg = error.message || i18n.getMessage('sendFailed');
     showLoginMessage(errorMsg, 'error');
     btnSendCode.disabled = false;
-    btnSendCode.textContent = '发送验证码';
+    btnSendCode.textContent = i18n.getMessage('sendCode');
   }
 }
 
@@ -898,13 +904,13 @@ async function handleLoginVerify() {
   const code = document.getElementById('login-code-input').value.trim();
 
   if (!code || code.length !== 6) {
-    showLoginMessage('请输入6位验证码', 'error');
+    showLoginMessage(i18n.getMessage('codeRequired'), 'error');
     return;
   }
 
   const btnVerify = document.getElementById('login-btn-verify');
   btnVerify.disabled = true;
-  btnVerify.textContent = '验证中...';
+  btnVerify.textContent = i18n.getMessage('verifying');
 
   try {
     const { default: authApi } = await import('./api/auth.js');
@@ -959,14 +965,14 @@ async function handleLoginVerify() {
         await featureLimitService.clearCache();
       }
 
-      showLoginMessage('登录成功！', 'success');
+      showLoginMessage(i18n.getMessage('loginSuccess'), 'success');
 
       setTimeout(async () => {
         closeLoginModal();
         loadAccountInfo();
         loadVipStatus();
         loadTrialStatus();
-        showMessage('登录成功！', 'success');
+        showMessage(i18n.getMessage('loginSuccess'), 'success');
 
         try {
           await chrome.runtime.sendMessage({
@@ -978,16 +984,22 @@ async function handleLoginVerify() {
         }
         window.location.reload();
       }, 1000);
-    } else {
-      showLoginMessage(response.msg || '登录失败', 'error');
+    } else if (response.data?.code) {
+      const errorKey = 'errorCode' + response.data.code;
+      const errorMsg = i18n.getMessage(errorKey) || i18n.getMessage('loginFailed');
+      showLoginMessage(errorMsg, 'error');
       btnVerify.disabled = false;
-      btnVerify.textContent = '验证并登录';
+      btnVerify.textContent = i18n.getMessage('verifyAndLogin');
+    } else {
+      showLoginMessage(response.msg || i18n.getMessage('loginFailed'), 'error');
+      btnVerify.disabled = false;
+      btnVerify.textContent = i18n.getMessage('verifyAndLogin');
     }
   } catch (error) {
     console.error('Verify error:', error);
-    showLoginMessage('登录失败，请重试', 'error');
+    showLoginMessage(i18n.getMessage('loginFailed'), 'error');
     btnVerify.disabled = false;
-    btnVerify.textContent = '验证并登录';
+    btnVerify.textContent = i18n.getMessage('verifyAndLogin');
   }
 }
 

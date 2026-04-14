@@ -692,5 +692,25 @@
   "firstSyncCompleted": {
     "message": "已完成初次数据同步，已同步固定标签页数据",
     "description": "Toast message when first sync is completed with data pulled from server"
+  },
+  "errorCode1001": {
+    "message": "今日验证码发送已达上限（10次），请明天再来吧",
+    "description": "Error message when email daily limit exceeded"
+  },
+  "errorCode1002": {
+    "message": "今日验证码发送已达上限，感谢您的热情参与！为确保服务稳定，请明日再来注册，我们会为您提供更好的体验。",
+    "description": "Error message when global daily limit exceeded"
+  },
+  "errorCode1003": {
+    "message": "请求过于频繁，请稍后再试",
+    "description": "Error message when rate limit exceeded"
+  },
+  "errorCode1004": {
+    "message": "邮箱格式不正确",
+    "description": "Error message for invalid email"
+  },
+  "errorCode1005": {
+    "message": "验证码无效或已过期",
+    "description": "Error message for invalid verification code"
   }
 }
