@@ -15,7 +15,7 @@ class HelpTourPage {
         shortcutDesc: "tourShortcutOpenSearch",
         tip: "tourStep1Tip",
         cardPosition: { topVh: 10, rightVw: 37 },
-        highlight: { topVh: 4, rightVw: 11.2, widthVw: 21, heightVh: 62 },
+        highlight: { topVh: 4, rightVw: 8, widthVw: 28, heightVh: 62 },
         arrow: "arrow-right"
       },
       {
@@ -25,7 +25,7 @@ class HelpTourPage {
         shortcut: "Alt+W",
         shortcutDesc: "tourShortcutSwitchTab",
         tip: "tourStep2Tip",
-        cardPosition: { centerOffsetX: 0, topVh: 8 },
+        cardPosition: { centerOffsetX: 0, topVh: 5 },
         highlight: { topVh: 0, rightVw: 0, widthVw: 100, heightVh: 5 },
         arrow: "arrow-top"
       },
@@ -36,8 +36,8 @@ class HelpTourPage {
         shortcut: "Alt+E",
         shortcutDesc: "tourShortcutOpenPin",
         tip: "tourStep3Tip",
-        cardPosition: { centerOffsetX: -463, centerOffsetY: 0 },
-        highlight: { centerOffsetX: 0, centerOffsetY: 0, widthVw: 20.4, heightVh: 78.6 },
+        cardPosition: { centerOffsetX: -452, centerOffsetY: 0 },
+        highlight: { centerOffsetX: 0, centerOffsetY: 0, widthVw: 22, heightVh: 78.6 },
         arrow: "arrow-right"
       },
       {
@@ -70,6 +70,15 @@ class HelpTourPage {
 
   bindEvents() {
     document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+    window.addEventListener('resize', () => this.handleResize());
+  }
+
+  handleResize() {
+    const step = this.steps[this.currentStep];
+    if (step) {
+      this.updateHighlight(step);
+      this.positionCard(step);
+    }
   }
 
   showStep(index) {
