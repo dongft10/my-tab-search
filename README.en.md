@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-MyTabSearch is an efficient Chrome browser tab management extension designed to help users quickly search, switch, and manage browser tabs, improving productivity in multi-tab browsing environments.
+MyTabSearch is an efficient Chrome browser tab management extension designed to help users quickly search, switch, and manage browser tabs, improving productivity in multi-tab browsing environments. Features include user account system, cross-device sync for pinned tabs, and multiple search modes.
 
 ## Online Demo
 
@@ -12,13 +12,46 @@ Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for deta
 
 ## Features
 
-- 🔍 **Quick Search**: Search and filter tabs by title
+### Core Features
+
+- 🔍 **Quick Search**: Search and filter tabs by title with multiple search modes
 - ⌨️ **Keyboard Navigation**: Use arrow keys to select target tabs
 - ⚡ **Fast Switching**: Press Enter to quickly switch to target tab
 - 🗑️ **Direct Closing**: Press Delete to close selected tab
 - 🔄 **History**: Support for quickly switching to previous tab (Alt+W)
+- 📌 **Long-term Pinned**: Save frequently used tabs to pinned list (Alt+E) for quick access and management, persisted even after browser restart
+
+### Pinned Tabs Management
+
+- 🟠 **Pin Tabs**: Save frequently used tabs for quick access
+- ☁️ **Cloud Sync**: Promotion period, trial period or VIP users can sync pinned tabs across devices
+- 🔢 **Limits**:
+  - Anonymous users: 5 tabs
+  - Registered users (trial/VIP): 100 tabs
+
+### User Account System
+
+- 🔐 **Multiple Login Methods**:
+  - Google OAuth login
+  - Microsoft OAuth login
+  - Email verification code login
+- 👤 **Account Management**: View account status, VIP info, device list
+- 💎 **VIP Membership**: Unlock more advanced features
+
+### Search Modes
+
+| Mode | Description |
+|------|-------------|
+| Mode 1 | Title keyword quick match |
+| Mode 2 | Title subsequence match |
+| Mode 3 | Title keyword quick match + page content match |
+| Mode 4 | Title subsequence match + page content match |
+
+### Other Features
+
 - 🌐 **Internationalization**: Bilingual support for English and Chinese
-- 🎨 **Icon Display**: Display website icons for quick identification
+- 🎨 **Theme Switching**: Light and dark theme support
+- 🏷️ **Icon Display**: Display website icons for quick identification
 - 💾 **State Memory**: Remember's last active tab state
 
 ## Installation
@@ -44,7 +77,7 @@ Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for deta
 2. Open Chrome browser and visit `chrome://extensions/`
 3. Enable "Developer mode" in the top right corner
 4. Click "Load unpacked"
-5. Select this directory (chrome-extension)
+5. Select this directory (chrome-extension) or `pack/out/build/` directory
 6. Complete loading
 
 ## Usage
@@ -60,7 +93,7 @@ Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for deta
 ### Keyboard Shortcuts
 
 | Shortcut | Function | Description |
-|----------|-----------|-------------|
+|----------|----------|-------------|
 | `Alt+Q` | Open Search Popup | Quickly bring up the tab search interface |
 | `Alt+W` | Switch to Previous Tab | Quickly return to the last visited tab |
 | `Alt+E` | Open Pinned Tabs List | Open the list of pinned tabs |
@@ -93,26 +126,86 @@ npm install
 
 ### Development Mode
 
-1. Enable developer mode in `chrome://extensions/`
-2. Click "Load unpacked"
-3. Select this directory (chrome-extension)
-4. After modifying code, click the refresh button on the extension card to reload
+```bash
+# Development build (no compression, with env badge)
+npm run build:dev
+
+# QA environment build
+npm run build:qa
+
+# Production build (compressed)
+npm run build
+```
+
+After building, load the `pack/out/build/` directory in `chrome://extensions/`.
+
+### Project Structure
+
+```
+chrome-extension/
+├── _locales/             # Internationalization language files
+│   ├── en/               # English
+│   └── zh_CN/            # Simplified Chinese
+├── css/                  # Style files
+│   ├── popup.css         # Main popup styles
+│   ├── settings.css      # Settings page styles
+│   ├── auth.css          # Auth page styles
+│   └── pinned-list.css   # Pinned tabs styles
+├── html/                 # HTML pages
+│   ├── popup.html        # Main popup page
+│   ├── settings.html     # Settings page
+│   ├── auth.html         # Auth page
+│   ├── pinned-list.html  # Pinned tabs list
+│   └── about.html        # About page
+├── images/               # Icons and image resources
+├── js/                   # JavaScript source code
+│   ├── api/              # API clients
+│   │   ├── client.js           # Base API client
+│   │   ├── client-enhanced.js  # Enhanced API client
+│   │   └── auth.js             # Auth API
+│   ├── services/         # Business services
+│   │   ├── auth.service.js          # Auth service
+│   │   ├── vip.service.js           # VIP status service
+│   │   ├── trial.service.js         # Trial service
+│   │   ├── device.service.js        # Device management service
+│   │   ├── pinned-tabs.service.js   # Pinned tabs service
+│   │   ├── pinned-tabs-sync.service.js # Pinned tabs sync service
+│   │   ├── sync-queue.service.js    # Sync queue service
+│   │   ├── feature-limit.service.js # Feature limit service
+│   │   └── search-match.service.js  # Search match service
+│   ├── utils/            # Utilities
+│   │   ├── theme.js            # Theme management
+│   │   ├── theme-early.js      # Theme early loading
+│   │   ├── theme-init.js       # Theme initialization
+│   │   ├── theme-settings.js   # Theme settings
+│   │   └── version-manager.js  # Version manager
+│   ├── background.js     # Background service (Service Worker)
+│   ├── popup.js          # Main popup logic
+│   ├── settings.js       # Settings page logic
+│   ├── auth.js           # Auth page logic
+│   ├── pinned-list.js    # Pinned tabs list logic
+│   ├── about.js          # About page logic
+│   ├── i18n.js           # Internationalization support
+│   ├── popup-icons.js    # Icon handling
+│   └── config.js         # Configuration
+├── pack/                 # Packaging tools and scripts
+│   ├── scripts/          # Node.js packaging scripts
+│   └── *.bat/*.ps1       # Windows packaging scripts
+├── manifest.json         # Extension configuration file
+├── package.json          # Node.js dependency configuration
+└── README.md             # This file
+```
 
 ### Packaging and Publishing
 
-#### Windows Users
-
 ```bash
+# Windows
 cd pack
 .\pack.bat    # Package extension
 .\clean.bat   # Clean build output
-```
 
-#### macOS/Linux Users
-
-```bash
-npm run build    # Production build (with code compression)
-npm run build:dev  # Development build (skip compression)
+# macOS/Linux
+npm run build    # Production build
 npm run clean    # Clean build output
 ```
 
@@ -122,40 +215,17 @@ After packaging, the following files will be generated in the `pack/out` directo
 
 For detailed packaging instructions, please refer to [pack/PACKAGING.md](pack/PACKAGING.md)
 
-## Project Structure
+### Environment Configuration
 
-```
-chrome-extension/
-├── _locales/             # Internationalization language files
-│   ├── en/               # English
-│   └── zh_CN/            # Simplified Chinese
-├── css/                  # Style files
-├── docs/                 # Documentation
-├── html/                 # HTML pages
-│   ├── about.html         # About page
-│   ├── popup.html         # Main popup page
-│   └── settings.html      # Settings page
-├── images/               # Icons and image resources
-├── js/                   # JavaScript source code
-│   ├── about.js          # About page logic
-│   ├── background.js      # Background service
-│   ├── i18n.js          # Internationalization support
-│   ├── popup-icons.js    # Icon handling
-│   ├── popup.js          # Main popup logic
-│   └── settings.js       # Settings page logic
-├── pack/                 # Packaging tools and scripts
-│   ├── scripts/          # Node.js packaging scripts
-│   ├── PACKAGING.md      # Packaging documentation
-│   ├── README.md         # Packaging quick guide
-│   ├── SETUP_INSTRUCTIONS.md # Setup instructions
-│   ├── pack.bat          # Windows packaging script
-│   ├── clean.bat         # Windows cleanup script
-│   ├── run-packaging.ps1 # PowerShell packaging script
-│   └── clean.ps1        # PowerShell cleanup script
-├── manifest.json          # Extension configuration file
-├── package.json          # Node.js dependency configuration
-└── README.md             # This file
-```
+The project supports three environments:
+
+| Environment | API URL | Build Command |
+|-------------|---------|---------------|
+| Development | http://localhost:41532 | `npm run build:dev` |
+| QA | / | `npm run build:qa` |
+| Production | / | `npm run build` |
+
+Development and QA environments display an environment badge (green DEV or yellow QA) in the bottom left corner of the popup.
 
 ## Internationalization
 
@@ -171,11 +241,12 @@ To add a new language:
 
 ## Privacy Policy
 
-This extension takes user privacy seriously and does not collect, store, or transmit any personal data to external servers.
+This extension takes user privacy seriously:
 
-- **Local Data**: All data is stored only in the user's local browser
+- **Local Data**: All local data is stored only in the user's browser
 - **Minimal Permissions**: Only requests permissions necessary for functionality
 - **No Tracking**: Does not collect user browsing history or any personal data
+- **Secure Authentication**: Uses OAuth 2.0 standard for third-party login
 
 For the complete privacy policy, please see the [PRIVACY_POLICY.html](PRIVACY_POLICY.html).
 
@@ -210,17 +281,53 @@ A: Visit `chrome://extensions/`, find the MyTabSearch extension, and click the "
 
 ### Q: Does the extension collect my browsing data?
 
-A: No. This extension runs entirely locally and does not collect, store, or transmit any personal data.
+A: The extension does not collect your browsing history or any personal data. However, to enable cross-device sync, your actively saved long-term pinned tabs data will be stored on cloud servers, used solely for sync functionality and not for any other purposes.
+
+### Q: What are the limits for pinned tabs?
+
+A: Anonymous users can have up to 5 pinned tabs. Registered users (trial or VIP) can have up to 100 pinned tabs.
+
+### Q: How to upgrade to VIP?
+
+A: Please contact the developer or check the upgrade method on the About page.
 
 ## Changelog
 
+### v2.0.0 (2025-04-17)
+
+**Major Update**
+
+- 🎉 New user account system
+  - Google OAuth login support
+  - Microsoft OAuth login support
+  - Email verification code login support
+- 💎 VIP membership system
+  - Trial period feature support
+  - VIP feature unlocking
+  - Multi-device support
+- ☁️ Pinned tabs cloud sync
+  - Cross-device sync of long-term-pinned tabs
+  - Automatic conflict handling
+- 🔍 Multiple search modes
+  - Title keyword matching
+  - Title subsequence matching
+  - Page content matching (pending implementation)
+- 🎨 Theme system optimization
+  - Light/dark theme switching
+- 🏗️ Architecture refactoring
+  - Modular code structure
+  - Service layer separation
+  - API client encapsulation
+
 ### v1.8.0 (2025-01-31)
+
 - Removed notification functionality, changed to logging only
 - Removed fuzzy search feature description
 - Optimized packaging process, generating both CRX and ZIP files
 - Updated privacy policy and permission descriptions
 
 ### v1.6.0
+
 - Added quick switch to previous tab feature (Alt+W)
 - Support for tab history
 
