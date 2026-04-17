@@ -41,7 +41,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Dependencies installed
 echo.
 
-REM Build and package (without compression)
+REM Build and package (without compression for QA)
 echo [2/2] Building and packaging extension...
 call npm run build:qa && npm run package -- --skip-compression
 if %ERRORLEVEL% NEQ 0 (

@@ -37,9 +37,13 @@
         "manifest.json",
         "html/about.html",
         "html/settings.html",
+        "html/help.html",
+        "html/help-tour.html",
         "html/auth.html",
         "js/about.js",
         "js/settings.js",
+        "js/help.js",
+        "js/help-tour-page.js",
         "js/auth-callback.js",
         "js/i18n.js"
       ],

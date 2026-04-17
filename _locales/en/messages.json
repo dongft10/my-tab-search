@@ -712,5 +712,185 @@
   "errorCode1005": {
     "message": "Invalid or expired verification code",
     "description": "Error message for invalid verification code"
+  },
+  "helpTitle": {
+    "message": "Quick Start - MyTabSearch",
+    "description": "Help page title"
+  },
+  "helpStep1Title": {
+    "message": "🔍 Quick Search",
+    "description": "Step 1 title"
+  },
+  "helpStep1Desc": {
+    "message": "Alt+Q → Type keywords → Enter to switch",
+    "description": "Step 1 description"
+  },
+  "helpStep1Shortcut": {
+    "message": "↑↓ Navigate | Enter Switch | Delete Close",
+    "description": "Step 1 shortcut hint"
+  },
+  "helpStep1Tip": {
+    "message": "Quickly find target tab when you have many tabs open",
+    "description": "Step 1 tip"
+  },
+  "helpDemoSearch": {
+    "message": "Alt+Q → Type keywords → Enter to switch",
+    "description": "Demo text for search feature"
+  },
+  "helpStep2Title": {
+    "message": "⚡ Tab Toggle",
+    "description": "Step 2 title"
+  },
+  "helpStep2Desc": {
+    "message": "Alt+W to switch to previous tab",
+    "description": "Step 2 description"
+  },
+  "helpStep2Tip": {
+    "message": "Similar to Alt+Tab but for browser tabs",
+    "description": "Step 2 tip"
+  },
+  "helpDemoSwitch": {
+    "message": "Press Alt+W to quickly switch to previous tab",
+    "description": "Demo text for switch feature"
+  },
+  "helpStep3Title": {
+    "message": "⭐ Pinned Tabs List",
+    "description": "Step 3 title"
+  },
+  "helpStep3Desc": {
+    "message": "Pin frequently used tabs, they persist after browser restart",
+    "description": "Step 3 description"
+  },
+  "helpStep3Shortcut": {
+    "message": "Shortcut: Alt+E Open pinned list",
+    "description": "Step 3 shortcut hint"
+  },
+  "helpStep3Tip": {
+    "message": "Core feature that differentiates from similar products",
+    "description": "Step 3 tip"
+  },
+  "helpDemoPin": {
+    "message": "Click pin icon → Show in pinned list",
+    "description": "Demo text for pin feature"
+  },
+  "helpStep4Title": {
+    "message": "⚠️ Confirm Shortcuts",
+    "description": "Step 4 title"
+  },
+  "helpStep4Desc": {
+    "message": "Chrome requires manual confirmation for shortcuts",
+    "description": "Step 4 description"
+  },
+  "helpStep4Tip": {
+    "message": "Please make sure all three shortcuts are set correctly",
+    "description": "Step 4 tip"
+  },
+  "helpBtnPrev": {
+    "message": "Previous",
+    "description": "Previous button"
+  },
+  "helpBtnNext": {
+    "message": "Next",
+    "description": "Next button"
+  },
+  "helpBtnSetupShortcuts": {
+    "message": "Set Up Shortcuts",
+    "description": "Setup shortcuts button"
+  },
+  "helpBtnStart": {
+    "message": "Start Using",
+    "description": "Start using button"
+  },
+  "helpShortcutsAltQ": {
+    "message": "Open tab search",
+    "description": "Alt+Q shortcut description"
+  },
+  "helpShortcutsAltW": {
+    "message": "Switch to previous tab",
+    "description": "Alt+W shortcut description"
+  },
+  "helpShortcutsAltE": {
+    "message": "Open pinned tabs list",
+    "description": "Alt+E shortcut description"
+  },
+  "helpShortcutsNeedSetup": {
+    "message": "Manual setup required",
+    "description": "Manual setup required badge"
+  },
+  "tourStep1Title": {
+    "message": "🔍 Quick Search & Switch",
+    "description": "Tour step 1 title"
+  },
+  "tourStep1Desc": {
+    "message": "Press Alt+Q to open search, type keywords to find tabs, press Enter to switch instantly.",
+    "description": "Tour step 1 description"
+  },
+  "tourStep1Tip": {
+    "message": "💡 Quickly find target tab when you have many tabs open",
+    "description": "Tour step 1 tip"
+  },
+  "tourStep2Title": {
+    "message": "⚡ Tab Toggle",
+    "description": "Tour step 2 title"
+  },
+  "tourStep2Desc": {
+    "message": "Press Alt+W to quickly switch to the previous tab. Perfect for toggling between two tabs.",
+    "description": "Tour step 2 description"
+  },
+  "tourStep2Tip": {
+    "message": "💡 Similar to Alt+Tab for windows, but for browser tabs",
+    "description": "Tour step 2 tip"
+  },
+  "tourStep3Title": {
+    "message": "⭐ Pinned Tabs",
+    "description": "Tour step 3 title"
+  },
+  "tourStep3Desc": {
+    "message": "Pin frequently used tabs and they persist after browser restart. Press Alt+E to open pinned list.",
+    "description": "Tour step 3 description"
+  },
+  "tourStep3Tip": {
+    "message": "💡 Core feature that differentiates from similar products",
+    "description": "Tour step 3 tip"
+  },
+  "tourStep4Title": {
+    "message": "⚠️ Confirm Shortcuts",
+    "description": "Tour step 4 title"
+  },
+  "tourStep4Desc": {
+    "message": "Chrome requires manual confirmation for shortcuts. Please ensure these shortcuts are set correctly:",
+    "description": "Tour step 4 description"
+  },
+  "tourStep4Tip": {
+    "message": "💡 Recommended to set up shortcuts now for best experience",
+    "description": "Tour step 4 tip"
+  },
+  "tourShortcutOpenSearch": {
+    "message": "Open tab search",
+    "description": "Shortcut description for Alt+Q"
+  },
+  "tourShortcutSwitchTab": {
+    "message": "Switch to previous tab",
+    "description": "Shortcut description for Alt+W"
+  },
+  "tourShortcutOpenPin": {
+    "message": "Open pinned tabs list",
+    "description": "Shortcut description for Alt+E"
+  },
+  "tourBtnNext": {
+    "message": "Next",
+    "description": "Next button in tour"
+  },
+  "tourBtnSkip": {
+    "message": "Skip",
+    "description": "Skip button in tour"
+  },
+  "tourBtnDone": {
+    "message": "Done",
+    "description": "Done button in tour"
+  },
+  "tourBtnSetupShortcuts": {
+    "message": "Set Shortcuts",
+    "description": "Setup shortcuts button in tour"
   }
 }

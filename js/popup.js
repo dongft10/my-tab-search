@@ -63,7 +63,29 @@ function showToast(message, duration = 3000) {
   }, duration);
 }
 
+async function checkAndShowHelpTour() {
+  try {
+    const result = await chrome.storage.local.get('helpTourCompleted');
+    if (!result.helpTourCompleted) {
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('html/help-tour.html')
+      });
+      window.close();
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('[Help] Failed to check help tour status:', error);
+    return false;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+
+  const showHelpTour = await checkAndShowHelpTour();
+  if (showHelpTour) {
+    return;
+  }
 
   // 显示环境标识（仅 dev/qa 环境显示）
   const envBadge = document.getElementById('env-badge');
@@ -949,6 +971,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (aboutBtn) {
     aboutBtn.addEventListener('click', () => {
       chrome.runtime.sendMessage({ action: 'openAbout' });
+      window.close();
+    });
+  }
+
+  // 帮助按钮点击事件
+  const helpBtn = document.getElementById('help-btn');
+  if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+      chrome.tabs.create({ url: chrome.runtime.getURL('html/help.html') });
       window.close();
     });
   }
