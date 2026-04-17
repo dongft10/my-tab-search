@@ -321,7 +321,21 @@ class HelpTourPage {
   }
 
   openShortcutSettings() {
-    chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+    chrome.tabs.query({ url: 'chrome://extensions/shortcuts' }, (shortcutsTabs) => {
+      if (shortcutsTabs.length > 0) {
+        chrome.tabs.update(shortcutsTabs[0].id, { active: true });
+        chrome.windows.update(shortcutsTabs[0].windowId, { focused: true });
+      } else {
+        chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
+          if (tabs.length > 0) {
+            chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
+            chrome.windows.update(tabs[0].windowId, { focused: true });
+          } else {
+            chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+          }
+        });
+      }
+    });
     this.done();
   }
 

@@ -1185,17 +1185,20 @@ async function handleExtendTrial() {
 // 处理快捷键设置按钮点击
 function handleSetupShortcut() {
   try {
-    // chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-    // Open Chrome keyboard shortcuts settings page
-    chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
-      if (tabs.length > 0) {
-        // 如果已存在 chrome://extensions 标签页，切换到该标签页并导航到快捷键设置
-        chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
-        chrome.windows.update(tabs[0].windowId, { focused: true });
-      } else {
-        // 如果没有，创建新标签页
-        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+    chrome.tabs.query({ url: 'chrome://extensions/shortcuts' }, (shortcutsTabs) => {
+      if (shortcutsTabs.length > 0) {
+        chrome.tabs.update(shortcutsTabs[0].id, { active: true });
+        chrome.windows.update(shortcutsTabs[0].windowId, { focused: true });
+        return;
       }
+      chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
+        if (tabs.length > 0) {
+          chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
+          chrome.windows.update(tabs[0].windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+        }
+      });
     });
   } catch (error) {
     console.error('Open shortcuts page error:', error);
