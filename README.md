@@ -105,7 +105,7 @@ MyTabSearch 是一个高效的 Chrome 浏览器标签页管理扩展，旨在帮
 
 1. **固定扩展**: 安装后建议将扩展固定到浏览器工具栏，方便快速访问
 
-   ![固定图标](images/fix-icon.png)
+   ![固定图标](images/pin-extension.png)
 
 2. **快捷键冲突**: 如果默认快捷键无效，可能是按键冲突，可以在 `chrome://extensions/shortcuts` 中调整
 3. **图标识别**: 每个标签页都显示对应的网站图标，便于快速识别

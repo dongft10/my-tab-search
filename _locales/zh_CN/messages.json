@@ -854,16 +854,28 @@
     "description": "Tour step 3 tip"
   },
   "tourStep4Title": {
-    "message": "⚠️ 确认快捷键设置",
+    "message": "📌 固定扩展图标",
     "description": "Tour step 4 title"
   },
   "tourStep4Desc": {
-    "message": "由于 Chrome 安全机制，快捷键需手动确认才能生效。请确保以下快捷键已正确设置：",
+    "message": "将扩展图标固定到浏览器工具栏，方便随时使用。点击浏览器图标面盘上的“扩展程序”，找到 MyTabSearch，点击图钉固定。",
     "description": "Tour step 4 description"
   },
   "tourStep4Tip": {
-    "message": "💡 建议立即设置快捷键以获得最佳体验",
+    "message": "💡 固定后无需展开菜单即可快速访问扩展",
     "description": "Tour step 4 tip"
+  },
+  "tourStep5Title": {
+    "message": "⚠️ 确认快捷键设置",
+    "description": "Tour step 5 title"
+  },
+  "tourStep5Desc": {
+    "message": "由于 Chrome 安全机制，快捷键需手动确认才能生效。请确保以下快捷键已正确设置：",
+    "description": "Tour step 5 description"
+  },
+  "tourStep5Tip": {
+    "message": "💡 建议立即设置快捷键以获得最佳体验",
+    "description": "Tour step 5 tip"
   },
   "tourShortcutOpenSearch": {
     "message": "打开标签页搜索",
@@ -880,6 +892,10 @@
   "tourBtnNext": {
     "message": "下一步",
     "description": "Next button in tour"
+  },
+  "tourBtnPrev": {
+    "message": "上一步",
+    "description": "Previous button in tour"
   },
   "tourBtnSkip": {
     "message": "跳过",

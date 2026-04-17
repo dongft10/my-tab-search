@@ -5,6 +5,7 @@ class HelpTourPage {
     this.currentStep = 0;
     this.card = null;
     this.highlight = null;
+    this.overlayImage = null;
     
     this.steps = [
       {
@@ -41,10 +42,21 @@ class HelpTourPage {
         arrow: "arrow-right"
       },
       {
-        id: "shortcuts",
+        id: "pinExtension",
         title: "tourStep4Title",
         description: "tourStep4Desc",
         tip: "tourStep4Tip",
+        cardPosition: { topVh: 10, rightVw: 30 },
+        highlight: {topVh: 4, rightVw: 10, widthVw: 18, heightVh: 42 },
+        arrow: "arrow-right",
+        overlayImage: "../images/pin-extension.png",
+        overlayPosition: { topVh: 4, rightVw: 4.2, widthVw: 28, heightVh: 36 }
+      },
+      {
+        id: "shortcuts",
+        title: "tourStep5Title",
+        description: "tourStep5Desc",
+        tip: "tourStep5Tip",
         cardPosition: { centerOffsetX: 0, centerOffsetY: 0 },
         highlight: { centerOffsetX: 0, centerOffsetY: 0, width: 1, height: 1 },
         arrow: null,
@@ -59,6 +71,7 @@ class HelpTourPage {
     
     this.card = document.getElementById('tour-card');
     this.highlight = document.getElementById('highlight');
+    this.overlayImage = document.getElementById('overlay-image');
     
     this.showStep(0);
     this.bindEvents();
@@ -71,6 +84,17 @@ class HelpTourPage {
   bindEvents() {
     document.addEventListener('keydown', (e) => this.handleKeyboard(e));
     window.addEventListener('resize', () => this.handleResize());
+    document.addEventListener('click', (e) => this.handleClick(e));
+  }
+
+  handleClick(e) {
+    if (e.target.closest('.help-tour-card')) return;
+    
+    if (this.currentStep === this.steps.length - 1) {
+      this.done();
+    } else {
+      this.nextStep();
+    }
   }
 
   handleResize() {
@@ -88,12 +112,46 @@ class HelpTourPage {
     this.currentStep = index;
     
     this.updateHighlight(step);
+    this.updateOverlayImage(step);
     this.positionCard(step);
     this.renderCardContent(step);
     
     requestAnimationFrame(() => {
       this.card.classList.add('active');
     });
+  }
+
+  updateOverlayImage(step) {
+    if (!this.overlayImage) return;
+    
+    if (step.overlayImage) {
+      this.overlayImage.style.backgroundImage = `url('${step.overlayImage}')`;
+      
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const pos = step.overlayPosition || {};
+      
+      let top = 0, right = 0, width = 300, height = 200;
+      
+      if (pos.topVh !== undefined) top = (pos.topVh / 100) * vh;
+      if (pos.rightVw !== undefined) right = (pos.rightVw / 100) * vw;
+      if (pos.bottomVh !== undefined) top = vh - (pos.bottomVh / 100) * vh - height;
+      if (pos.leftVw !== undefined) right = vw - (pos.leftVw / 100) * vw - width;
+      
+      if (pos.widthVw !== undefined) width = (pos.widthVw / 100) * vw;
+      if (pos.heightVh !== undefined) height = (pos.heightVh / 100) * vh;
+      
+      this.overlayImage.style.top = `${top}px`;
+      this.overlayImage.style.right = `${right}px`;
+      this.overlayImage.style.width = `${width}px`;
+      this.overlayImage.style.height = `${height}px`;
+      this.overlayImage.style.left = 'auto';
+      this.overlayImage.style.bottom = 'auto';
+      
+      this.overlayImage.classList.add('visible');
+    } else {
+      this.overlayImage.classList.remove('visible');
+    }
   }
 
   updateHighlight(step) {
@@ -210,6 +268,7 @@ class HelpTourPage {
     const tip = step.tip ? (i18n.getMessage(step.tip) || step.tip) : null;
     
     let contentHtml = `
+      <button class="help-tour-btn-skip-top" data-action="skip">${i18n.getMessage('tourBtnSkip') || '跳过'}</button>
       <div class="help-tour-card-header">
         <div class="help-tour-step-number">${stepNum}</div>
         <h3 class="help-tour-title">${title}</h3>
@@ -251,16 +310,22 @@ class HelpTourPage {
     let buttonsHtml = '';
     if (step.isLast) {
       buttonsHtml = `
-        <button class="help-tour-btn help-tour-btn-skip" data-action="skip">${i18n.getMessage('tourBtnSkip') || '跳过'}</button>
         <div class="help-tour-buttons">
+          <button class="help-tour-btn help-tour-btn-prev" data-action="prev">${i18n.getMessage('tourBtnPrev') || '上一步'}</button>
           <button class="help-tour-btn help-tour-btn-setup" data-action="setup">${i18n.getMessage('tourBtnSetupShortcuts') || '设置快捷键'}</button>
           <button class="help-tour-btn help-tour-btn-done" data-action="done">${i18n.getMessage('tourBtnDone') || '完成'}</button>
         </div>
       `;
+    } else if (this.currentStep === 0) {
+      buttonsHtml = `
+        <div class="help-tour-buttons">
+          <button class="help-tour-btn help-tour-btn-next" data-action="next">${i18n.getMessage('tourBtnNext') || '下一步'}</button>
+        </div>
+      `;
     } else {
       buttonsHtml = `
-        <button class="help-tour-btn help-tour-btn-skip" data-action="skip">${i18n.getMessage('tourBtnSkip') || '跳过'}</button>
         <div class="help-tour-buttons">
+          <button class="help-tour-btn help-tour-btn-prev" data-action="prev">${i18n.getMessage('tourBtnPrev') || '上一步'}</button>
           <button class="help-tour-btn help-tour-btn-next" data-action="next">${i18n.getMessage('tourBtnNext') || '下一步'}</button>
         </div>
       `;
@@ -281,6 +346,7 @@ class HelpTourPage {
     this.card.innerHTML = contentHtml;
     
     this.card.querySelector('[data-action="skip"]')?.addEventListener('click', () => this.skip());
+    this.card.querySelector('[data-action="prev"]')?.addEventListener('click', () => this.prevStep());
     this.card.querySelector('[data-action="next"]')?.addEventListener('click', () => this.nextStep());
     this.card.querySelector('[data-action="done"]')?.addEventListener('click', () => this.done());
     this.card.querySelector('[data-action="setup"]')?.addEventListener('click', () => this.openShortcutSettings());
@@ -365,6 +431,7 @@ class HelpTourPage {
         this.skip();
         break;
       case 'Enter':
+      case ' ':
         e.preventDefault();
         if (this.currentStep === this.steps.length - 1) {
           this.done();

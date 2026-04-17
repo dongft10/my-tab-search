@@ -13,6 +13,21 @@
   background-color: #0a0a0f;
 }
 
+.help-tour-overlay-image {
+  position: fixed;
+  z-index: 3;
+  pointer-events: none;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.help-tour-overlay-image.visible {
+  opacity: 1;
+}
+
 .help-tour-highlight {
   position: fixed;
   z-index: 2;
@@ -78,6 +93,24 @@
   transition: opacity 0.4s ease, transform 0.4s ease;
   top: 0;
   left: 0;
+}
+
+.help-tour-btn-skip-top {
+  position: absolute;
+  top: 19px;
+  right: 22px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s ease;
+  z-index: 1;
+}
+
+.help-tour-btn-skip-top:hover {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .help-tour-card.active {
@@ -233,13 +266,19 @@
 }
 
 .help-tour-btn-skip {
-  background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 10px 14px;
+  display: none;
 }
 
-.help-tour-btn-skip:hover {
-  color: rgba(255, 255, 255, 0.8);
+.help-tour-btn-prev {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.help-tour-btn-prev:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .help-tour-btn-next {

@@ -854,16 +854,28 @@
     "description": "Tour step 3 tip"
   },
   "tourStep4Title": {
-    "message": "⚠️ Confirm Shortcuts",
+    "message": "📌 Pin Extension Icon",
     "description": "Tour step 4 title"
   },
   "tourStep4Desc": {
-    "message": "Chrome requires manual confirmation for shortcuts. Please ensure these shortcuts are set correctly:",
+    "message": "Pin the extension icon to browser toolbar for quick access. Click \"Extensions\" on the browser toolbar, find MyTabSearch, and click the pin icon.",
     "description": "Tour step 4 description"
   },
   "tourStep4Tip": {
-    "message": "💡 Recommended to set up shortcuts now for best experience",
+    "message": "💡 Pinned icon provides one-click access without opening the menu",
     "description": "Tour step 4 tip"
+  },
+  "tourStep5Title": {
+    "message": "⚠️ Confirm Shortcuts",
+    "description": "Tour step 5 title"
+  },
+  "tourStep5Desc": {
+    "message": "Chrome requires manual confirmation for shortcuts. Please ensure these shortcuts are set correctly:",
+    "description": "Tour step 5 description"
+  },
+  "tourStep5Tip": {
+    "message": "💡 Recommended to set up shortcuts now for best experience",
+    "description": "Tour step 5 tip"
   },
   "tourShortcutOpenSearch": {
     "message": "Open tab search",
@@ -880,6 +892,10 @@
   "tourBtnNext": {
     "message": "Next",
     "description": "Next button in tour"
+  },
+  "tourBtnPrev": {
+    "message": "Previous",
+    "description": "Previous button in tour"
   },
   "tourBtnSkip": {
     "message": "Skip",
