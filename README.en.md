@@ -105,7 +105,7 @@ Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for deta
 
 1. **Pin Extension**: After installation, it's recommended to pin the extension to the browser toolbar for quick access
 
-   ![Pin Icon](images/fix-icon.png)
+   ![Pin Icon](images/pin-extension.png)
 
 2. **Shortcut Conflicts**: If default shortcuts don't work, there might be a key conflict. You can adjust them in `chrome://extensions/shortcuts`
 3. **Icon Recognition**: Each tab displays the corresponding website icon for quick identification
