@@ -260,8 +260,7 @@ class HelpTour {
     this.card.querySelector('[data-action="next"]')?.addEventListener('click', () => this.nextStep());
     this.card.querySelector('[data-action="done"]')?.addEventListener('click', () => this.end());
     this.card.querySelector('[data-action="setup"]')?.addEventListener('click', () => {
-      chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-      this.end();
+      this.openShortcutSettings();
     });
     
     this.card.querySelectorAll('.help-tour-dot').forEach(dot => {
@@ -328,6 +327,25 @@ class HelpTour {
         }
         break;
     }
+  }
+
+  openShortcutSettings() {
+    chrome.tabs.query({ url: 'chrome://extensions/shortcuts' }, (shortcutsTabs) => {
+      if (shortcutsTabs.length > 0) {
+        chrome.tabs.update(shortcutsTabs[0].id, { active: true });
+        chrome.windows.update(shortcutsTabs[0].windowId, { focused: true });
+      } else {
+        chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
+          if (tabs.length > 0) {
+            chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
+            chrome.windows.update(tabs[0].windowId, { focused: true });
+          } else {
+            chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+          }
+        });
+      }
+    });
+    this.end();
   }
 }
 

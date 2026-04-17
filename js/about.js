@@ -14,7 +14,7 @@ function showToast(message, duration = 3000) {
   toast.classList.add('toast');
   toast.textContent = message;
 
-  // 添加�?body
+  // 添加�?body
   document.body.appendChild(toast);
 
   // 自动移除
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize i18n
   await i18n.initialize();
   
-  // 更新页面国际化元�?
+  // 更新页面国际化元�?
   i18n.updatePageI18n();
 
   // Apply i18n to UI elements
@@ -52,16 +52,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const setupBtn = document.getElementById('btn-setup-shortcut');
   if (setupBtn) {
     setupBtn.addEventListener('click', () => {
-      // Open Chrome keyboard shortcuts settings page
-      chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
-        if (tabs.length > 0) {
-          // 如果已存�?chrome://extensions 标签页，切换到该标签页并导航到快捷键设置
-          chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
-          chrome.windows.update(tabs[0].windowId, { focused: true });
-        } else {
-          // 如果没有，创建新标签�?
-          chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+      chrome.tabs.query({ url: 'chrome://extensions/shortcuts' }, (shortcutsTabs) => {
+        if (shortcutsTabs.length > 0) {
+          chrome.tabs.update(shortcutsTabs[0].id, { active: true });
+          chrome.windows.update(shortcutsTabs[0].windowId, { focused: true });
+          return;
         }
+        chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
+          if (tabs.length > 0) {
+            chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
+            chrome.windows.update(tabs[0].windowId, { focused: true });
+          } else {
+            chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+          }
+        });
       });
     });
   }
@@ -106,7 +110,7 @@ function applyI18n() {
   const descElement = document.getElementById('about-description');
   if (descElement) {
     descElement.textContent = i18n.getMessage('aboutDescription') ||
-      'Tired of the mediocre functionality of the default tab management? Then switch to the powerful and flexible MyTabSearch extension �?you will be amazed! MyTabSearch is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.';
+      'Tired of the mediocre functionality of the default tab management? Then switch to the powerful and flexible MyTabSearch extension �?you will be amazed! MyTabSearch is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.';
   }
 
   // Update features section

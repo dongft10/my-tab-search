@@ -802,6 +802,26 @@ async function switchToTab(tabOrId, event) {
         await chrome.windows.update(existingTab.windowId, { focused: true });
       }
     } else {
+      // 特殊处理：chrome://extensions/ 页面
+      if (targetUrl === 'chrome://extensions/' || targetUrl === 'chrome://extensions') {
+        const shortcutsTabs = await chrome.tabs.query({ url: 'chrome://extensions/shortcuts' });
+        if (shortcutsTabs.length > 0) {
+          const shortcutsTab = shortcutsTabs[0];
+          await chrome.tabs.update(shortcutsTab.id, { url: 'chrome://extensions/', active: true });
+          if (shortcutsTab.windowId) {
+            await chrome.windows.update(shortcutsTab.windowId, { focused: true });
+          }
+          const updatedTabs = pinnedTabs.map(t => {
+            if (t.url === targetUrl) {
+              return { ...t, tabId: shortcutsTab.id };
+            }
+            return t;
+          });
+          await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+          window.close();
+          return;
+        }
+      }
       // 没找到，创建新标签页并更新存储中的 tabId
       const newTab = await chrome.tabs.create({ url: targetUrl });
       const updatedTabs = pinnedTabs.map(t => {
