@@ -451,6 +451,7 @@ body::after {
 .button-bar-right {
   display: flex;
   gap: 15px;
+  margin-left: auto;
 }
 
 /* 环境标识标签样式 */
