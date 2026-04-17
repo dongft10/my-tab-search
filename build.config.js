@@ -115,7 +115,8 @@ async function build() {
       'js/settings',
       'js/pinned-list',
       'js/about',
-      'js/auth'
+      'js/auth',
+      'js/help-tour-page'
     ];
     
     console.log('Building ESM modules...');

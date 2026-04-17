@@ -712,5 +712,185 @@
   "errorCode1005": {
     "message": "验证码无效或已过期",
     "description": "Error message for invalid verification code"
+  },
+  "helpTitle": {
+    "message": "快速上手 - MyTabSearch",
+    "description": "Help page title"
+  },
+  "helpStep1Title": {
+    "message": "🔍 快速搜索跳转",
+    "description": "Step 1 title"
+  },
+  "helpStep1Desc": {
+    "message": "Alt+Q 打开 → 输入关键词 → Enter 切换到目标标签",
+    "description": "Step 1 description"
+  },
+  "helpStep1Shortcut": {
+    "message": "↑↓ 选择 | Enter 切换 | Delete 关闭",
+    "description": "Step 1 shortcut hint"
+  },
+  "helpStep1Tip": {
+    "message": "当打开很多标签页时，用搜索快速定位目标标签",
+    "description": "Step 1 tip"
+  },
+  "helpDemoSearch": {
+    "message": "Alt+Q 打开 → 输入关键词 → Enter 切换",
+    "description": "Demo text for search feature"
+  },
+  "helpStep2Title": {
+    "message": "⚡ 前后标签切换",
+    "description": "Step 2 title"
+  },
+  "helpStep2Desc": {
+    "message": "Alt+W 快速返回上一个浏览的标签页",
+    "description": "Step 2 description"
+  },
+  "helpStep2Tip": {
+    "message": "类似 Alt+Tab 切换窗口的效果，但在标签页之间切换",
+    "description": "Step 2 tip"
+  },
+  "helpDemoSwitch": {
+    "message": "按 Alt+W 快速切换到上一个标签页",
+    "description": "Demo text for switch feature"
+  },
+  "helpStep3Title": {
+    "message": "⭐ 固定标签页列表",
+    "description": "Step 3 title"
+  },
+  "helpStep3Desc": {
+    "message": "常用网页一键固定，关闭浏览器后再打开仍然保留",
+    "description": "Step 3 description"
+  },
+  "helpStep3Shortcut": {
+    "message": "快捷键: Alt+E 打开固定列表",
+    "description": "Step 3 shortcut hint"
+  },
+  "helpStep3Tip": {
+    "message": "这是本扩展的核心亮点功能，区别于同类产品",
+    "description": "Step 3 tip"
+  },
+  "helpDemoPin": {
+    "message": "点击固定图标 → 显示在固定列表",
+    "description": "Demo text for pin feature"
+  },
+  "helpStep4Title": {
+    "message": "⚠️ 确认快捷键设置",
+    "description": "Step 4 title"
+  },
+  "helpStep4Desc": {
+    "message": "由于 Chrome 安全机制，快捷键需手动确认才能生效",
+    "description": "Step 4 description"
+  },
+  "helpStep4Tip": {
+    "message": "请确保三个快捷键都已正确设置",
+    "description": "Step 4 tip"
+  },
+  "helpBtnPrev": {
+    "message": "上一步",
+    "description": "Previous button"
+  },
+  "helpBtnNext": {
+    "message": "下一步",
+    "description": "Next button"
+  },
+  "helpBtnSetupShortcuts": {
+    "message": "立即设置快捷键",
+    "description": "Setup shortcuts button"
+  },
+  "helpBtnStart": {
+    "message": "开始使用",
+    "description": "Start using button"
+  },
+  "helpShortcutsAltQ": {
+    "message": "打开标签页搜索",
+    "description": "Alt+Q shortcut description"
+  },
+  "helpShortcutsAltW": {
+    "message": "切换到上一个标签",
+    "description": "Alt+W shortcut description"
+  },
+  "helpShortcutsAltE": {
+    "message": "打开固定标签列表",
+    "description": "Alt+E shortcut description"
+  },
+  "helpShortcutsNeedSetup": {
+    "message": "需手动设置",
+    "description": "Manual setup required badge"
+  },
+  "tourStep1Title": {
+    "message": "🔍 快速搜索跳转",
+    "description": "Tour step 1 title"
+  },
+  "tourStep1Desc": {
+    "message": "按 Alt+Q 打开搜索框，输入关键词快速定位目标标签页，按 Enter 即可切换。",
+    "description": "Tour step 1 description"
+  },
+  "tourStep1Tip": {
+    "message": "💡 当打开很多标签页时，用搜索快速定位目标标签",
+    "description": "Tour step 1 tip"
+  },
+  "tourStep2Title": {
+    "message": "⚡ 前后标签切换",
+    "description": "Tour step 2 title"
+  },
+  "tourStep2Desc": {
+    "message": "按 Alt+W 快速返回上一个浏览的标签页，在两个标签页之间来回切换时非常方便。",
+    "description": "Tour step 2 description"
+  },
+  "tourStep2Tip": {
+    "message": "💡 类似 Alt+Tab 切换窗口的效果，但在标签页之间切换",
+    "description": "Tour step 2 tip"
+  },
+  "tourStep3Title": {
+    "message": "⭐ 固定标签页",
+    "description": "Tour step 3 title"
+  },
+  "tourStep3Desc": {
+    "message": "常用网页一键固定，关闭浏览器后再打开仍然保留。按 Alt+E 可快速打开固定列表。",
+    "description": "Tour step 3 description"
+  },
+  "tourStep3Tip": {
+    "message": "💡 这是本扩展的核心亮点功能，区别于同类产品",
+    "description": "Tour step 3 tip"
+  },
+  "tourStep4Title": {
+    "message": "⚠️ 确认快捷键设置",
+    "description": "Tour step 4 title"
+  },
+  "tourStep4Desc": {
+    "message": "由于 Chrome 安全机制，快捷键需手动确认才能生效。请确保以下快捷键已正确设置：",
+    "description": "Tour step 4 description"
+  },
+  "tourStep4Tip": {
+    "message": "💡 建议立即设置快捷键以获得最佳体验",
+    "description": "Tour step 4 tip"
+  },
+  "tourShortcutOpenSearch": {
+    "message": "打开标签页搜索",
+    "description": "Shortcut description for Alt+Q"
+  },
+  "tourShortcutSwitchTab": {
+    "message": "切换到上一个标签",
+    "description": "Shortcut description for Alt+W"
+  },
+  "tourShortcutOpenPin": {
+    "message": "打开固定标签列表",
+    "description": "Shortcut description for Alt+E"
+  },
+  "tourBtnNext": {
+    "message": "下一步",
+    "description": "Next button in tour"
+  },
+  "tourBtnSkip": {
+    "message": "跳过",
+    "description": "Skip button in tour"
+  },
+  "tourBtnDone": {
+    "message": "完成",
+    "description": "Done button in tour"
+  },
+  "tourBtnSetupShortcuts": {
+    "message": "设置快捷键",
+    "description": "Setup shortcuts button in tour"
   }
 }

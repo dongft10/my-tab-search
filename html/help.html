@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="helpTitle">快速上手 - MyTabSearch</title>
+  <script src="../js/utils/theme-early.js"></script>
+  <link rel="stylesheet" href="../css/help.css">
+</head>
+<body>
+  <div class="help-container">
+    <header class="help-header">
+      <div class="step-indicator" id="step-indicator">
+        <div class="step-dot active" data-step="0"></div>
+        <div class="step-dot" data-step="1"></div>
+        <div class="step-dot" data-step="2"></div>
+        <div class="step-dot" data-step="3"></div>
+      </div>
+      <button class="btn-close" id="btn-close" title="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="help-content" id="step-content">
+      <div class="demo-container" id="demo-container">
+        <div class="demo-placeholder" id="demo-placeholder">
+          <div class="demo-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M11.742 10.344a6.5 6.5 0 1 1-1.397-1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+            </svg>
+          </div>
+          <div class="demo-text" data-i18n="helpDemoSearch">Alt+Q 打开 → 输入关键词 → Enter 切换</div>
+        </div>
+      </div>
+
+      <div class="step-info">
+        <h2 class="step-title" id="step-title" data-i18n="helpStep1Title">🔍 快速搜索跳转</h2>
+        <p class="step-description" id="step-description" data-i18n="helpStep1Desc">Alt+Q 打开 → 输入关键词 → Enter 切换到目标标签</p>
+        <div class="step-shortcut" id="step-shortcut" data-i18n="helpStep1Shortcut">↑↓ 选择 | Enter 切换 | Delete 关闭</div>
+      </div>
+    </main>
+
+    <footer class="help-footer">
+      <div class="footer-buttons" id="footer-buttons">
+        <button class="btn-secondary" id="btn-prev" style="display: none;" data-i18n="helpBtnPrev">上一步</button>
+        <button class="btn-primary" id="btn-next" data-i18n="helpBtnNext">下一步</button>
+        <button class="btn-primary btn-setup" id="btn-setup-shortcuts" style="display: none;" data-i18n="helpBtnSetupShortcuts">立即设置快捷键</button>
+        <button class="btn-secondary" id="btn-start" style="display: none;" data-i18n="helpBtnStart">开始使用</button>
+      </div>
+      <div class="footer-tip">
+        <span class="tip-icon">💡</span>
+        <span class="tip-text" id="step-tip" data-i18n="helpStep1Tip">当打开很多标签页时，用搜索快速定位目标标签</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="../js/utils/theme.js"></script>
+  <script type="module" src="../js/help.js"></script>
+  <script src="../js/utils/theme-init.js"></script>
+</body>
+</html>
