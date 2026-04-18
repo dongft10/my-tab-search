@@ -284,9 +284,9 @@ function handleKeydown(event) {
           const li = lis[selectedIndex];
           if (li) {
             const tabId = parseInt(li.dataset.tabId);
-            if (!isNaN(tabId)) {
-              closeTabAndRemoveFromPinnedList(tabId);
-            }
+            const tabUrl = li.dataset.tabUrl || null;
+            // 即使 tabId 无效，也可以用 URL 匹配
+            closeTabAndRemoveFromPinnedList(isNaN(tabId) ? undefined : tabId, tabUrl);
           }
         }
         break;
@@ -551,10 +551,10 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       closeBtn.classList.add('action-btn', 'close-btn');
       closeBtn.innerHTML = "✕";
       closeBtn.title = i18n.getMessage('closeTab') || '关闭标签页';
-      closeBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        closeTabAndRemoveFromPinnedList(tab.tabId);
-      });
+closeBtn.addEventListener('click', function (e) {
+  e.stopPropagation();
+  closeTabAndRemoveFromPinnedList(tab.tabId, tab.url);
+});
       
       // 如果是长期固定的tab，隐藏关闭按钮（避免关闭不存在的tab）
       if (tab.isLongTermPinned) {
@@ -782,7 +782,33 @@ async function switchToTab(tabOrId, event) {
     // 用 targetUrl 查找浏览器中已打开的标签页
     const allTabs = await chrome.tabs.query({});
     // 使用直接比较方式查找（chrome.tabs.query 对包含 hash 的 URL 匹配有问题）
-    const existingTabs = allTabs.filter(t => t.url === targetUrl);
+    let existingTabs = allTabs.filter(t => t.url === targetUrl);
+    
+    // 特殊处理：chrome://extensions/ 系列页面，复用已存在的同类页面
+    if (existingTabs.length === 0 && targetUrl.startsWith('chrome://extensions')) {
+      // 查找任意 chrome://extensions/ 开头的页面
+      const extensionsTabs = allTabs.filter(t => t.url.startsWith('chrome://extensions'));
+      if (extensionsTabs.length > 0) {
+        // 复用已存在的页面，导航到目标 URL
+        const existingTab = extensionsTabs[0];
+        await chrome.tabs.update(existingTab.id, { url: targetUrl, active: true });
+        if (existingTab.windowId) {
+          await chrome.windows.update(existingTab.windowId, { focused: true });
+        }
+        // 更新存储中的 tabId
+        const result = await chrome.storage.local.get('pinnedTabs');
+        const pinnedTabs = result.pinnedTabs || [];
+        const updatedTabs = pinnedTabs.map(t => {
+          if (t.url === targetUrl) {
+            return { ...t, tabId: existingTab.id };
+          }
+          return t;
+        });
+        await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+        window.close();
+        return;
+      }
+    }
     
     const result = await chrome.storage.local.get('pinnedTabs');
     const pinnedTabs = result.pinnedTabs || [];
@@ -802,26 +828,6 @@ async function switchToTab(tabOrId, event) {
         await chrome.windows.update(existingTab.windowId, { focused: true });
       }
     } else {
-      // 特殊处理：chrome://extensions/ 页面
-      if (targetUrl === 'chrome://extensions/' || targetUrl === 'chrome://extensions') {
-        const shortcutsTabs = await chrome.tabs.query({ url: 'chrome://extensions/shortcuts' });
-        if (shortcutsTabs.length > 0) {
-          const shortcutsTab = shortcutsTabs[0];
-          await chrome.tabs.update(shortcutsTab.id, { url: 'chrome://extensions/', active: true });
-          if (shortcutsTab.windowId) {
-            await chrome.windows.update(shortcutsTab.windowId, { focused: true });
-          }
-          const updatedTabs = pinnedTabs.map(t => {
-            if (t.url === targetUrl) {
-              return { ...t, tabId: shortcutsTab.id };
-            }
-            return t;
-          });
-          await chrome.storage.local.set({ pinnedTabs: updatedTabs });
-          window.close();
-          return;
-        }
-      }
       // 没找到，创建新标签页并更新存储中的 tabId
       const newTab = await chrome.tabs.create({ url: targetUrl });
       const updatedTabs = pinnedTabs.map(t => {
@@ -839,30 +845,40 @@ async function switchToTab(tabOrId, event) {
 }
 
 // 从固定列表中移除（不关闭标签页）
-async function removeFromPinnedList(tabId) {
+// @param tabId - 标签页ID（可能无效）
+// @param tabUrl - 标签页URL（作为备选标识）
+async function removeFromPinnedList(tabId, tabUrl = null) {
   try {
     const result = await chrome.storage.local.get('pinnedTabs');
     let pinnedTabs = result.pinnedTabs || [];
     
+    // 优先使用 URL 匹配（服务器同步的tab没有有效tabId）
+    const targetTab = pinnedTabs.find(t => 
+      (tabUrl && t.url === tabUrl) || (tabId !== undefined && tabId !== null && t.tabId === tabId)
+    );
+    
     // 检查是否是长期固定的tab，如果是则不执行移除
-    const targetTab = pinnedTabs.find(t => t.tabId === tabId);
     if (targetTab && targetTab.isLongTermPinned) {
-      console.log('[removeFromPinnedList] Cannot remove long-term pinned tab:', tabId);
+      console.log('[removeFromPinnedList] Cannot remove long-term pinned tab:', tabId, tabUrl);
       return;
     }
     
     // 找到要移除的标签页的索引
-    const removedIndex = pinnedTabs.findIndex(tab => tab.tabId === tabId);
+    const removedIndex = pinnedTabs.findIndex(tab => 
+      (tabUrl && tab.url === tabUrl) || (tabId !== undefined && tabId !== null && tab.tabId === tabId)
+    );
     
     // 过滤掉要移除的标签页
-    pinnedTabs = pinnedTabs.filter(tab => tab.tabId !== tabId);
+    pinnedTabs = pinnedTabs.filter(tab => 
+      !((tabUrl && tab.url === tabUrl) || (tabId !== undefined && tabId !== null && tab.tabId === tabId))
+    );
     
     // 保存到存储
     await chrome.storage.local.set({ pinnedTabs });
     
     // 只有长期固定标签页的变化才同步到服务器
     if (targetTab && targetTab.isLongTermPinned) {
-      syncQueueService.addOperation('unpinTab', { tabId }).catch(err => console.info('Sync unpinTab failed:', err));
+      syncQueueService.addOperation('unpinTab', { tabId: targetTab.tabId, url: targetTab.url }).catch(err => console.info('Sync unpinTab failed:', err));
     }
     
     // 确定要滚动到的标签页ID
@@ -886,33 +902,55 @@ async function removeFromPinnedList(tabId) {
 }
 
 // 关闭标签页并从固定列表中移除
-async function closeTabAndRemoveFromPinnedList(tabId) {
+// @param tabId - 标签页ID（可能无效或与当前浏览器tab不一致）
+// @param tabUrl - 标签页URL（用于查找实际的浏览器tab）
+async function closeTabAndRemoveFromPinnedList(tabId, tabUrl = null) {
   try {
-    // 检查是否是长期固定的tab
     const result = await chrome.storage.local.get('pinnedTabs');
     const pinnedTabs = result.pinnedTabs || [];
-    const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+    // 优先使用 URL 匹配（服务器同步的tab没有有效tabId），其次用 tabId 匹配
+    const targetTab = pinnedTabs.find(t => 
+      (tabUrl && t.url === tabUrl) || (tabId !== undefined && tabId !== null && t.tabId === tabId)
+    );
     const isLongTermPinned = targetTab && targetTab.isLongTermPinned;
     
-    // 关闭浏览器标签页（如果标签页还存在）
-    try {
-      await chrome.tabs.get(tabId);
-      // 只有 tab 存在时才尝试关闭
-      await chrome.tabs.remove(tabId);
-    } catch (tabError) {
-      // 标签页不存在（可能已经被关闭或不存在），忽略错误
-      console.log('[closeTabAndRemoveFromPinnedList] Tab does not exist or already closed:', tabId);
+    // 尝试关闭浏览器标签页
+    let browserTabClosed = false;
+    
+    // 首先尝试用 tabId 关闭
+    if (tabId !== undefined && tabId !== null && tabId !== '') {
+      try {
+        await chrome.tabs.get(tabId);
+        await chrome.tabs.remove(tabId);
+        browserTabClosed = true;
+      } catch (tabError) {
+        console.log('[closeTabAndRemoveFromPinnedList] Tab ID not valid:', tabId);
+      }
+    }
+    
+    // 如果 tabId 无效，尝试用 URL 查找并关闭
+    if (!browserTabClosed && tabUrl) {
+      try {
+        const allTabs = await chrome.tabs.query({});
+        const matchingTabs = allTabs.filter(t => t.url === tabUrl);
+        if (matchingTabs.length > 0) {
+          await chrome.tabs.remove(matchingTabs[0].id);
+          browserTabClosed = true;
+          console.log('[closeTabAndRemoveFromPinnedList] Closed tab by URL match:', tabUrl);
+        }
+      } catch (tabError) {
+        console.log('[closeTabAndRemoveFromPinnedList] Failed to close tab by URL:', tabUrl, tabError);
+      }
     }
     
     // 根据是否是长期固定tab决定是否从列表中移除
     if (isLongTermPinned) {
       // 长期固定的tab：关闭了浏览器tab，但仍保留在列表中
       showToast('长期固定的Tab已关闭，但仍保留在列表中');
-      // 刷新列表显示
       await loadPinnedTabs();
     } else {
-      // 普通tab：从列表中移除
-      await removeFromPinnedList(tabId);
+      // 普通tab：从列表中移除（传入 tabUrl 用于匹配）
+      await removeFromPinnedList(tabId, tabUrl);
     }
   } catch (error) {
     console.error('Error closing tab and removing from pinned list:', error);
