@@ -1,11 +1,17 @@
 import i18n from './i18n.js';
 
+const BG_IMAGE_WIDTH = 1920;
+const BG_IMAGE_HEIGHT = 1049;
+const BG_IMAGE_RATIO = BG_IMAGE_WIDTH / BG_IMAGE_HEIGHT;
+
 class HelpTourPage {
   constructor() {
     this.currentStep = 0;
     this.card = null;
     this.highlight = null;
     this.overlayImage = null;
+    this.container = null;
+    this.containerRect = { width: 0, height: 0, offsetX: 0, offsetY: 0 };
     
     this.steps = [
       {
@@ -15,8 +21,8 @@ class HelpTourPage {
         shortcut: "Alt+Q",
         shortcutDesc: "tourShortcutOpenSearch",
         tip: "tourStep1Tip",
-        cardPosition: { topVh: 10, rightVw: 37 },
-        highlight: { topVh: 4, rightVw: 8, widthVw: 28, heightVh: 62 },
+        cardPosition: { topPercent: 15, rightPercent: 33.6 },
+        highlight: { topPercent: 4, rightPercent: 7.8, widthPercent: 23, heightPercent: 62 },
         arrow: "arrow-right"
       },
       {
@@ -26,8 +32,8 @@ class HelpTourPage {
         shortcut: "Alt+W",
         shortcutDesc: "tourShortcutSwitchTab",
         tip: "tourStep2Tip",
-        cardPosition: { centerOffsetX: 0, topVh: 5 },
-        highlight: { topVh: 0, rightVw: 0, widthVw: 100, heightVh: 5 },
+        cardPosition: { centerOffsetXPercent: 0, topPercent: 5 },
+        highlight: { topPercent: 0, rightPercent: 0, widthPercent: 100, heightPercent: 5 },
         arrow: "arrow-top"
       },
       {
@@ -37,8 +43,8 @@ class HelpTourPage {
         shortcut: "Alt+E",
         shortcutDesc: "tourShortcutOpenPin",
         tip: "tourStep3Tip",
-        cardPosition: { centerOffsetX: -452, centerOffsetY: 0 },
-        highlight: { centerOffsetX: 0, centerOffsetY: 0, widthVw: 22, heightVh: 78.6 },
+        cardPosition: { centerOffsetXPercent: -24, topPercent: 5 },
+        highlight: { centerOffsetXPercent: 0, centerOffsetYPercent: 0, widthPercent: 22, heightPercent: 78.6 },
         arrow: "arrow-right"
       },
       {
@@ -46,19 +52,19 @@ class HelpTourPage {
         title: "tourStep4Title",
         description: "tourStep4Desc",
         tip: "tourStep4Tip",
-        cardPosition: { topVh: 10, rightVw: 30 },
-        highlight: {topVh: 4, rightVw: 10, widthVw: 18, heightVh: 42 },
+        cardPosition: { topPercent: 10, rightPercent: 27 },
+        highlight: { topPercent: 4, rightPercent: 5, widthPercent: 20, heightPercent: 40 },
         arrow: "arrow-right",
         overlayImage: "../images/pin-extension.png",
-        overlayPosition: { topVh: 4, rightVw: 4.2, widthVw: 28, heightVh: 36 }
+        overlayPosition: { topPercent: 4, rightPercent: 0.9, widthPercent: 28, heightPercent: 36 }
       },
       {
         id: "shortcuts",
         title: "tourStep5Title",
         description: "tourStep5Desc",
         tip: "tourStep5Tip",
-        cardPosition: { centerOffsetX: 0, centerOffsetY: 0 },
-        highlight: { centerOffsetX: 0, centerOffsetY: 0, width: 1, height: 1 },
+        cardPosition: { centerOffsetXPercent: 0, centerOffsetYPercent: 0 },
+        highlight: { centerOffsetXPercent: 0, centerOffsetYPercent: 0, widthPercent: 1, heightPercent: 1 },
         arrow: null,
         isLast: true,
         showShortcutsList: true
@@ -69,10 +75,12 @@ class HelpTourPage {
   async init() {
     await i18n.initialize();
     
+    this.container = document.getElementById('content-container');
     this.card = document.getElementById('tour-card');
     this.highlight = document.getElementById('highlight');
     this.overlayImage = document.getElementById('overlay-image');
     
+    this.updateContainerPosition();
     this.showStep(0);
     this.bindEvents();
     
@@ -97,10 +105,39 @@ class HelpTourPage {
     }
   }
 
+  updateContainerPosition() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const viewportRatio = vw / vh;
+    
+    let containerWidth, containerHeight, offsetX, offsetY;
+    
+    if (viewportRatio > BG_IMAGE_RATIO) {
+      containerHeight = vh;
+      containerWidth = vh * BG_IMAGE_RATIO;
+      offsetX = (vw - containerWidth) / 2;
+      offsetY = 0;
+    } else {
+      containerWidth = vw;
+      containerHeight = vw / BG_IMAGE_RATIO;
+      offsetX = 0;
+      offsetY = (vh - containerHeight) / 2;
+    }
+    
+    this.containerRect = { width: containerWidth, height: containerHeight, offsetX, offsetY };
+    
+    this.container.style.width = `${containerWidth}px`;
+    this.container.style.height = `${containerHeight}px`;
+    this.container.style.left = `${offsetX}px`;
+    this.container.style.top = `${offsetY}px`;
+  }
+
   handleResize() {
+    this.updateContainerPosition();
     const step = this.steps[this.currentStep];
     if (step) {
       this.updateHighlight(step);
+      this.updateOverlayImage(step);
       this.positionCard(step);
     }
   }
@@ -127,19 +164,16 @@ class HelpTourPage {
     if (step.overlayImage) {
       this.overlayImage.style.backgroundImage = `url('${step.overlayImage}')`;
       
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
       const pos = step.overlayPosition || {};
+      const rect = this.containerRect;
       
       let top = 0, right = 0, width = 300, height = 200;
       
-      if (pos.topVh !== undefined) top = (pos.topVh / 100) * vh;
-      if (pos.rightVw !== undefined) right = (pos.rightVw / 100) * vw;
-      if (pos.bottomVh !== undefined) top = vh - (pos.bottomVh / 100) * vh - height;
-      if (pos.leftVw !== undefined) right = vw - (pos.leftVw / 100) * vw - width;
+      if (pos.topPercent !== undefined) top = (pos.topPercent / 100) * rect.height;
+      if (pos.rightPercent !== undefined) right = (pos.rightPercent / 100) * rect.width;
       
-      if (pos.widthVw !== undefined) width = (pos.widthVw / 100) * vw;
-      if (pos.heightVh !== undefined) height = (pos.heightVh / 100) * vh;
+      if (pos.widthPercent !== undefined) width = (pos.widthPercent / 100) * rect.width;
+      if (pos.heightPercent !== undefined) height = (pos.heightPercent / 100) * rect.height;
       
       this.overlayImage.style.top = `${top}px`;
       this.overlayImage.style.right = `${right}px`;
@@ -159,34 +193,31 @@ class HelpTourPage {
     
     if (step.highlight) {
       const h = step.highlight;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      const rect = this.containerRect;
       
       let top, left, width, height;
       
-      width = h.widthVw !== undefined ? (h.widthVw / 100) * vw : (h.width || 300);
-      height = h.heightVh !== undefined ? (h.heightVh / 100) * vh : (h.height || 300);
+      width = h.widthPercent !== undefined ? (h.widthPercent / 100) * rect.width : (h.width || 300);
+      height = h.heightPercent !== undefined ? (h.heightPercent / 100) * rect.height : (h.height || 300);
       
-      // 基于屏幕中心偏移定位
-      if (h.centerOffsetX !== undefined || h.centerOffsetY !== undefined) {
-        const offsetX = h.centerOffsetX || 0;
-        const offsetY = h.centerOffsetY || 0;
-        left = (vw - width) / 2 + offsetX;
-        top = (vh - height) / 2 + offsetY;
+      if (h.centerOffsetXPercent !== undefined || h.centerOffsetYPercent !== undefined) {
+        const offsetX = h.centerOffsetXPercent !== undefined ? (h.centerOffsetXPercent / 100) * rect.width : 0;
+        const offsetY = h.centerOffsetYPercent !== undefined ? (h.centerOffsetYPercent / 100) * rect.height : 0;
+        left = (rect.width - width) / 2 + offsetX;
+        top = (rect.height - height) / 2 + offsetY;
       } else {
-        // 传统定位方式
-        if (h.topVh !== undefined) {
-          top = (h.topVh / 100) * vh;
+        if (h.topPercent !== undefined) {
+          top = (h.topPercent / 100) * rect.height;
         } else {
           top = h.top || 0;
         }
         
-        if (h.rightVw !== undefined) {
-          left = vw - (h.rightVw / 100) * vw - width;
+        if (h.rightPercent !== undefined) {
+          left = rect.width - (h.rightPercent / 100) * rect.width - width;
         } else if (h.right !== undefined) {
-          left = vw - h.right - width;
-        } else if (h.leftVw !== undefined) {
-          left = (h.leftVw / 100) * vw;
+          left = rect.width - h.right - width;
+        } else if (h.leftPercent !== undefined) {
+          left = (h.leftPercent / 100) * rect.width;
         } else {
           left = h.left || 0;
         }
@@ -203,53 +234,56 @@ class HelpTourPage {
   }
 
   positionCard(step) {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const rect = this.containerRect;
     const cardWidth = 380;
     const cardHeight = 300;
-    const padding = 40;
+    const padding = 20;
     
     let top, left;
     
     if (step.cardPosition) {
       const pos = step.cardPosition;
       
-      // 水平方向定位
-      if (pos.centerOffsetX !== undefined) {
-        left = (vw - cardWidth) / 2 + (pos.centerOffsetX || 0);
-      } else if (pos.leftVw !== undefined) {
-        left = (pos.leftVw / 100) * vw;
-      } else if (pos.rightVw !== undefined) {
-        left = vw - (pos.rightVw / 100) * vw - cardWidth;
+      if (pos.centerOffsetXPercent !== undefined) {
+        left = (rect.width - cardWidth) / 2 + (pos.centerOffsetXPercent / 100) * rect.width;
+      } else if (pos.leftPercent !== undefined) {
+        left = (pos.leftPercent / 100) * rect.width;
+      } else if (pos.rightPercent !== undefined) {
+        left = rect.width - (pos.rightPercent / 100) * rect.width - cardWidth;
       } else if (pos.right !== undefined) {
-        left = vw - pos.right - cardWidth;
+        left = rect.width - pos.right - cardWidth;
       } else if (pos.left !== undefined) {
         left = pos.left;
       } else {
-        left = (vw - cardWidth) / 2;
+        left = (rect.width - cardWidth) / 2;
       }
       
-      // 垂直方向定位
-      if (pos.centerOffsetY !== undefined) {
-        top = (vh - cardHeight) / 2 + (pos.centerOffsetY || 0);
-      } else if (pos.topVh !== undefined) {
-        top = (pos.topVh / 100) * vh;
-      } else if (pos.bottomVh !== undefined) {
-        top = vh - (pos.bottomVh / 100) * vh - cardHeight;
+      if (pos.centerOffsetYPercent !== undefined) {
+        top = (rect.height - cardHeight) / 2 + (pos.centerOffsetYPercent / 100) * rect.height;
+      } else if (pos.topPercent !== undefined) {
+        top = (pos.topPercent / 100) * rect.height;
+      } else if (pos.bottomPercent !== undefined) {
+        top = rect.height - (pos.bottomPercent / 100) * rect.height - cardHeight;
       } else if (pos.top !== undefined) {
         top = pos.top;
       } else if (pos.bottom !== undefined) {
-        top = vh - pos.bottom - cardHeight;
+        top = rect.height - pos.bottom - cardHeight;
       } else {
-        top = (vh - cardHeight) / 2;
+        top = (rect.height - cardHeight) / 2;
       }
     } else {
-      top = (vh - cardHeight) / 2;
-      left = (vw - cardWidth) / 2;
+      top = (rect.height - cardHeight) / 2;
+      left = (rect.width - cardWidth) / 2;
     }
     
     if (top < padding) top = padding;
     if (left < padding) left = padding;
+    if (left + cardWidth > rect.width - padding) {
+      left = rect.width - cardWidth - padding;
+    }
+    if (top + cardHeight > rect.height - padding) {
+      top = rect.height - cardHeight - padding;
+    }
     
     this.card.style.top = `${top}px`;
     this.card.style.left = `${left}px`;
@@ -391,18 +425,19 @@ class HelpTourPage {
       if (shortcutsTabs.length > 0) {
         chrome.tabs.update(shortcutsTabs[0].id, { active: true });
         chrome.windows.update(shortcutsTabs[0].windowId, { focused: true });
-      } else {
-        chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
-          if (tabs.length > 0) {
-            chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
-            chrome.windows.update(tabs[0].windowId, { focused: true });
-          } else {
-            chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-          }
-        });
+        this.done();
+        return;
       }
+      chrome.tabs.query({ url: 'chrome://extensions/*' }, (tabs) => {
+        if (tabs.length > 0) {
+          chrome.tabs.update(tabs[0].id, { url: 'chrome://extensions/shortcuts', active: true });
+          chrome.windows.update(tabs[0].windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+        }
+        this.done();
+      });
     });
-    this.done();
   }
 
   done() {
