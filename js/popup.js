@@ -979,7 +979,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const helpBtn = document.getElementById('help-btn');
   if (helpBtn) {
     helpBtn.addEventListener('click', () => {
-      chrome.tabs.create({ url: chrome.runtime.getURL('html/help.html') });
+      chrome.tabs.create({ url: chrome.runtime.getURL('html/help-tour.html') });
       window.close();
     });
   }
