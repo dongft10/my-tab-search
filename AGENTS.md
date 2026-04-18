@@ -81,5 +81,5 @@ chrome-extension/
 ## Notes
 
 - No ESLint/Prettier config - follow manual style guidelines
-- During the development and testing phase, after each front-end code adjustment is executed, remember to execute "npm run build:dev"
+- During the development and testing phase, after each front-end code adjustment is executed, remember to execute "npm run build:dev && npm run package"
 
