@@ -13,8 +13,16 @@
   background-color: #0a0a0f;
 }
 
-.help-tour-overlay-image {
+.help-tour-content-container {
   position: fixed;
+  z-index: 2;
+  pointer-events: none;
+  top: 0;
+  left: 0;
+}
+
+.help-tour-overlay-image {
+  position: absolute;
   z-index: 3;
   pointer-events: none;
   background-size: contain;
@@ -29,7 +37,7 @@
 }
 
 .help-tour-highlight {
-  position: fixed;
+  position: absolute;
   z-index: 2;
   pointer-events: none;
   border-radius: 12px;
@@ -78,8 +86,9 @@
 }
 
 .help-tour-card {
-  position: fixed;
+  position: absolute;
   z-index: 2147483649;
+  pointer-events: auto;
   background: linear-gradient(145deg, #1e1e32 0%, #1a1a2e 100%);
   border-radius: 16px;
   padding: 24px 28px;
