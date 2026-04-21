@@ -543,7 +543,7 @@
         }
 
         .carousel-container {
-            max-width: 900px;
+            max-width: 1280px;
             margin: 0 auto;
             position: relative;
         }
@@ -553,7 +553,7 @@
             overflow: hidden;
             border-radius: 24px;
             box-shadow: var(--glass-shadow);
-            height: 520px;
+            height: 800px;
             border: 1px solid var(--glass-border);
             background: var(--carousel-bg);
             backdrop-filter: blur(20px);
@@ -1259,7 +1259,8 @@
             }
 
             .carousel {
-                height: 280px;
+                height: auto;
+                aspect-ratio: 16 / 10;
             }
 
             .features {
@@ -1315,7 +1316,7 @@
                         <li><a href="README.md">Docs</a></li>
                     </ul>
                 </nav>
-                <button class="theme-toggle" title="Toggle theme">
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
                     <i class="fas fa-moon"></i>
                 </button>
             </div>
@@ -1358,20 +1359,21 @@
                 <img src="website/images/pic-3.png" alt="MyTabSearch Screenshot 3">
             </div>
             <div class="carousel-slide">
-                <img src="website/images/pic-4.png" alt="MyTabSearch Screenshot 3">
+                <img src="website/images/pic-4.png" alt="MyTabSearch Screenshot 4">
             </div>
             <div class="carousel-controls">
-                <button class="prev">
+                <button class="prev" onclick="changeSlide(-1)">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-                <button class="next">
+                <button class="next" onclick="changeSlide(1)">
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
             <div class="carousel-indicators">
-                <span class="indicator active" data-slide="1"></span>
-                <span class="indicator" data-slide="2"></span>
-                <span class="indicator" data-slide="3"></span>
+                <span class="indicator active" onclick="currentSlide(1)"></span>
+                <span class="indicator" onclick="currentSlide(2)"></span>
+                <span class="indicator" onclick="currentSlide(3)"></span>
+                <span class="indicator" onclick="currentSlide(4)"></span>
             </div>
         </div>
     </div>
@@ -1618,26 +1620,6 @@
 
     // Bind event listeners - works both for local files and served files
     function bindEventListeners() {
-        // Theme toggle event listener
-        const themeToggle = document.querySelector('.theme-toggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', toggleTheme);
-        }
-
-        // Carousel event listeners
-        const prevBtn = document.querySelector('.carousel-controls .prev');
-        const nextBtn = document.querySelector('.carousel-controls .next');
-        if (prevBtn) {
-            prevBtn.addEventListener('click', function() {
-                changeSlide(-1);
-            });
-        }
-        if (nextBtn) {
-            nextBtn.addEventListener('click', function() {
-                changeSlide(1);
-            });
-        }
-
         // Carousel indicators event listeners
         const indicators = document.querySelectorAll('.carousel-indicators .indicator');
         indicators.forEach(indicator => {
@@ -1674,12 +1656,23 @@
         bindEventListeners();
     }
 
+    let slideInterval;
+
+    function resetSlideInterval() {
+        clearInterval(slideInterval);
+        slideInterval = setInterval(() => {
+            changeSlide(1);
+        }, 5000);
+    }
+
     function changeSlide(n) {
         showSlides(slideIndex += n);
+        resetSlideInterval();
     }
 
     function currentSlide(n) {
         showSlides(slideIndex = n);
+        resetSlideInterval();
     }
 
     function showSlides(n) {
@@ -1702,12 +1695,13 @@
         }
 
         slides[slideIndex - 1].classList.add('active');
-        indicators[slideIndex - 1].classList.add('active');
+        if (indicators[slideIndex - 1]) {
+            indicators[slideIndex - 1].classList.add('active');
+        }
     }
 
-    setInterval(() => {
-        changeSlide(1);
-    }, 5000);
+    // Start auto-play
+    resetSlideInterval();
 </script>
 </body>
 
