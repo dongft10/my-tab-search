@@ -1,7 +1,40 @@
-// Import i18n manager
+﻿// Import i18n manager
 import i18n from './i18n.js';
-// Import config
-import { PINNED_TABS_CONFIG } from './config.js';
+// Import config for environment detection
+import { ENV_TYPE } from './config.js';
+// Import feature limit service
+import featureLimitService from './services/feature-limit.service.js';
+// Import sync queue service
+import syncQueueService from './services/sync-queue.service.js';
+// Import auth service (ESM version for popup)
+import authService from './services/auth.service.js';
+// Import auth API (ESM version for popup)
+import authApi from './api/auth.js';
+// Import trial service
+import trialService from './services/trial.service.js';
+// Import search match service
+import searchMatchService from './services/search-match.service.js';
+
+// 检查并上报设备活跃状态
+async function checkAndReportActive() {
+  const today = new Date().toISOString().split('T')[0];
+  const result = await chrome.storage.local.get(['deviceActiveReported', 'deviceId']);
+  const lastReported = result.deviceActiveReported;
+
+  if (lastReported !== today && result.deviceId) {
+    // 先保存缓存（不管上报是否成功），避免重复无效请求
+    await chrome.storage.local.set({ deviceActiveReported: today });
+    
+    // 再尝试上报（失败静默处理，不影响用户体验）
+    try {
+      await authApi.reportDeviceActive(result.deviceId);
+      console.log('[Device] Active status reported for today');
+    } catch (error) {
+      // 上报失败不影响用户体验，使用 warn 而非 error
+      console.info('[Device] Failed to report active status:', error.message);
+    }
+  }
+}
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -30,11 +63,73 @@ function showToast(message, duration = 3000) {
   }, duration);
 }
 
+async function checkAndShowHelpTour() {
+  try {
+    const result = await chrome.storage.local.get('helpTourCompleted');
+    if (!result.helpTourCompleted) {
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('html/help-tour.html')
+      });
+      window.close();
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('[Help] Failed to check help tour status:', error);
+    return false;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+
+  const showHelpTour = await checkAndShowHelpTour();
+  if (showHelpTour) {
+    return;
+  }
+
+  // 显示环境标识（仅 dev/qa 环境显示）
+  const envBadge = document.getElementById('env-badge');
+  if (envBadge && ENV_TYPE !== 'prod') {
+    envBadge.style.display = 'block';
+    envBadge.textContent = ENV_TYPE.toUpperCase();
+    envBadge.classList.add(`env-${ENV_TYPE}`);
+  }
+
+  // 检查是否有待显示的初次同步 toast
+  try {
+    const result = await chrome.storage.local.get(['pendingFirstSyncToast']);
+    if (result.pendingFirstSyncToast) {
+      const toastMessage = result.pendingFirstSyncToast;
+      // 清除存储的 toast 消息
+      await chrome.storage.local.remove(['pendingFirstSyncToast']);
+      // 延迟显示 toast，确保页面已完全加载
+      setTimeout(() => {
+        showToast(toastMessage);
+      }, 500);
+    }
+  } catch (e) {
+    console.error('[Popup] Failed to check pending toast:', e);
+  }
+
+  // 监听 OAuth 登录成功消息
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'AUTH_SUCCESS') {
+      console.log('[Popup] OAuth login success, refreshing page...');
+      // 重新加载页面以更新 Token
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+    if (message.action === 'SHOW_TOAST') {
+      showToast(message.message);
+    }
+    sendResponse({ success: true });
+    return true;
+  });
 
   const searchInput = document.getElementById("search-input");
   const tabList = document.getElementById("tab-list");
-  let tabsCount = document.getElementById("tab-count");
+  let tabCount = document.getElementById("tab-count");
 
   // 当前选中的tab item
   let selectedIndex = -1;
@@ -60,8 +155,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return keywordIndex === keyword.length;
   }
 
-  // 高亮匹配的字符 - 高亮关键字中每个字符的所有出现位置
-  function highlightMatches(text, keywords) {
+  // 高亮匹配的字符 - 根据模式高亮
+  // @param text - 要高亮的文本
+  // @param keywords - 关键字数组
+  // @param matchMode - 搜索匹配模式 (1: 完整关键字匹配, 2: 子序列匹配)
+  function highlightMatches(text, keywords, matchMode = '1') {
     if (!keywords || keywords.length === 0) {
       return text;
     }
@@ -70,18 +168,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     const matched = new Array(text.length).fill(false);
     const lowerText = text.toLowerCase();
 
-    // 对每个关键字进行匹配，高亮关键字中每个字符的所有出现位置
-    keywords.forEach(keyword => {
-      // 对于关键字中的每个字符，在文本中找到所有出现位置
-      for (let k = 0; k < keyword.length; k++) {
-        const char = keyword[k];
-        for (let i = 0; i < text.length; i++) {
-          if (lowerText[i] === char) {
+    // 模式1：完整关键字包含匹配，高亮整个关键字
+    if (matchMode === '1' || matchMode === '3') {
+      keywords.forEach(keyword => {
+        const lowerKeyword = keyword.toLowerCase();
+        let startIndex = 0;
+        // 找到所有匹配位置
+        while (startIndex < lowerText.length) {
+          const idx = lowerText.indexOf(lowerKeyword, startIndex);
+          if (idx === -1) break;
+          // 标记整个关键字匹配的字符
+          for (let i = idx; i < idx + lowerKeyword.length; i++) {
             matched[i] = true;
           }
+          startIndex = idx + 1;
         }
-      }
-    });
+      });
+    } else {
+      // 模式2及其他的子序列匹配，高亮每个字符
+      keywords.forEach(keyword => {
+        for (let k = 0; k < keyword.length; k++) {
+          const char = keyword[k];
+          for (let i = 0; i < text.length; i++) {
+            if (lowerText[i] === char) {
+              matched[i] = true;
+            }
+          }
+        }
+      });
+    }
 
     // 构建高亮的 HTML
     let result = '';
@@ -169,10 +284,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function updateTabs(nextSelectedTabId, targetTabId = null, relativeOffset = null) {
     const query = searchInput.value.trim().toLowerCase();
 
+    // 检查并上报活跃状态（只在有搜索词时）
+    if (query.length > 0) {
+      checkAndReportActive();
+    }
+
+    // 预先获取 pinnedTabs（只需要 1 次 I/O），构建 Map 用于快速查找
+    const pinnedResult = await new Promise((resolve) => {
+      chrome.storage.local.get('pinnedTabs', resolve);
+    });
+    const pinnedTabs = pinnedResult.pinnedTabs || [];
+    const pinnedMap = new Map();
+    pinnedTabs.forEach(t => {
+      pinnedMap.set(t.tabId, t);
+      pinnedMap.set(t.url, t);
+    });
+
+    // URL 解析缓存
+    const urlCache = new Map();
+    function getCachedHostname(url) {
+      if (urlCache.has(url)) return urlCache.get(url);
+      const hostname = new URL(url).hostname;
+      urlCache.set(url, hostname);
+      return hostname;
+    }
+
     // 使用 Promise 包装 chrome.tabs.query
     const tabs = await new Promise((resolve) => {
       chrome.tabs.query({}, resolve);
     });
+    
+    // 获取当前搜索匹配模式
+    const searchMatchMode = await searchMatchService.getSearchMatchMode();
+    
     let filteredTabs;
 
     // 按空格分割查询字符串，得到多个关键字
@@ -182,10 +326,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       // 如果查询为空或没有有效关键字，则返回所有标签页
       filteredTabs = tabs;
     } else {
-      // 过滤标签页，确保标题包含所有关键字（使用子序列匹配）
+      // 根据当前搜索匹配模式过滤标签页
       filteredTabs = tabs.filter((tab) => {
         const lowerTitle = tab.title.toLowerCase();
-        return keywords.every(keyword => subsequenceMatch(keyword, lowerTitle));
+        
+        // 多关键字时，所有关键字都必须满足匹配条件（AND逻辑）
+        return keywords.every(keyword => {
+          return searchMatchService.matchSync(keyword, lowerTitle, searchMatchMode);
+        });
       });
 
       // 根据匹配度对过滤后的标签页进行排序（匹配度高的排在前面）
@@ -198,6 +346,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     tabList.innerHTML = "";
     tabIdMap.clear();
+
+    // 使用 DocumentFragment 批量添加，减少回流
+    const fragment = document.createDocumentFragment();
 
     // populate the tab list with the filtered tabs
     for (let i = 0; i < filteredTabs.length; i++) {
@@ -219,14 +370,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // 高亮匹配的字符
         if (keywords.length > 0) {
-          titleDiv.innerHTML = highlightMatches(tab.title, keywords);
+          titleDiv.innerHTML = highlightMatches(tab.title, keywords, searchMatchMode);
         } else {
           titleDiv.textContent = tab.title;
         }
 
         const urlHostNameDiv = document.createElement("div");
         urlHostNameDiv.classList.add("tab-url-hostname");
-        urlHostNameDiv.textContent = new URL(tab.url).hostname;
+        urlHostNameDiv.textContent = getCachedHostname(tab.url);
         const lastElement = tab.url.substring(tab.url.lastIndexOf('/') + 1);
         if (lastElement.length > 0) {
           urlHostNameDiv.textContent = urlHostNameDiv.textContent + "/.../" + lastElement;
@@ -241,8 +392,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const actionContainer = document.createElement("div");
         actionContainer.classList.add("action-container");
 
-        // 检查标签页是否已固定
-        const isPinned = await isTabPinned(tab.id);
+        // 检查标签页是否已固定（使用预构建的 pinnedMap）
+        const isPinned = isTabPinnedSync(tab.id, tab.url, pinnedMap);
 
         // 如果已固定，给列表项添加橙色底色
         if (isPinned) {
@@ -295,7 +446,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           chrome.tabs.get(tab.id, (tab) => {
             if (chrome.runtime.lastError) {
               const errorMessage = i18n.getMessage('errorGetTabInfo', chrome.runtime.lastError.message);
-              console.warn(errorMessage || `Failed to get tab information: ${chrome.runtime.lastError.message}`);
+              console.info(errorMessage || `Failed to get tab information: ${chrome.runtime.lastError.message}`);
               window.close();
               return;
             }
@@ -313,13 +464,17 @@ document.addEventListener("DOMContentLoaded", async () => {
           });
         });
 
-        tabList.appendChild(li);
+        fragment.appendChild(li);
         tabIdMap.set(i, tab.id);
       } catch (error) {
         // 如果try块中抛出错误，这里将捕获到错误
         // console.error("An error occurred:", error.message);
       }
     }
+    
+    // 一次性添加所有元素到 DOM，只触发一次回流
+    tabList.appendChild(fragment);
+    
     lis = tabList.childNodes;
 
     // 默认选中，方便enter直接跳转
@@ -369,12 +524,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 已打开标签总数展示控制
     if (query.length === 0) {
       chrome.tabs.query({ windowType: 'normal' }, function (allTabs) {
-        const message = i18n.getMessage('tabsCount', allTabs.length.toString());
-        tabsCount.textContent = message ? message.replace('$COUNT$', allTabs.length) : `${allTabs.length} Tabs`;
+        const message = i18n.getMessage('tabCount', allTabs.length.toString());
+        tabCount.textContent = message ? message.replace('$COUNT$', allTabs.length) : `${allTabs.length} Tabs`;
       });
     } else {
-      const message = i18n.getMessage('tabsCount', filteredTabs.length.toString());
-      tabsCount.textContent = message ? message.replace('$COUNT$', filteredTabs.length) : `${filteredTabs.length} Tabs`;
+      const message = i18n.getMessage('tabCount', filteredTabs.length.toString());
+      tabCount.textContent = message ? message.replace('$COUNT$', filteredTabs.length) : `${filteredTabs.length} Tabs`;
     }
   }
 
@@ -385,34 +540,124 @@ document.addEventListener("DOMContentLoaded", async () => {
     return url.toString();
   }
 
-  // 从配置文件获取固定标签页容量限制
-  const { MAX_PINNED_TABS } = PINNED_TABS_CONFIG;
+  // 检查标签页是否已固定（同步版本，使用预构建的 pinnedMap）
+  function isTabPinnedSync(tabId, tabUrl, pinnedMap) {
+    if (pinnedMap.has(tabId)) {
+      return true;
+    }
+    if (tabUrl && pinnedMap.has(tabUrl)) {
+      return true;
+    }
+    return false;
+  }
 
-  // 检查标签页是否已固定
-  async function isTabPinned(tabId) {
+  // 检查标签页是否已固定（异步版本，兼容旧调用）
+  async function isTabPinned(tabId, tabUrl = null) {
     const result = await new Promise((resolve) => {
-      chrome.storage.sync.get('pinnedTabs', resolve);
+      chrome.storage.local.get('pinnedTabs', resolve);
     });
     const pinnedTabs = result.pinnedTabs || [];
-    return pinnedTabs.some(tab => tab.tabId === tabId);
+    
+    // 先通过 tabId 判断
+    if (pinnedTabs.some(tab => tab.tabId === tabId)) {
+      return true;
+    }
+    
+    // 如果没有通过 tabId 找到，但提供了 URL，则通过 URL 辅助判断
+    if (tabUrl) {
+      return pinnedTabs.some(tab => tab.url === tabUrl);
+    }
+    
+    return false;
   }
 
   // 添加标签页到固定列表
   async function pinTab(tab) {
     try {
       const result = await new Promise((resolve) => {
-        chrome.storage.sync.get('pinnedTabs', resolve);
+        chrome.storage.local.get('pinnedTabs', resolve);
       });
       let pinnedTabs = result.pinnedTabs || [];
 
-      // 检查是否已固定
+      // 检查是否已固定（通过 tabId）
       if (pinnedTabs.some(t => t.tabId === tab.id)) {
         return { success: true, message: '已固定' };
       }
 
+      // 检查是否通过 URL 匹配到已固定的长期 tab（长期固定的 tab 重新打开的情况）
+      const existingIndex = pinnedTabs.findIndex(t => t.url === tab.url);
+      if (existingIndex !== -1) {
+        const existingTab = pinnedTabs[existingIndex];
+        // 更新 tabId 为当前新打开的 tab
+        existingTab.tabId = tab.id;
+        existingTab.title = tab.title;
+        // 如果是长期固定 tab，更新长期固定时间
+        if (existingTab.isLongTermPinned) {
+          existingTab.longTermPinnedAt = new Date().toISOString();
+        }
+        // 保存到存储
+        await new Promise((resolve) => {
+          chrome.storage.local.set({ pinnedTabs }, resolve);
+        });
+        
+        // 异步同步到服务器（仅在 tab.id 存在时）
+        if (tab.id) {
+          syncQueueService.addOperation('updateTab', {
+            tabId: tab.id,
+            url: tab.url,
+            title: tab.title,
+            isLongTermPinned: existingTab.isLongTermPinned,
+            longTermPinnedAt: existingTab.longTermPinnedAt
+          }).catch(err => console.info('Sync updateTab failed:', err));
+        }
+        
+        return { success: true, message: '已重新固定' };
+      }
+
+      // 检查用户是否已完成邮箱验证或OAuth登录
+      const isEmailVerified = await authService.isEmailVerified();
+      
       // 检查容量限制
-      if (pinnedTabs.length >= MAX_PINNED_TABS) {
-        return { success: false, message: i18n.getMessage('pinnedTabsLimit', MAX_PINNED_TABS.toString()) || `固定标签页数量超过${MAX_PINNED_TABS}个的限制` };
+      // 静默注册用户（未完成邮箱验证）：限制5个
+      // 已完成注册用户（体验期/VIP）：限制100个
+      let limit = 5; // 默认静默用户限制
+      if (isEmailVerified) {
+        // 已完成注册用户，使用乐观模式获取限制（服务器异常时使用本地缓存）
+        try {
+          limit = await featureLimitService.getFeatureLimit('pinnedTabs', false, true);
+        } catch (e) {
+          console.info('[pinTab] Failed to get feature limit, using default 100');
+          limit = 100;
+        }
+      }
+      
+      if (pinnedTabs.length >= limit) {
+        let message;
+        if (!isEmailVerified) {
+          message = i18n.getMessage('pinnedTabsLimitUnverified') || `固定标签页数量已达上限（最多5个），请完成邮箱验证解锁更多功能`;
+        } else {
+          // 已验证用户，检查体验期状态
+          let localTrialStatus = null;
+          try {
+            localTrialStatus = await trialService.getTrialStatus();
+          } catch (e) {
+            console.info('[pinTab] Failed to get trial status:', e);
+          }
+          
+          const trialEnabled = localTrialStatus && localTrialStatus.trialEnabled;
+          const isInTrial = localTrialStatus && localTrialStatus.isInTrialPeriod;
+          
+          if (isInTrial) {
+            message = i18n.getMessage('pinnedTabsLimit', limit.toString()) || `固定标签页数量已达上限（最多${limit}个）`;
+          } else {
+            // 体验期已结束或无体验期
+            const messageKey = trialEnabled ? 'pinnedTabsLimitExpired' : 'pinnedTabsLimitNoTrial';
+            message = i18n.getMessage(messageKey) || (trialEnabled 
+              ? `固定标签页数量已达上限（最多${limit}个），体验期已结束，升级VIP会员即可继续使用更多功能哦！`
+              : `固定标签页数量已达上限（最多${limit}个），升级VIP会员即可继续使用更多功能！`);
+          }
+        }
+        return { success: false, message };
       }
 
       // 添加到固定列表
@@ -420,17 +665,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         tabId: tab.id,
         title: tab.title,
         url: tab.url,
-        icon: faviconURL(tab.url)
+        icon: faviconURL(tab.url),
+        pinnedAt: new Date().toISOString(),
+        synced: false // 标记为未同步
       });
 
       // 保存到存储
       await new Promise((resolve) => {
-        chrome.storage.sync.set({ pinnedTabs }, resolve);
+        chrome.storage.local.set({ pinnedTabs }, resolve);
       });
+
+      // 异步同步到服务器（不阻塞用户操作）
+      syncQueueService.addOperation('pinTab', {
+        tabId: tab.id,
+        title: tab.title,
+        url: tab.url,
+        icon: faviconURL(tab.url)
+      }).catch(err => console.info('Sync pinTab failed:', err));
 
       return { success: true, message: '固定成功' };
     } catch (error) {
-      console.error('Error pinning tab:', error);
+      // 固定标签页失败不应阻止用户操作，使用 warn
+      console.info('Error pinning tab:', error.message);
       return { success: false, message: '固定失败' };
     }
   }
@@ -439,32 +695,60 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function unpinTab(tabId) {
     try {
       const result = await new Promise((resolve) => {
-        chrome.storage.sync.get('pinnedTabs', resolve);
+        chrome.storage.local.get('pinnedTabs', resolve);
       });
       let pinnedTabs = result.pinnedTabs || [];
+
+      // 检查是否是长期固定的tab，如果是则不执行移除
+      const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+      if (targetTab && targetTab.isLongTermPinned) {
+        return { success: false, message: '长期固定的Tab无法取消固定' };
+      }
 
       // 过滤掉要移除的标签页
       pinnedTabs = pinnedTabs.filter(tab => tab.tabId !== tabId);
 
       // 保存到存储
       await new Promise((resolve) => {
-        chrome.storage.sync.set({ pinnedTabs }, resolve);
+        chrome.storage.local.set({ pinnedTabs }, resolve);
       });
+
+      // 异步同步到服务器（不阻塞用户操作）
+      syncQueueService.addOperation('unpinTab', {
+        tabId: tabId
+      }).catch(err => console.info('Sync unpinTab failed:', err));
 
       return { success: true, message: '取消固定成功' };
     } catch (error) {
-      console.error('Error unpinning tab:', error);
+      // 取消固定标签页失败不应阻止用户操作，使用 warn
+      console.info('Error unpinning tab:', error.message);
       return { success: false, message: '取消固定失败' };
     }
   }
 
   // 处理List item 关闭标签事件
   function handleCloseBtnClicked(tabId) {
-    if (tabId !== undefined) {
+    if (tabId === undefined) return;
+    
+    // 检查是否是长期固定的tab
+    chrome.storage.local.get('pinnedTabs', (result) => {
+      const pinnedTabs = result.pinnedTabs || [];
+      const targetTab = pinnedTabs.find(t => t.tabId === tabId);
+      
+      if (targetTab && targetTab.isLongTermPinned) {
+        // 长期固定的tab：关闭浏览器标签页，但只从当前列表移除，不从pinnedTabList中移除
+        chrome.tabs.remove(tabId, () => {
+          // 从当前列表中移除该tab（通过更新tab列表）
+          updateTabs(-1);
+        });
+        return;
+      }
+      
+      // 普通tab：关闭浏览器标签页并从列表中移除
       chrome.tabs.remove(tabId, () => {
         if (chrome.runtime.lastError) {
           const errorMessage = i18n.getMessage('closeTabFailed', chrome.runtime.lastError.message);
-          console.warn(errorMessage || `Failed to close tab: ${chrome.runtime.lastError.message}`);
+            console.info(errorMessage || `Failed to close tab: ${chrome.runtime.lastError.message}`);
           return;
         }
         let nextTabId;
@@ -475,14 +759,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         updateTabs(nextTabId);
       });
-    }
+    });
   }
 
   // 处理固定/取消固定事件
   // @param tab 要固定/取消固定的标签页
   // @param tabIndex 标签页在列表中的索引
   async function handlePinTab(tab, tabIndex) {
-    const isPinned = await isTabPinned(tab.id);
+    // 预先获取 pinnedTabs 构建 Map
+    const pinnedResult = await new Promise((resolve) => {
+      chrome.storage.local.get('pinnedTabs', resolve);
+    });
+    const pinnedTabs = pinnedResult.pinnedTabs || [];
+    const pinnedMap = new Map();
+    pinnedTabs.forEach(t => {
+      pinnedMap.set(t.tabId, t);
+      pinnedMap.set(t.url, t);
+    });
+    
+    // 检查标签页是否已固定（使用预构建的 pinnedMap）
+    const isPinned = isTabPinnedSync(tab.id, tab.url, pinnedMap);
     let result;
 
     if (isPinned) {
@@ -616,9 +912,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initialize i18n
   await i18n.initialize();
+  
+  // 更新页面国际化元素
+  i18n.updatePageI18n();
 
   // Set initial loading text with i18n
-  tabsCount.textContent = i18n.getMessage('loadingText') || 'Loading...';
+  tabCount.textContent = i18n.getMessage('loadingText') || 'Loading...';
 
   // initial tab update
   updateTabs();
@@ -672,6 +971,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (aboutBtn) {
     aboutBtn.addEventListener('click', () => {
       chrome.runtime.sendMessage({ action: 'openAbout' });
+      window.close();
+    });
+  }
+
+  // 帮助按钮点击事件
+  const helpBtn = document.getElementById('help-btn');
+  if (helpBtn) {
+    helpBtn.addEventListener('click', () => {
+      chrome.tabs.create({ url: chrome.runtime.getURL('html/help-tour.html') });
       window.close();
     });
   }

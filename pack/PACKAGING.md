@@ -39,7 +39,7 @@ npm install
 npm run build
 
 # 开发构建（跳过压缩，速度快）
-npm run build-dev
+npm run build:dev
 
 # 清理构建输出
 npm run clean
