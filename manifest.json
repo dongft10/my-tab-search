@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "1.9.1",
+  "version": "2.0.0",
   "description": "__MSG_extDescription__",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7wbIWQpLuQE9Q/Tj/tc6xjjGnPlCf9K4AjPFqNGLNT+Cv19HMzL8lPfUi52HPnjQv9lxQq0cu56ljTy63iYAE2oglgtZXioibaIX8FtxBN86kivVn1AZdIymB/FdsL8AwZc8GjG1RvWAb+4ULA8hIZOT5b0uD1AvGhZcqwpss+vJEMFC40lCGMSz/PqnZXU0JgYK8QvkqYS2UNMLdUq/Mj7kH0DsJGdWUWjM1M69yGt2vhGAvOuWUTo1b+DqEtY/xLNHPu1cunc5kyBHE3AE7Em92WlJ7HN7hlsgoXO1P7wSQ+DIeGViWEmPYa07+3ogGkIRc2w59/H3tOMG/bbJxwIDAQAB",
   "default_locale": "en",
   "icons": {
     "16": "images/icon-16.png",
@@ -18,7 +19,16 @@
     "tabs",
     "favicon",
     "storage",
-    "activeTab"
+    "activeTab",
+    "alarms",
+    "identity",
+    "system.display"
+  ],
+  "host_permissions": [
+    "http://localhost:41532/*",
+    "http://127.0.0.1:41532/*",
+    "https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com/*",
+    "https://mytabsearch.us.kg/*"
   ],
   "web_accessible_resources": [
     {
@@ -27,8 +37,14 @@
         "manifest.json",
         "html/about.html",
         "html/settings.html",
+        "html/help.html",
+        "html/help-tour.html",
+        "html/auth.html",
         "js/about.js",
         "js/settings.js",
+        "js/help.js",
+        "js/help-tour-page.js",
+        "js/auth-callback.js",
         "js/i18n.js"
       ],
       "matches": [
@@ -48,21 +64,21 @@
   "commands": {
     "_execute_action": {
       "suggested_key": {
-        "default": "Ctrl+Shift+A",
-        "mac": "Command+Shift+A"
+        "default": "Alt+Q",
+        "mac": "Alt+Q"
       }
     },
     "switch-to-previous-tab": {
       "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
+        "default": "Alt+W",
+        "mac": "Alt+W"
       },
       "description": "__MSG_prevTabDesc__"
     },
     "open-pinned-tabs": {
       "suggested_key": {
-        "default": "Ctrl+Shift+D",
-        "mac": "Command+Shift+D"
+        "default": "Alt+E",
+        "mac": "Alt+E"
       },
       "description": "__MSG_pinnedTabsDesc__"
     }

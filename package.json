@@ -1,26 +1,21 @@
 {
   "name": "my-tab-search",
-  "version": "1.9.1",
+  "version": "2.0.0",
   "description": "A Chrome extension for searching and managing open tabs",
   "main": "index.js",
   "scripts": {
-    "start": "node pack/scripts/build.js",
-    "build": "npm run sync-version && node pack/scripts/build.js",
-    "build-dev": "npm run sync-version && node pack/scripts/build.js --skip-compress",
-    "compress": "node pack/scripts/compress.js",
-    "package": "npm run sync-version && node pack/scripts/package.js",
-    "package-dev": "npm run sync-version && node pack/scripts/package.js . ./pack/out --skip-compression",
+    "build": "node build.config.js --env=prod",
+    "build:dev": "node build.config.js --env=dev",
+    "build:qa": "node build.config.js --env=qa",
+    "package": "node pack/scripts/build.js",
     "clean": "node pack/scripts/clean.js",
-    "setup": "npm install",
-    "install-crx": "npm install -g crx",
-    "install-crx3": "npm install -g crx3",
-    "sync-version": "node pack/scripts/sync-version.js",
-    "version": "npm run sync-version"
+    "sync-version": "node pack/scripts/sync-version.js"
   },
   "devDependencies": {
     "archiver": "^5.3.1",
-    "terser": "^5.14.2",
-    "clean-css": "^5.3.0"
+    "clean-css": "^5.3.0",
+    "esbuild": "^0.28.0",
+    "terser": "^5.14.2"
   },
   "keywords": [
     "chrome-extension",

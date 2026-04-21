@@ -4,6 +4,63 @@ const { execSync } = require('child_process');
 const archiver = require('archiver');
 
 /**
+ * 替换文件中的环境变量占位符
+ * @param {string} filePath - 文件路径
+ * @param {string} placeholder - 占位符
+ * @param {string} value - 替换值
+ */
+function replaceEnvPlaceholder(filePath, placeholder, value) {
+  try {
+    let content = fs.readFileSync(filePath, 'utf8');
+    if (content.includes(placeholder)) {
+      content = content.replace(new RegExp(placeholder, 'g'), value);
+      fs.writeFileSync(filePath, content, 'utf8');
+      console.log(`  Replaced ${placeholder} with '${value}' in: ${path.basename(filePath)}`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error(`  Error replacing placeholder in ${filePath}:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * 替换构建目录中所有环境变量占位符
+ * @param {string} buildDir - 构建目录
+ * @param {string} envType - 环境类型
+ */
+function replaceEnvPlaceholders(buildDir, envType) {
+  const placeholder = '<!--EXTENSION_ENV-->';
+  
+  // 替换 config.common.js
+  const configCommonPath = path.join(buildDir, 'js', 'config.common.js');
+  if (fs.existsSync(configCommonPath)) {
+    replaceEnvPlaceholder(configCommonPath, placeholder, envType);
+  }
+  
+  // 替换 config.js（如果存在）
+  const configPath = path.join(buildDir, 'js', 'config.js');
+  if (fs.existsSync(configPath)) {
+    replaceEnvPlaceholder(configPath, placeholder, envType);
+  }
+  
+  // 替换 config.sw.js（Service Worker 版本）
+  const configSwPath = path.join(buildDir, 'js', 'config.sw.js');
+  if (fs.existsSync(configSwPath)) {
+    replaceEnvPlaceholder(configSwPath, placeholder, envType);
+  }
+  
+  // 替换 config.esm.js（ES6 模块版本）
+  const configEsmPath = path.join(buildDir, 'js', 'config.esm.js');
+  if (fs.existsSync(configEsmPath)) {
+    replaceEnvPlaceholder(configEsmPath, placeholder, envType);
+  }
+  
+  console.log(`  Environment replaced: ${envType}`);
+}
+
+/**
  * 创建 ZIP 文件
  */
 function createZipFile(sourceDir, outputPath) {
@@ -34,8 +91,8 @@ function createZipFile(sourceDir, outputPath) {
  */
 function copySourceFiles(srcDir, destDir) {
   // 定义要排除的目录和文件
-  const excludeDirs = ['node_modules', '.git', 'out', 'pack', '.vscode', 'dist', 'build', '.idea', 'scripts', 'rwpt', 'vscode-markdown-editor', 'website'];
-  const excludeFiles = ['.gitignore', 'package.json', 'package-lock.json', '*.crx', '*.zip', '*.pem', '*.ps1', 'README.md', 'SETUP_INSTRUCTIONS.md'];
+  const excludeDirs = ['node_modules', '.git', '.github', 'out', 'pack', '.vscode', 'dist', 'build', '.idea', 'scripts', 'rwpt', 'vscode-markdown-editor', 'website', 'docs', '.trae'];
+  const excludeFiles = ['.gitignore', 'package.json', 'package-lock.json', '*.crx', '*.zip', '*.pem', '*.ps1', 'README.md', 'SETUP_INSTRUCTIONS.md', 'AGENTS.md'];
 
   // 确保目标目录存在
   if (!fs.existsSync(destDir)) {
@@ -83,7 +140,21 @@ function copySourceFiles(srcDir, destDir) {
 async function main() {
   const sourceDir = process.argv[2] || '.';
   let outputDir = process.argv[3];
-  const skipCompression = process.argv[4] === '--skip-compression'; // 新增参数控制是否跳过压缩
+  let skipCompression = false;
+  
+  // 检查 --skip-compression 参数
+  if (process.argv[4] === '--skip-compression') {
+    skipCompression = true;
+  }
+  
+  // 检查 --compress=false 参数
+  const compressArg = process.argv.find(arg => arg.startsWith('--compress='));
+  if (compressArg) {
+    const compressValue = compressArg.split('=')[1];
+    if (compressValue && compressValue.toLowerCase() === 'false') {
+      skipCompression = true;
+    }
+  }
 
   // 如果没有指定输出目录，则默认为项目根目录下的 pack/out
   if (!outputDir) {
@@ -92,20 +163,33 @@ async function main() {
 
   const buildDir = path.join(outputDir, 'build');
 
+  // 如果源目录和构建目录相同（已构建完毕），则直接使用
+    const useSourceDirectly = sourceDir === buildDir;
+
   console.log('Starting packaging of Chrome extension...');
   console.log(`Source directory: ${sourceDir}`);
   console.log(`Output directory: ${outputDir}`);
   console.log(`Skip compression: ${skipCompression}`);
 
   try {
-    // 清理并创建构建目录
-    if (fs.existsSync(buildDir)) {
-      fs.rmSync(buildDir, { recursive: true, force: true });
+    if (!useSourceDirectly) {
+      // 清理并创建构建目录
+      if (fs.existsSync(buildDir)) {
+        fs.rmSync(buildDir, { recursive: true, force: true });
+      }
+
+      // 复制源文件到构建目录
+      console.log('Copying source files...');
+      copySourceFiles(sourceDir, buildDir);
+    } else {
+      console.log('Using pre-built files directly...');
+      const buildDirForCompression = buildDir;
     }
 
-    // 复制源文件到构建目录
-    console.log('Copying source files...');
-    copySourceFiles(sourceDir, buildDir);
+    // 替换环境变量占位符
+    const envType = process.env.EXTENSION_ENV || 'dev';
+    console.log(`Target environment: ${envType}`);
+    replaceEnvPlaceholders(buildDir, envType);
 
     // 如果未指定跳过压缩，则压缩文件
     if (!skipCompression) {

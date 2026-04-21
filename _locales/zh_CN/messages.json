@@ -23,7 +23,7 @@
     "message": "加载中...",
     "description": "Text shown while loading tabs"
   },
-  "tabsCount": {
+  "tabCount": {
     "message": "$COUNT$ Tabs",
     "description": "Text showing the number of tabs, $COUNT$ will be replaced with the actual number",
     "placeholders": {
@@ -101,6 +101,38 @@
     "message": "设置保存成功！",
     "description": "Confirmation message when settings are saved successfully"
   },
+  "accountInfo": {
+    "message": "账户信息",
+    "description": "Account information section title"
+  },
+  "deviceManagement": {
+    "message": "设备管理",
+    "description": "Device management section title"
+  },
+  "languageSettings": {
+    "message": "语言设置",
+    "description": "Language settings section title"
+  },
+  "about": {
+    "message": "关于",
+    "description": "About section title"
+  },
+  "logout": {
+    "message": "退出登录",
+    "description": "Logout button text"
+  },
+  "selectLanguage": {
+    "message": "选择语言:",
+    "description": "Language selection label"
+  },
+  "notLoggedIn": {
+    "message": "未登录",
+    "description": "Not logged in status"
+  },
+  "loginSuccess": {
+    "message": "登录成功",
+    "description": "Success message after login"
+  },
   "versionLabel": {
     "message": "版本:",
     "description": "Label for version information"
@@ -166,11 +198,11 @@
     "description": "Heading for the usage tips section on the about page"
   },
   "tipShortcutKey": {
-    "message": "调出标签页列表的快捷键是 Ctrl+Shift+A。",
+    "message": "调出标签页列表的快捷键是 Alt+Q。",
     "description": "Tip about the main shortcut key"
   },
   "tipPrevTabShortcut": {
-    "message": "快速切换到之前打开标签页的快捷键是 Ctrl+Shift+S (自v1.6.0起)。",
+    "message": "快速切换到之前打开标签页的快捷键是 Alt+W。",
     "description": "Tip about the previous tab shortcut key"
   },
   "tipShortcutConflict": {
@@ -193,6 +225,22 @@
     "message": "打开固定标签页列表",
     "description": "Description for the pinned tabs command"
   },
+  "shortcutSetupTitle": {
+    "message": "键盘快捷键设置",
+    "description": "Title for the shortcut setup section"
+  },
+  "shortcutSetupDesc": {
+    "message": "由于Chrome的安全限制，安装后需要手动确认键盘快捷键。点击下方按钮进行设置：",
+    "description": "Description for the shortcut setup section"
+  },
+  "btnSetupShortcut": {
+    "message": "设置键盘快捷键",
+    "description": "Button text to open shortcut settings"
+  },
+  "openPinnedTabsText": {
+    "message": "打开固定标签页列表",
+    "description": "Description for the pinned tabs shortcut"
+  },
   "pinnedTabsLimit": {
     "message": "固定标签页数量已达上限（最多$count$个）",
     "description": "Message shown when trying to pin more than the limit, $count$ will be replaced with the actual limit",
@@ -202,6 +250,18 @@
         "example": "5"
       }
     }
+  },
+  "pinnedTabsLimitUnverified": {
+    "message": "固定标签页数量已达上限（最多5个）~ 快去完成邮箱验证，解锁更多功能吧！",
+    "description": "Toast message when unverified user reaches pinned tabs limit"
+  },
+  "pinnedTabsLimitExpired": {
+    "message": "固定标签页数量已达上限（最多5个）~ 体验期已结束，升级VIP会员即可继续使用更多功能哦！",
+    "description": "Toast message when expired trial non-VIP user reaches pinned tabs limit"
+  },
+  "pinnedTabsLimitNoTrial": {
+    "message": "固定标签页数量已达上限（最多5个）~ 升级VIP会员即可继续使用更多功能！",
+    "description": "Toast message when non-VIP user reaches limit (no trial enabled)"
   },
   "pinTab": {
     "message": "固定标签页",
@@ -228,7 +288,625 @@
     "description": "Message shown when there are no pinned tabs"
   },
   "pinTabsHint": {
-    "message": "使用 Ctrl+Shift+A 打开搜索并固定标签页",
+    "message": "使用 Alt+Q 打开搜索并固定标签页",
     "description": "Hint text for how to pin tabs"
+  },
+  "longTermPinnedNeedLogin": {
+    "message": "请先注册/登录账号，即可使用长期固定功能",
+    "description": "Toast message when user not logged in"
+  },
+  "longTermPinnedNeedVip": {
+    "message": "您的体验期已结束，续费VIP会员后即可继续使用长期固定功能",
+    "description": "Toast message when trial expired"
+  },
+  "longTermPinnedFailed": {
+    "message": "操作失败，请稍后重试",
+    "description": "Toast message when long term pinned failed"
+  },
+  "longTermPinnedSuccess": {
+    "message": "已设为长期固定",
+    "description": "Toast message when long term pinned success"
+  },
+  "cancelLongTermSuccess": {
+    "message": "已取消长期固定",
+    "description": "Toast message when cancel long term pinned success"
+  },
+  "cancelLongTermFailed": {
+    "message": "取消长期固定失败",
+    "description": "Toast message when cancel long term pinned failed"
+  },
+  "setLongTermPinned": {
+    "message": "设为长期固定",
+    "description": "Tooltip for set long term pinned button"
+  },
+  "cancelLongTermPinned": {
+    "message": "取消长期固定",
+    "description": "Tooltip for cancel long term pinned button"
+  },
+  "pinnedTabsLimitReached": {
+    "message": "固定Tab数量已达上限",
+    "description": "Toast message when pinned tabs limit reached"
+  },
+  "longTermPinnedLimitReached": {
+    "message": "长期固定标签页数量已达上限，升级VIP可解锁更多",
+    "description": "Toast message when long term pinned limit reached"
+  },
+  "longTermPinnedLimitUnverified": {
+    "message": "长期固定标签页数量已达上限（最多5个）~ 快去完成邮箱验证，解锁更多功能吧！",
+    "description": "Toast message when unverified user reaches long term pinned limit"
+  },
+  "longTermPinnedRequireVerification": {
+    "message": "长期固定功能需要完成邮箱验证后才能使用哦！",
+    "description": "Toast message when unverified user tries to use long term pinned feature"
+  },
+  "longTermPinnedLimitExpired": {
+    "message": "长期固定标签页数量已达上限（最多5个）~ 体验期已结束，升级VIP会员即可继续使用更多功能哦！",
+    "description": "Toast message when expired trial non-VIP user reaches long term pinned limit"
+  },
+  "longTermPinnedLimitNoTrial": {
+    "message": "长期固定标签页数量已达上限（最多5个）~ 升级VIP会员即可继续使用更多功能！",
+    "description": "Toast message when non-VIP user reaches limit (no trial enabled)"
+  },
+  "tabPinned": {
+    "message": "标签页已固定",
+    "description": "Toast message when tab is pinned"
+  },
+  "tabUnpinned": {
+    "message": "已取消固定",
+    "description": "Toast message when tab is unpinned"
+  },
+  "tabClosed": {
+    "message": "标签页已关闭",
+    "description": "Toast message when tab is closed"
+  },
+  "emailRequired": {
+    "message": "请输入有效的邮箱地址",
+    "description": "Validation message for email input"
+  },
+  "verificationCodeSent": {
+    "message": "验证码已发送到您的邮箱",
+    "description": "Success message after sending verification code"
+  },
+  "sendFailed": {
+    "message": "发送失败，请稍后重试",
+    "description": "Error message when sending failed"
+  },
+  "networkError": {
+    "message": "网络错误，请稍后重试",
+    "description": "Error message for network issues"
+  },
+  "codeRequired": {
+    "message": "请输入6位验证码",
+    "description": "Validation message for verification code"
+  },
+  "codeError": {
+    "message": "验证码错误",
+    "description": "Error message for wrong verification code"
+  },
+  "oauthComingSoon": {
+    "message": "OAuth 登录即将上线",
+    "description": "Message for OAuth not implemented"
+  },
+  "countdownResend": {
+    "message": "秒后重发",
+    "description": "Countdown button text"
+  },
+  "resendCode": {
+    "message": "重新发送",
+    "description": "Button text to resend code"
+  },
+  "resendCountdown": {
+    "message": "重新发送 ({seconds}s)",
+    "description": "Button text during countdown"
+  },
+  "waitForResend": {
+    "message": "请等待 {seconds} 秒后重新发送",
+    "description": "Message when user tries to resend during countdown"
+  },
+  "sendCode": {
+    "message": "发送验证码",
+    "description": "Button text to send code"
+  },
+  "alreadyLoggedIn": {
+    "message": "您已登录，正在跳转...",
+    "description": "Message when user already logged in"
+  },
+  "verifyAndLogin": {
+    "message": "验证并登录",
+    "description": "Button text for verify and login"
+  },
+  "sending": {
+    "message": "发送中...",
+    "description": "Button text when sending"
+  },
+  "verifying": {
+    "message": "验证中...",
+    "description": "Button text when verifying"
+  },
+  "loginFailed": {
+    "message": "验证失败",
+    "description": "Error message when login failed"
+  },
+  "oauthNotAvailable": {
+    "message": "登录功能开发中...",
+    "description": "Message when OAuth not available"
+  },
+  "deviceRemoved": {
+    "message": "设备已移除",
+    "description": "Success message when device removed"
+  },
+  "removeDeviceFailed": {
+    "message": "移除设备失败",
+    "description": "Error message when remove device failed"
+  },
+  "logoutSuccess": {
+    "message": "已退出登录",
+    "description": "Success message after logout"
+  },
+  "logoutFailed": {
+    "message": "退出登录失败",
+    "description": "Error message when logout failed"
+  },
+  "trialExtended": {
+    "message": "体验期已延展",
+    "description": "Success message when trial extended"
+  },
+  "trialExtendFailed": {
+    "message": "体验期延展失败",
+    "description": "Error message when trial extend failed"
+  },
+  "loadSettingsFailed": {
+    "message": "加载设置失败",
+    "description": "Error message when load settings failed"
+  },
+  "setLongTermFailed": {
+    "message": "设置长期固定失败",
+    "description": "Toast message when set long term failed"
+  },
+  "loginTitle": {
+    "message": "登录 - MyTabSearch",
+    "description": "Login page title"
+  },
+  "loginSubtitle": {
+    "message": "登录以解锁更多功能",
+    "description": "Login page subtitle"
+  },
+  "emailLoginTitle": {
+    "message": "邮箱登录",
+    "description": "Email login section title"
+  },
+  "enterEmailPlaceholder": {
+    "message": "请输入邮箱地址",
+    "description": "Email input placeholder"
+  },
+  "enterCodePlaceholder": {
+    "message": "请输入验证码",
+    "description": "Code input placeholder"
+  },
+  "orText": {
+    "message": "或",
+    "description": "Divider text"
+  },
+  "oauthLoginTitle": {
+    "message": "第三方账号登录",
+    "description": "OAuth login section title"
+  },
+  "loginWithGoogle": {
+    "message": "使用 Google 账号登录",
+    "description": "Google login button text"
+  },
+  "loginWithMicrosoft": {
+    "message": "使用 Microsoft 账号登录",
+    "description": "Microsoft login button text"
+  },
+  "microsoftLoginDeveloping": {
+    "message": "目前正在火速开发设计实现中，请耐心等待",
+    "description": "Message when Microsoft login is not implemented yet"
+  },
+  "skipForNow": {
+    "message": "暂时跳过",
+    "description": "Skip button text"
+  },
+  "accountInfoTitle": {
+    "message": "账户信息",
+    "description": "Account info section title"
+  },
+  "vipStatusLabel": {
+    "message": "VIP状态:",
+    "description": "VIP status label"
+  },
+  "vipExpiresLabel": {
+    "message": "到期时间:",
+    "description": "VIP expires label"
+  },
+  "trialRemainingLabel": {
+    "message": "体验期剩余:",
+    "description": "Trial remaining label"
+  },
+  "extendTrial": {
+    "message": "延展体验期",
+    "description": "Extend trial button text"
+  },
+  "trialExpired": {
+    "message": "体验期已结束",
+    "description": "Trial expired status text"
+  },
+  "trialDaysLeft": {
+    "message": "体验期剩余 $days$ 天",
+    "description": "Trial days left message, $days$ will be replaced with number of days",
+    "placeholders": {
+      "days": {
+        "content": "$1",
+        "example": "7"
+      }
+    }
+  },
+  "promotionPeriodMessage": {
+    "message": "✨应用推广试用期，全功能免费使用，欢迎提供宝贵的使用体验反馈🎯😄",
+    "description": "Message shown during promotion period when trial is disabled"
+  },
+  "loginOrRegister": {
+    "message": "登录 / 注册",
+    "description": "Login or register button text"
+  },
+  "deviceManagementTitle": {
+    "message": "设备管理",
+    "description": "Device management section title"
+  },
+  "languageSettingsTitle": {
+    "message": "语言设置",
+    "description": "Language settings section title"
+  },
+  "themeSettingsTitle": {
+    "message": "主题设置",
+    "description": "Theme settings section title"
+  },
+  "lightThemeLabel": {
+    "message": "浅色主题",
+    "description": "Light theme label"
+  },
+  "darkThemeLabel": {
+    "message": "深色主题",
+    "description": "Dark theme label"
+  },
+  "featureRequireVerification": {
+    "message": "请先完成邮箱验证才能使用此功能",
+    "description": "Generic message when a feature requires email verification"
+  },
+  "selectLanguageLabel": {
+    "message": "选择语言:",
+    "description": "Select language label"
+  },
+  "authPageTitle": {
+    "message": "账户登录 - MyTabSearch",
+    "description": "Auth page title"
+  },
+  "authPageSubtitle": {
+    "message": "登录以同步您的标签页和数据",
+    "description": "Auth page subtitle"
+  },
+  "emailAddressLabel": {
+    "message": "邮箱地址",
+    "description": "Email address label"
+  },
+  "verificationCodeLabel": {
+    "message": "验证码",
+    "description": "Verification code label"
+  },
+  "codePlaceholder": {
+    "message": "6位验证码",
+    "description": "Code input placeholder"
+  },
+  "authTip": {
+    "message": "未注册的手机号将自动创建账户",
+    "description": "Auth tip text"
+  },
+  "agreeTermsPrivacy": {
+    "message": "登录即表示同意",
+    "description": "Terms and privacy prefix"
+  },
+  "termsOfService": {
+    "message": "服务条款",
+    "description": "Terms of service link"
+  },
+  "privacyPolicy": {
+    "message": "隐私政策",
+    "description": "Privacy policy link"
+  },
+  "search": {
+    "message": "搜索",
+    "description": "Search alt text"
+  },
+  "searchPinnedTabs": {
+    "message": "搜索已固定的标签页...",
+    "description": "Placeholder text for the pinned tabs search input"
+  },
+  "searchPinnedTabsAria": {
+    "message": "搜索已固定的标签页",
+    "description": "ARIA label for the pinned tabs search input"
+  },
+  "andText": {
+    "message": "和",
+    "description": "And text for connecting terms and privacy"
+  },
+  "searchRuleSettingsTitle": {
+    "message": "搜索规则设置",
+    "description": "Title for search rule settings section"
+  },
+  "selectSearchMatchModeLabel": {
+    "message": "选择搜索匹配模式:",
+    "description": "Label for search match mode selection"
+  },
+  "mode1Title": {
+    "message": "模式1：标题关键字快速匹配",
+    "description": "Mode 1: Title keyword fast match (default)"
+  },
+  "mode2Title": {
+    "message": "模式2：标题子序列匹配",
+    "description": "Mode 2: Title subsequence match"
+  },
+  "mode3Title": {
+    "message": "模式3：标题关键字快速匹配+网页内容匹配",
+    "description": "Mode 3: Title keyword fast match + page content match"
+  },
+  "mode4Title": {
+    "message": "模式4：标题子序列匹配+网页内容匹配",
+    "description": "Mode 4: Title subsequence + page content match"
+  },
+  "searchMatchModeDesc": {
+    "message": "不同的搜索模式会影响标签页的匹配规则和排序方式",
+    "description": "Description for search match mode settings"
+  },
+  "searchMatchModeVIPRequired": {
+    "message": "该模式需要VIP身份或体验期用户才能使用",
+    "description": "Message when VIP required for search match mode"
+  },
+  "searchMatchModeDeveloping": {
+    "message": "功能持续迭代开发中，敬请期待！",
+    "description": "Message when feature is developing"
+  },
+  "keyboardShortcutsTitle": {
+    "message": "快捷键设置",
+    "description": "Keyboard shortcuts settings section title"
+  },
+  "shortcutTipText": {
+    "message": "由于Chrome的安全限制，安装后需要手动确认键盘快捷键。点击下方按钮进行设置：",
+    "description": "Tip text for keyboard shortcuts setup"
+  },
+  "shortcutOpenPopupKeyDesc": {
+    "message": "Open tab search",
+    "description": "Open popup shortcut description"
+  },
+  "shortcutPrevTabKeyDesc": {
+    "message": "Switch to previous tab",
+    "description": "Previous tab shortcut description"
+  },
+  "shortcutPinnedTabsKeyDesc": {
+    "message": "Open pinned tabs",
+    "description": "Open pinned tabs shortcut description"
+  },
+  "setupShortcutsBtn": {
+    "message": "设置快捷键",
+    "description": "Setup shortcuts button text"
+  },
+  "firstSyncCompleted": {
+    "message": "已完成初次数据同步，已同步固定标签页数据",
+    "description": "Toast message when first sync is completed with data pulled from server"
+  },
+  "errorCode1001": {
+    "message": "今日验证码发送已达上限（10次），请明天再来吧",
+    "description": "Error message when email daily limit exceeded"
+  },
+  "errorCode1002": {
+    "message": "今日验证码发送已达上限，感谢您的热情参与！为确保服务稳定，请明日再来注册，我们会为您提供更好的体验。",
+    "description": "Error message when global daily limit exceeded"
+  },
+  "errorCode1003": {
+    "message": "请求过于频繁，请稍后再试",
+    "description": "Error message when rate limit exceeded"
+  },
+  "errorCode1004": {
+    "message": "邮箱格式不正确",
+    "description": "Error message for invalid email"
+  },
+  "errorCode1005": {
+    "message": "验证码无效或已过期",
+    "description": "Error message for invalid verification code"
+  },
+  "helpTitle": {
+    "message": "快速上手 - MyTabSearch",
+    "description": "Help page title"
+  },
+  "helpStep1Title": {
+    "message": "🔍 快速搜索跳转",
+    "description": "Step 1 title"
+  },
+  "helpStep1Desc": {
+    "message": "Alt+Q 打开 → 输入关键词 → Enter 切换到目标标签",
+    "description": "Step 1 description"
+  },
+  "helpStep1Shortcut": {
+    "message": "↑↓ 选择 | Enter 切换 | Delete 关闭",
+    "description": "Step 1 shortcut hint"
+  },
+  "helpStep1Tip": {
+    "message": "当打开很多标签页时，用搜索快速定位目标标签",
+    "description": "Step 1 tip"
+  },
+  "helpDemoSearch": {
+    "message": "Alt+Q 打开 → 输入关键词 → Enter 切换",
+    "description": "Demo text for search feature"
+  },
+  "helpStep2Title": {
+    "message": "⚡ 前后标签切换",
+    "description": "Step 2 title"
+  },
+  "helpStep2Desc": {
+    "message": "Alt+W 快速返回上一个浏览的标签页",
+    "description": "Step 2 description"
+  },
+  "helpStep2Tip": {
+    "message": "类似 Alt+Tab 切换窗口的效果，但在标签页之间切换",
+    "description": "Step 2 tip"
+  },
+  "helpDemoSwitch": {
+    "message": "按 Alt+W 快速切换到上一个标签页",
+    "description": "Demo text for switch feature"
+  },
+  "helpStep3Title": {
+    "message": "⭐ 固定标签页列表",
+    "description": "Step 3 title"
+  },
+  "helpStep3Desc": {
+    "message": "常用网页一键固定，关闭浏览器后再打开仍然保留",
+    "description": "Step 3 description"
+  },
+  "helpStep3Shortcut": {
+    "message": "快捷键: Alt+E 打开固定列表",
+    "description": "Step 3 shortcut hint"
+  },
+  "helpStep3Tip": {
+    "message": "这是本扩展的核心亮点功能，区别于同类产品",
+    "description": "Step 3 tip"
+  },
+  "helpDemoPin": {
+    "message": "点击固定图标 → 显示在固定列表",
+    "description": "Demo text for pin feature"
+  },
+  "helpStep4Title": {
+    "message": "⚠️ 确认快捷键设置",
+    "description": "Step 4 title"
+  },
+  "helpStep4Desc": {
+    "message": "由于 Chrome 安全机制，快捷键需手动确认才能生效",
+    "description": "Step 4 description"
+  },
+  "helpStep4Tip": {
+    "message": "请确保三个快捷键都已正确设置",
+    "description": "Step 4 tip"
+  },
+  "helpBtnPrev": {
+    "message": "上一步",
+    "description": "Previous button"
+  },
+  "helpBtnNext": {
+    "message": "下一步",
+    "description": "Next button"
+  },
+  "helpBtnSetupShortcuts": {
+    "message": "立即设置快捷键",
+    "description": "Setup shortcuts button"
+  },
+  "helpBtnStart": {
+    "message": "开始使用",
+    "description": "Start using button"
+  },
+  "helpShortcutsAltQ": {
+    "message": "打开标签页搜索",
+    "description": "Alt+Q shortcut description"
+  },
+  "helpShortcutsAltW": {
+    "message": "切换到上一个标签",
+    "description": "Alt+W shortcut description"
+  },
+  "helpShortcutsAltE": {
+    "message": "打开固定标签列表",
+    "description": "Alt+E shortcut description"
+  },
+  "helpShortcutsNeedSetup": {
+    "message": "需手动设置",
+    "description": "Manual setup required badge"
+  },
+  "tourStep1Title": {
+    "message": "🔍 快速搜索跳转",
+    "description": "Tour step 1 title"
+  },
+  "tourStep1Desc": {
+    "message": "按 Alt+Q 打开搜索框，输入关键词快速定位目标标签页，按 Enter 即可切换。",
+    "description": "Tour step 1 description"
+  },
+  "tourStep1Tip": {
+    "message": "💡 当打开很多标签页时，用搜索快速定位目标标签",
+    "description": "Tour step 1 tip"
+  },
+  "tourStep2Title": {
+    "message": "⚡ 前后标签切换",
+    "description": "Tour step 2 title"
+  },
+  "tourStep2Desc": {
+    "message": "按 Alt+W 快速返回上一个浏览的标签页，在两个标签页之间来回切换时非常方便。",
+    "description": "Tour step 2 description"
+  },
+  "tourStep2Tip": {
+    "message": "💡 类似 Alt+Tab 切换窗口的效果，但在标签页之间切换",
+    "description": "Tour step 2 tip"
+  },
+  "tourStep3Title": {
+    "message": "⭐ 固定标签页",
+    "description": "Tour step 3 title"
+  },
+  "tourStep3Desc": {
+    "message": "常用网页一键固定，关闭浏览器后再打开仍然保留。按 Alt+E 可快速打开固定列表。",
+    "description": "Tour step 3 description"
+  },
+  "tourStep3Tip": {
+    "message": "💡 这是本扩展的核心亮点功能，区别于同类产品",
+    "description": "Tour step 3 tip"
+  },
+  "tourStep4Title": {
+    "message": "📌 固定扩展图标",
+    "description": "Tour step 4 title"
+  },
+  "tourStep4Desc": {
+    "message": "将扩展图标固定到浏览器工具栏，方便随时使用。点击浏览器图标面盘上的“扩展程序”，找到 MyTabSearch，点击图钉固定。",
+    "description": "Tour step 4 description"
+  },
+  "tourStep4Tip": {
+    "message": "💡 固定后无需展开菜单即可快速访问扩展",
+    "description": "Tour step 4 tip"
+  },
+  "tourStep5Title": {
+    "message": "⚠️ 确认快捷键设置",
+    "description": "Tour step 5 title"
+  },
+  "tourStep5Desc": {
+    "message": "由于 Chrome 安全机制，快捷键需手动确认才能生效。请确保以下快捷键已正确设置：",
+    "description": "Tour step 5 description"
+  },
+  "tourStep5Tip": {
+    "message": "💡 建议立即设置快捷键以获得最佳体验",
+    "description": "Tour step 5 tip"
+  },
+  "tourShortcutOpenSearch": {
+    "message": "打开标签页搜索",
+    "description": "Shortcut description for Alt+Q"
+  },
+  "tourShortcutSwitchTab": {
+    "message": "切换到上一个标签",
+    "description": "Shortcut description for Alt+W"
+  },
+  "tourShortcutOpenPin": {
+    "message": "打开固定标签列表",
+    "description": "Shortcut description for Alt+E"
+  },
+  "tourBtnNext": {
+    "message": "下一步",
+    "description": "Next button in tour"
+  },
+  "tourBtnPrev": {
+    "message": "上一步",
+    "description": "Previous button in tour"
+  },
+  "tourBtnSkip": {
+    "message": "跳过",
+    "description": "Skip button in tour"
+  },
+  "tourBtnDone": {
+    "message": "完成",
+    "description": "Done button in tour"
+  },
+  "tourBtnSetupShortcuts": {
+    "message": "设置快捷键",
+    "description": "Setup shortcuts button in tour"
   }
 }
