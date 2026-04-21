@@ -1,0 +1,67 @@
+@echo off
+REM Chrome Extension Packaging Script for Windows
+REM This script packages the Chrome extension for distribution (with compression)
+REM Default target environment: dev (local development)
+
+echo ========================================
+echo Chrome Extension Packaging Script
+echo Target Environment: DEV (Local Development)
+echo ========================================
+echo.
+
+REM Check if Node.js is installed
+where node >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Node.js is not installed.
+    echo Please install Node.js from https://nodejs.org
+    pause
+    exit /b 1
+)
+
+echo [OK] Node.js is installed
+echo.
+
+REM Change to chrome-extension directory (parent of pack directory)
+cd /d %~dp0..
+echo Current directory: %CD%
+echo.
+
+REM Set environment variable for target environment
+set EXTENSION_ENV=dev
+echo [OK] Target environment: %EXTENSION_ENV%
+echo.
+
+REM Install dependencies
+echo [1/2] Installing dependencies...
+call npm install
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Failed to install dependencies
+    pause
+    exit /b 1
+)
+echo [OK] Dependencies installed
+echo.
+
+REM Build only (no compression for dev)
+echo [2/2] Building extension...
+call npm run build:dev
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Build failed
+    pause
+    exit /b 1
+)
+echo [OK] Build completed successfully
+echo.
+
+echo ========================================
+echo Build completed!
+echo ========================================
+echo.
+echo Output files are in: pack\out\build\
+echo.
+
+:: 等待 3 秒后自动退出
+timeout /t 3 /nobreak
+
+:: 脚本结束会自动退出，也可以显式退出
+exit

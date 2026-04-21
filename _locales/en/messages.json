@@ -23,7 +23,7 @@
     "message": "Loading...",
     "description": "Text shown while loading tabs"
   },
-  "tabsCount": {
+  "tabCount": {
     "message": "$COUNT$ Tabs",
     "description": "Text showing the number of tabs, $COUNT$ will be replaced with the actual number",
     "placeholders": {
@@ -101,6 +101,38 @@
     "message": "Settings saved successfully!",
     "description": "Confirmation message when settings are saved successfully"
   },
+  "accountInfo": {
+    "message": "Account Info",
+    "description": "Account information section title"
+  },
+  "deviceManagement": {
+    "message": "Device Management",
+    "description": "Device management section title"
+  },
+  "languageSettings": {
+    "message": "Language Settings",
+    "description": "Language settings section title"
+  },
+  "about": {
+    "message": "About",
+    "description": "About section title"
+  },
+  "logout": {
+    "message": "Logout",
+    "description": "Logout button text"
+  },
+  "selectLanguage": {
+    "message": "Select Language:",
+    "description": "Language selection label"
+  },
+  "notLoggedIn": {
+    "message": "Not logged in",
+    "description": "Not logged in status"
+  },
+  "loginSuccess": {
+    "message": "Login successful",
+    "description": "Success message after login"
+  },
   "versionLabel": {
     "message": "Version:",
     "description": "Label for version information"
@@ -166,11 +198,11 @@
     "description": "Heading for the usage tips section on the about page"
   },
   "tipShortcutKey": {
-    "message": "The shortcut key to bring up the tab list is Ctrl+Shift+A.",
+    "message": "The shortcut key to bring up the tab list is Alt+Q.",
     "description": "Tip about the main shortcut key"
   },
   "tipPrevTabShortcut": {
-    "message": "The shortcut key to quickly switch to the previously opened tab is Ctrl+Shift+S (since v1.6.0).",
+    "message": "The shortcut key to quickly switch to the previously opened tab is Alt+W.",
     "description": "Tip about the previous tab shortcut key"
   },
   "tipShortcutConflict": {
@@ -193,6 +225,22 @@
     "message": "Open pinned tabs list",
     "description": "Description for the pinned tabs command"
   },
+  "shortcutSetupTitle": {
+    "message": "Keyboard Shortcuts Setup",
+    "description": "Title for the shortcut setup section"
+  },
+  "shortcutSetupDesc": {
+    "message": "Due to Chrome security restrictions, keyboard shortcuts need to be manually confirmed after installation. Click the button below to set up:",
+    "description": "Description for the shortcut setup section"
+  },
+  "btnSetupShortcut": {
+    "message": "Set Up Keyboard Shortcuts",
+    "description": "Button text to open shortcut settings"
+  },
+  "openPinnedTabsText": {
+    "message": "Open pinned tabs list",
+    "description": "Description for the pinned tabs shortcut"
+  },
   "pinnedTabsLimit": {
     "message": "Pinned tabs limit reached ($count$ tabs max)",
     "description": "Message shown when trying to pin more than the limit, $count$ will be replaced with the actual limit",
@@ -202,6 +250,18 @@
         "example": "5"
       }
     }
+  },
+  "pinnedTabsLimitUnverified": {
+    "message": "Pinned tabs limit reached (max 5). Complete email verification to unlock more features!",
+    "description": "Toast message when unverified user reaches pinned tabs limit"
+  },
+  "pinnedTabsLimitExpired": {
+    "message": "Pinned tabs limit reached (max 5). Trial period ended. Upgrade to VIP to continue using more features!",
+    "description": "Toast message when expired trial non-VIP user reaches pinned tabs limit"
+  },
+  "pinnedTabsLimitNoTrial": {
+    "message": "Pinned tabs limit reached (max 5). Upgrade to VIP to continue using more features!",
+    "description": "Toast message when non-VIP user reaches limit (no trial enabled)"
   },
   "pinTab": {
     "message": "Pin tab",
@@ -220,15 +280,633 @@
     "description": "Tooltip for the pin to favorites button"
   },
   "pinnedTabsTitle": {
-    "message": "Fixed Tab List",
+    "message": "Pinned Tab List",
     "description": "Title for the pinned tabs list"
   },
   "noPinnedTabs": {
-    "message": "No fixed tabs",
+    "message": "No pinned tabs",
     "description": "Message shown when there are no pinned tabs"
   },
   "pinTabsHint": {
-    "message": "Use Ctrl+Shift+A to open search and pin tabs",
+    "message": "Use Alt+Q to open search and pin tabs",
     "description": "Hint text for how to pin tabs"
+  },
+  "longTermPinnedNeedLogin": {
+    "message": "Please register/login to use long-term pinning feature",
+    "description": "Toast message when user not logged in"
+  },
+  "longTermPinnedNeedVip": {
+    "message": "Your trial period has ended. Renew VIP to continue using long-term pinning",
+    "description": "Toast message when trial expired"
+  },
+  "longTermPinnedFailed": {
+    "message": "Operation failed, please try again later",
+    "description": "Toast message when long term pinned failed"
+  },
+  "longTermPinnedSuccess": {
+    "message": "Set to long-term pinned",
+    "description": "Toast message when long term pinned success"
+  },
+  "cancelLongTermSuccess": {
+    "message": "Long-term pinned cancelled",
+    "description": "Toast message when cancel long term pinned success"
+  },
+  "cancelLongTermFailed": {
+    "message": "Failed to cancel long-term pinned",
+    "description": "Toast message when cancel long term pinned failed"
+  },
+  "setLongTermPinned": {
+    "message": "Set as long-term pinned",
+    "description": "Tooltip for set long term pinned button"
+  },
+  "cancelLongTermPinned": {
+    "message": "Cancel long-term pinned",
+    "description": "Tooltip for cancel long term pinned button"
+  },
+  "pinnedTabsLimitReached": {
+    "message": "Pinned tabs limit reached",
+    "description": "Toast message when pinned tabs limit reached"
+  },
+  "longTermPinnedLimitReached": {
+    "message": "Long-term pinned tabs limit reached. Upgrade to VIP for more",
+    "description": "Toast message when long term pinned limit reached"
+  },
+  "longTermPinnedLimitUnverified": {
+    "message": "Long-term pinned tabs limit reached (max 5). Complete email verification to unlock more features!",
+    "description": "Toast message when unverified user reaches long term pinned limit"
+  },
+  "longTermPinnedRequireVerification": {
+    "message": "Email verification is required before using Long-term pinned feature!",
+    "description": "Toast message when unverified user tries to use long term pinned feature"
+  },
+  "longTermPinnedLimitExpired": {
+    "message": "Long-term pinned tabs limit reached (max 5). Trial period ended. Upgrade to VIP to continue using more features!",
+    "description": "Toast message when expired trial non-VIP user reaches long term pinned limit"
+  },
+  "longTermPinnedLimitNoTrial": {
+    "message": "Long-term pinned tabs limit reached (max 5). Upgrade to VIP to continue using more features!",
+    "description": "Toast message when non-VIP user reaches limit (no trial enabled)"
+  },
+  "tabPinned": {
+    "message": "Tab pinned",
+    "description": "Toast message when tab is pinned"
+  },
+  "tabUnpinned": {
+    "message": "Tab unpinned",
+    "description": "Toast message when tab is unpinned"
+  },
+  "tabClosed": {
+    "message": "Tab closed",
+    "description": "Toast message when tab is closed"
+  },
+  "emailRequired": {
+    "message": "Please enter a valid email address",
+    "description": "Validation message for email input"
+  },
+  "verificationCodeSent": {
+    "message": "Verification code sent to your email",
+    "description": "Success message after sending verification code"
+  },
+  "sendFailed": {
+    "message": "Failed to send, please try again later",
+    "description": "Error message when sending failed"
+  },
+  "networkError": {
+    "message": "Network error, please try again later",
+    "description": "Error message for network issues"
+  },
+  "codeRequired": {
+    "message": "Please enter 6-digit verification code",
+    "description": "Validation message for verification code"
+  },
+  "codeError": {
+    "message": "Verification code error",
+    "description": "Error message for wrong verification code"
+  },
+  "oauthComingSoon": {
+    "message": "OAuth login coming soon",
+    "description": "Message for OAuth not implemented"
+  },
+  "countdownResend": {
+    "message": "seconds to resend",
+    "description": "Countdown button text"
+  },
+  "resendCode": {
+    "message": "Resend code",
+    "description": "Button text to resend code"
+  },
+  "resendCountdown": {
+    "message": "Resend ({seconds}s)",
+    "description": "Button text during countdown"
+  },
+  "waitForResend": {
+    "message": "Please wait {seconds}s before resending",
+    "description": "Message when user tries to resend during countdown"
+  },
+  "sendCode": {
+    "message": "Send verification code",
+    "description": "Button text to send code"
+  },
+  "alreadyLoggedIn": {
+    "message": "You are already logged in, redirecting...",
+    "description": "Message when user already logged in"
+  },
+  "verifyAndLogin": {
+    "message": "Verify and login",
+    "description": "Button text for verify and login"
+  },
+  "sending": {
+    "message": "Sending...",
+    "description": "Button text when sending"
+  },
+  "verifying": {
+    "message": "Verifying...",
+    "description": "Button text when verifying"
+  },
+  "loginFailed": {
+    "message": "Login failed",
+    "description": "Error message when login failed"
+  },
+  "oauthNotAvailable": {
+    "message": "Login feature coming soon...",
+    "description": "Message when OAuth not available"
+  },
+  "deviceRemoved": {
+    "message": "Device removed",
+    "description": "Success message when device removed"
+  },
+  "removeDeviceFailed": {
+    "message": "Failed to remove device",
+    "description": "Error message when remove device failed"
+  },
+  "logoutSuccess": {
+    "message": "Logged out successfully",
+    "description": "Success message after logout"
+  },
+  "logoutFailed": {
+    "message": "Logout failed",
+    "description": "Error message when logout failed"
+  },
+  "trialExtended": {
+    "message": "Trial extended",
+    "description": "Success message when trial extended"
+  },
+  "trialExtendFailed": {
+    "message": "Failed to extend trial",
+    "description": "Error message when trial extend failed"
+  },
+  "loadSettingsFailed": {
+    "message": "Failed to load settings",
+    "description": "Error message when load settings failed"
+  },
+  "setLongTermFailed": {
+    "message": "Failed to set long-term pinned",
+    "description": "Toast message when set long term failed"
+  },
+  "loginTitle": {
+    "message": "Login - MyTabSearch",
+    "description": "Login page title"
+  },
+  "loginSubtitle": {
+    "message": "Login to unlock more features",
+    "description": "Login page subtitle"
+  },
+  "emailLoginTitle": {
+    "message": "Email Login",
+    "description": "Email login section title"
+  },
+  "enterEmailPlaceholder": {
+    "message": "Please enter your email address",
+    "description": "Email input placeholder"
+  },
+  "enterCodePlaceholder": {
+    "message": "Please enter verification code",
+    "description": "Code input placeholder"
+  },
+  "orText": {
+    "message": "or",
+    "description": "Divider text"
+  },
+  "oauthLoginTitle": {
+    "message": "Login with third-party account",
+    "description": "OAuth login section title"
+  },
+  "loginWithGoogle": {
+    "message": "Sign in with Google",
+    "description": "Google login button text"
+  },
+  "loginWithMicrosoft": {
+    "message": "Sign in with Microsoft",
+    "description": "Microsoft login button text"
+  },
+  "microsoftLoginDeveloping": {
+    "message": "This feature is under rapid development, please wait patiently",
+    "description": "Message when Microsoft login is not implemented yet"
+  },
+  "skipForNow": {
+    "message": "Skip for now",
+    "description": "Skip button text"
+  },
+  "accountInfoTitle": {
+    "message": "Account Info",
+    "description": "Account info section title"
+  },
+  "vipStatusLabel": {
+    "message": "VIP Status:",
+    "description": "VIP status label"
+  },
+  "vipExpiresLabel": {
+    "message": "Expires:",
+    "description": "VIP expires label"
+  },
+  "trialRemainingLabel": {
+    "message": "Trial Remaining:",
+    "description": "Trial remaining label"
+  },
+  "extendTrial": {
+    "message": "Extend Trial",
+    "description": "Extend trial button text"
+  },
+  "trialExpired": {
+    "message": "Trial Expired",
+    "description": "Trial expired status text"
+  },
+  "trialDaysLeft": {
+    "message": "$days$ days left in trial",
+    "description": "Trial days left message, $days$ will be replaced with number of days",
+    "placeholders": {
+      "days": {
+        "content": "$1",
+        "example": "7"
+      }
+    }
+  },
+  "promotionPeriodMessage": {
+    "message": "✨App Promotion Period: All features are free to use. Welcome to provide valuable feedback!🎯😄",
+    "description": "Message shown during promotion period when trial is disabled"
+  },
+  "loginOrRegister": {
+    "message": "Login / Register",
+    "description": "Login or register button text"
+  },
+  "deviceManagementTitle": {
+    "message": "Device Management",
+    "description": "Device management section title"
+  },
+  "languageSettingsTitle": {
+    "message": "Language Settings",
+    "description": "Language settings section title"
+  },
+  "themeSettingsTitle": {
+    "message": "Theme Settings",
+    "description": "Theme settings section title"
+  },
+  "lightThemeLabel": {
+    "message": "Light Theme",
+    "description": "Light theme label"
+  },
+  "darkThemeLabel": {
+    "message": "Dark Theme",
+    "description": "Dark theme label"
+  },
+  "featureRequireVerification": {
+    "message": "Please complete email verification to use this feature",
+    "description": "Generic message when a feature requires email verification"
+  },
+  "selectLanguageLabel": {
+    "message": "Select Language:",
+    "description": "Select language label"
+  },
+  "authPageTitle": {
+    "message": "Account Login - MyTabSearch",
+    "description": "Auth page title"
+  },
+  "authPageSubtitle": {
+    "message": "Login to sync your tabs and data",
+    "description": "Auth page subtitle"
+  },
+  "emailAddressLabel": {
+    "message": "Email Address",
+    "description": "Email address label"
+  },
+  "verificationCodeLabel": {
+    "message": "Verification Code",
+    "description": "Verification code label"
+  },
+  "codePlaceholder": {
+    "message": "6-digit code",
+    "description": "Code input placeholder"
+  },
+  "authTip": {
+    "message": "Unregistered phone numbers will automatically create an account",
+    "description": "Auth tip text"
+  },
+  "agreeTermsPrivacy": {
+    "message": "By logging in, you agree to",
+    "description": "Terms and privacy prefix"
+  },
+  "termsOfService": {
+    "message": "Terms of Service",
+    "description": "Terms of service link"
+  },
+  "privacyPolicy": {
+    "message": "Privacy Policy",
+    "description": "Privacy policy link"
+  },
+  "search": {
+    "message": "Search",
+    "description": "Search alt text"
+  },
+  "searchPinnedTabs": {
+    "message": "search pinned tabs...",
+    "description": "Placeholder text for the pinned tabs search input"
+  },
+  "searchPinnedTabsAria": {
+    "message": "search pinned tabs",
+    "description": "ARIA label for the pinned tabs search input"
+  },
+  "andText": {
+    "message": "and",
+    "description": "And text for connecting terms and privacy"
+  },
+  "searchRuleSettingsTitle": {
+    "message": "Search Rule Settings",
+    "description": "Title for search rule settings section"
+  },
+  "selectSearchMatchModeLabel": {
+    "message": "Select Search Match Mode:",
+    "description": "Label for search match mode selection"
+  },
+  "mode1Title": {
+    "message": "Mode 1: Title Keyword Fast Match",
+    "description": "Mode 1: Title keyword Fast match (default)"
+  },
+  "mode2Title": {
+    "message": "Mode 2: Title Subsequence Match",
+    "description": "Mode 2: Title subsequence match"
+  },
+  "mode3Title": {
+    "message": "Mode 3: Title Keyword + Page Content Match",
+    "description": "Mode 3: Title keyword + page content match"
+  },
+  "mode4Title": {
+    "message": "Mode 4: Title Subsequence + Page Content Match",
+    "description": "Mode 4: Title subsequence + page content match"
+  },
+  "searchMatchModeDesc": {
+    "message": "Different search modes affect tab matching rules and sorting",
+    "description": "Description for search match mode settings"
+  },
+  "searchMatchModeVIPRequired": {
+    "message": "This mode requires VIP status or trial user",
+    "description": "Message when VIP required for search match mode"
+  },
+  "searchMatchModeDeveloping": {
+    "message": "Feature under development, stay tuned!",
+    "description": "Message when feature is developing"
+  },
+  "keyboardShortcutsTitle": {
+    "message": "Keyboard Shortcuts",
+    "description": "Keyboard shortcuts settings section title"
+  },
+  "shortcutTipText": {
+    "message": "Due to Chrome's security restrictions, keyboard shortcuts need to be manually confirmed after installation. Click the button below to set up:",
+    "description": "Tip text for keyboard shortcuts setup"
+  },
+  "shortcutOpenPopupKeyDesc": {
+    "message": "Open tab search",
+    "description": "Open popup shortcut description"
+  },
+  "shortcutPrevTabKeyDesc": {
+    "message": "Switch to previous tab",
+    "description": "Previous tab shortcut description"
+  },
+  "shortcutPinnedTabsKeyDesc": {
+    "message": "Open pinned tabs",
+    "description": "Open pinned tabs shortcut description"
+  },
+  "setupShortcutsBtn": {
+    "message": "Set Up Shortcuts",
+    "description": "Setup shortcuts button text"
+  },
+  "firstSyncCompleted": {
+    "message": "First sync completed, pinned tabs data has been synchronized",
+    "description": "Toast message when first sync is completed with data pulled from server"
+  },
+  "errorCode1001": {
+    "message": "You have reached the daily limit for sending verification codes (10 times). Please try again tomorrow.",
+    "description": "Error message when email daily limit exceeded"
+  },
+  "errorCode1002": {
+    "message": "You have reached the daily limit for sending verification codes. Thank you for your enthusiasm! To ensure service stability, please try again tomorrow.",
+    "description": "Error message when global daily limit exceeded"
+  },
+  "errorCode1003": {
+    "message": "Too many requests, please try again later",
+    "description": "Error message when rate limit exceeded"
+  },
+  "errorCode1004": {
+    "message": "Invalid email format",
+    "description": "Error message for invalid email"
+  },
+  "errorCode1005": {
+    "message": "Invalid or expired verification code",
+    "description": "Error message for invalid verification code"
+  },
+  "helpTitle": {
+    "message": "Quick Start - MyTabSearch",
+    "description": "Help page title"
+  },
+  "helpStep1Title": {
+    "message": "🔍 Quick Search",
+    "description": "Step 1 title"
+  },
+  "helpStep1Desc": {
+    "message": "Alt+Q → Type keywords → Enter to switch",
+    "description": "Step 1 description"
+  },
+  "helpStep1Shortcut": {
+    "message": "↑↓ Navigate | Enter Switch | Delete Close",
+    "description": "Step 1 shortcut hint"
+  },
+  "helpStep1Tip": {
+    "message": "Quickly find target tab when you have many tabs open",
+    "description": "Step 1 tip"
+  },
+  "helpDemoSearch": {
+    "message": "Alt+Q → Type keywords → Enter to switch",
+    "description": "Demo text for search feature"
+  },
+  "helpStep2Title": {
+    "message": "⚡ Tab Toggle",
+    "description": "Step 2 title"
+  },
+  "helpStep2Desc": {
+    "message": "Alt+W to switch to previous tab",
+    "description": "Step 2 description"
+  },
+  "helpStep2Tip": {
+    "message": "Similar to Alt+Tab but for browser tabs",
+    "description": "Step 2 tip"
+  },
+  "helpDemoSwitch": {
+    "message": "Press Alt+W to quickly switch to previous tab",
+    "description": "Demo text for switch feature"
+  },
+  "helpStep3Title": {
+    "message": "⭐ Pinned Tabs List",
+    "description": "Step 3 title"
+  },
+  "helpStep3Desc": {
+    "message": "Pin frequently used tabs, they persist after browser restart",
+    "description": "Step 3 description"
+  },
+  "helpStep3Shortcut": {
+    "message": "Shortcut: Alt+E Open pinned list",
+    "description": "Step 3 shortcut hint"
+  },
+  "helpStep3Tip": {
+    "message": "Core feature that differentiates from similar products",
+    "description": "Step 3 tip"
+  },
+  "helpDemoPin": {
+    "message": "Click pin icon → Show in pinned list",
+    "description": "Demo text for pin feature"
+  },
+  "helpStep4Title": {
+    "message": "⚠️ Confirm Shortcuts",
+    "description": "Step 4 title"
+  },
+  "helpStep4Desc": {
+    "message": "Chrome requires manual confirmation for shortcuts",
+    "description": "Step 4 description"
+  },
+  "helpStep4Tip": {
+    "message": "Please make sure all three shortcuts are set correctly",
+    "description": "Step 4 tip"
+  },
+  "helpBtnPrev": {
+    "message": "Previous",
+    "description": "Previous button"
+  },
+  "helpBtnNext": {
+    "message": "Next",
+    "description": "Next button"
+  },
+  "helpBtnSetupShortcuts": {
+    "message": "Set Up Shortcuts",
+    "description": "Setup shortcuts button"
+  },
+  "helpBtnStart": {
+    "message": "Start Using",
+    "description": "Start using button"
+  },
+  "helpShortcutsAltQ": {
+    "message": "Open tab search",
+    "description": "Alt+Q shortcut description"
+  },
+  "helpShortcutsAltW": {
+    "message": "Switch to previous tab",
+    "description": "Alt+W shortcut description"
+  },
+  "helpShortcutsAltE": {
+    "message": "Open pinned tabs list",
+    "description": "Alt+E shortcut description"
+  },
+  "helpShortcutsNeedSetup": {
+    "message": "Manual setup required",
+    "description": "Manual setup required badge"
+  },
+  "tourStep1Title": {
+    "message": "🔍 Quick Search & Switch",
+    "description": "Tour step 1 title"
+  },
+  "tourStep1Desc": {
+    "message": "Press Alt+Q to open search, type keywords to find tabs, press Enter to switch instantly.",
+    "description": "Tour step 1 description"
+  },
+  "tourStep1Tip": {
+    "message": "💡 Quickly find target tab when you have many tabs open",
+    "description": "Tour step 1 tip"
+  },
+  "tourStep2Title": {
+    "message": "⚡ Tab Toggle",
+    "description": "Tour step 2 title"
+  },
+  "tourStep2Desc": {
+    "message": "Press Alt+W to quickly switch to the previous tab. Perfect for toggling between two tabs.",
+    "description": "Tour step 2 description"
+  },
+  "tourStep2Tip": {
+    "message": "💡 Similar to Alt+Tab for windows, but for browser tabs",
+    "description": "Tour step 2 tip"
+  },
+  "tourStep3Title": {
+    "message": "⭐ Pinned Tabs",
+    "description": "Tour step 3 title"
+  },
+  "tourStep3Desc": {
+    "message": "Pin frequently used tabs and they persist after browser restart. Press Alt+E to open pinned list.",
+    "description": "Tour step 3 description"
+  },
+  "tourStep3Tip": {
+    "message": "💡 Core feature that differentiates from similar products",
+    "description": "Tour step 3 tip"
+  },
+  "tourStep4Title": {
+    "message": "📌 Pin Extension Icon",
+    "description": "Tour step 4 title"
+  },
+  "tourStep4Desc": {
+    "message": "Pin the extension icon to browser toolbar for quick access. Click \"Extensions\" on the browser toolbar, find MyTabSearch, and click the pin icon.",
+    "description": "Tour step 4 description"
+  },
+  "tourStep4Tip": {
+    "message": "💡 Pinned icon provides one-click access without opening the menu",
+    "description": "Tour step 4 tip"
+  },
+  "tourStep5Title": {
+    "message": "⚠️ Confirm Shortcuts",
+    "description": "Tour step 5 title"
+  },
+  "tourStep5Desc": {
+    "message": "Chrome requires manual confirmation for shortcuts. Please ensure these shortcuts are set correctly:",
+    "description": "Tour step 5 description"
+  },
+  "tourStep5Tip": {
+    "message": "💡 Recommended to set up shortcuts now for best experience",
+    "description": "Tour step 5 tip"
+  },
+  "tourShortcutOpenSearch": {
+    "message": "Open tab search",
+    "description": "Shortcut description for Alt+Q"
+  },
+  "tourShortcutSwitchTab": {
+    "message": "Switch to previous tab",
+    "description": "Shortcut description for Alt+W"
+  },
+  "tourShortcutOpenPin": {
+    "message": "Open pinned tabs list",
+    "description": "Shortcut description for Alt+E"
+  },
+  "tourBtnNext": {
+    "message": "Next",
+    "description": "Next button in tour"
+  },
+  "tourBtnPrev": {
+    "message": "Previous",
+    "description": "Previous button in tour"
+  },
+  "tourBtnSkip": {
+    "message": "Skip",
+    "description": "Skip button in tour"
+  },
+  "tourBtnDone": {
+    "message": "Done",
+    "description": "Done button in tour"
+  },
+  "tourBtnSetupShortcuts": {
+    "message": "Set Shortcuts",
+    "description": "Setup shortcuts button in tour"
   }
 }

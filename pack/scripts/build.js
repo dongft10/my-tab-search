@@ -6,18 +6,29 @@ const { execSync } = require('child_process');
  * 主构建函数
  */
 async function main() {
-  // 解析命令行参数，识别 --skip-compress 标志
+  // 解析命令行参数，识别 --skip-compress 或 --compress=false 标志
   const args = process.argv.slice(2);
-  const skipCompressIndex = args.indexOf('--skip-compress');
-  const skipCompress = skipCompressIndex !== -1;
+  let skipCompress = false;
   
-  // 如果找到了标志，则从参数数组中移除它
-  if (skipCompress) {
+  // 检查 --skip-compress
+  const skipCompressIndex = args.indexOf('--skip-compress');
+  if (skipCompressIndex !== -1) {
+    skipCompress = true;
     args.splice(skipCompressIndex, 1);
   }
   
-  const sourceDir = args[0] || '.'; // 当前目录作为源目录
-  let outputDir = args[1];
+  // 检查 --compress=false
+  const compressFalseIndex = args.findIndex(arg => arg.startsWith('--compress='));
+  if (compressFalseIndex !== -1) {
+    const compressValue = args[compressFalseIndex].split('=')[1];
+    if (compressValue && compressValue.toLowerCase() === 'false') {
+      skipCompress = true;
+    }
+    args.splice(compressFalseIndex, 1);
+  }
+  
+  const sourceDir = args[0] && !args[0].startsWith('--') ? args[0] : path.join(__dirname, '..', 'out', 'build'); // 默认从 pack/out/build 读取
+  let outputDir = args[1] && !args[1].startsWith('--') ? args[1] : undefined;
 
   // 如果没有指定输出目录，则默认为项目根目录下的 pack/out
   if (!outputDir) {

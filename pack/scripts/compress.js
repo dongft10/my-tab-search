@@ -82,7 +82,7 @@ async function compressDirectory(dirPath) {
       const dirName = path.basename(filePath);
       if (dirName !== 'node_modules' && dirName !== '.git' && dirName !== 'out' && 
           dirName !== 'pack' && dirName !== '.vscode' && dirName !== 'dist' && 
-          dirName !== 'build' && dirName !== '.idea') {
+          dirName !== '.idea') {
         const result = await compressDirectory(filePath);
         totalSaved += result.saved;
         fileCount += result.count;

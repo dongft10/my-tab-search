@@ -1,9 +1,10 @@
 @echo off
-REM Chrome Extension Packaging Script for Windows
-REM This script packages the Chrome extension for distribution
+REM Chrome Extension Packaging Script for Production Environment
+REM This script packages the Chrome extension for production release
 
 echo ========================================
 echo Chrome Extension Packaging Script
+echo Target Environment: PRODUCTION
 echo ========================================
 echo.
 
@@ -19,9 +20,14 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Node.js is installed
 echo.
 
-REM Change to project root directory
-cd /d "%~dp0.."
+REM Change to chrome-extension directory (parent of pack directory)
+cd /d %~dp0..
 echo Current directory: %CD%
+echo.
+
+REM Set environment variable for target environment
+set EXTENSION_ENV=prod
+echo [OK] Target environment: %EXTENSION_ENV%
 echo.
 
 REM Install dependencies
@@ -35,9 +41,9 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Dependencies installed
 echo.
 
-REM Build and package
+REM Build and package (with compression)
 echo [2/2] Building and packaging extension...
-call npm run build
+call npm run build && npm run package
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed
     pause
@@ -54,4 +60,11 @@ echo Output files are in: pack\out
 echo   - my-tab-search-v{version}.crx (for local installation)
 echo   - my-tab-search-v{version}.zip (for Chrome Web Store)
 echo.
-pause
+echo Warning: This package is configured for PRODUCTION environment
+echo.
+
+:: 等待 3 秒后自动退出
+timeout /t 3 /nobreak
+
+:: 脚本结束会自动退出，也可以显式退出
+exit
