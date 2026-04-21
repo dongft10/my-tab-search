@@ -1,20 +1,21 @@
-// background.js
+/**
+ * background.js - Service Worker
+ * Chrome Extension background script
+ */
 
-// Note: Service workers cannot use ES6 imports directly
-// We'll use a different approach for i18n in background.js
+import { API_CONFIG, PINNED_TABS_CONFIG } from './config.js';
+import authService from './services/auth.service.js';
+import authApi from './api/auth.js';
+import { SyncQueueService } from './services/sync-queue.common.js';
 
-// 因为 background.js 是 Chrome 扩展的 Service Worker，而 Service Worker 在 Manifest V3 中不支持 ES6 模块导
-// 入（ import/export 语法），所以PINNED_TABS_WINDOW的配置需要在本文将单独写。
-// 固定标签页弹窗尺寸配置（与 config.js 中的 PINNED_TABS_CONFIG 保持一致）
-const PINNED_TABS_WINDOW_CONFIG = {
-  WIDTH: 416,   // 窗口宽度
-  HEIGHT: 600   // 窗口高度
+const STORAGE_KEYS_LOCAL = {
+  userId: 'userId',
+  deviceId: 'deviceId',
+  accessToken: 'accessToken',
+  tokenExpiresAt: 'tokenExpiresAt',
+  registeredAt: 'registeredAt'
 };
 
-// 使用 chrome.storage 持久化固定标签页弹窗的窗口 ID
-// 因为 Service Worker 可能会被挂起和重新启动，全局变量会被重置
-
-// 监听窗口关闭事件，清除窗口 ID
 chrome.windows.onRemoved.addListener(async (windowId) => {
   try {
     const result = await chrome.storage.local.get('pinnedTabsWindowId');
@@ -26,247 +27,144 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
   }
 });
 
-// i18n helper functions for background.js
 const i18n = {
   language: 'en',
   messages: {},
   loadedLanguages: new Set(),
 
-  // Initialize i18n
   async initialize() {
     try {
-      // console.log('[i18n] Initializing i18n system');
-
       const result = await chrome.storage.sync.get('language');
       if (result.language) {
         this.language = result.language;
-        // console.log(`[i18n] Loaded language preference: ${this.language}`);
       } else {
         const browserLang = chrome.i18n.getUILanguage();
         this.language = browserLang.startsWith('zh') ? 'zh_CN' : 'en';
-        // console.log(`[i18n] Using browser language: ${browserLang}, set to: ${this.language}`);
       }
-
       await this.loadMessages(this.language);
-      // console.log('[i18n] Initialization complete');
     } catch (error) {
-      console.error('[i18n] Failed to initialize i18n in background:', error);
-      // Set default values even if initialization fails
+      console.error('[i18n] Failed to initialize:', error);
       this.language = 'en';
       this.messages['en'] = {};
     }
   },
 
-  // Load messages for a specific language
   async loadMessages(lang) {
     try {
-      if (this.loadedLanguages.has(lang)) {
-        // console.log(`[i18n] Language ${lang} already loaded, skipping`);
-        return;
-      }
-
-      // console.log(`[i18n] Loading messages for language: ${lang}`);
-
+      if (this.loadedLanguages.has(lang)) return;
       const response = await fetch(`/_locales/${lang}/messages.json`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to load messages for ${lang}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const messages = await response.json();
-
-      if (!messages || typeof messages !== 'object') {
-        throw new Error(`Invalid messages format for ${lang}`);
-      }
-
       this.messages[lang] = messages;
       this.loadedLanguages.add(lang);
-      // console.log(`[i18n] Successfully loaded messages for ${lang}`);
     } catch (error) {
       console.error(`[i18n] Failed to load messages for ${lang}:`, error);
-
-      // Fallback to English if the requested language is not English
-      if (lang !== 'en') {
-        // console.log(`[i18n] Falling back to English`);
-        await this.loadMessages('en');
-      } else {
-        // If even English fails, we have a serious problem
-        console.error('[i18n] Critical error: Failed to load English messages');
-      }
+      if (lang !== 'en') await this.loadMessages('en');
     }
   },
 
-  // Get message for a key
   getMessage(key, replacements = null) {
     let message = this._getMessageFromLang(key, this.language);
-
-    if (!message) {
-      message = this._getMessageFromLang(key, 'en');
-    }
-
-    if (!message) {
-      return key;
-    }
-
+    if (!message) message = this._getMessageFromLang(key, 'en');
+    if (!message) return key;
     if (replacements) {
       if (Array.isArray(replacements)) {
-        replacements.forEach((replacement, index) => {
-          message = message.replace(`$${index + 1}`, replacement);
-        });
-      } else if (typeof replacements === 'string') {
+        replacements.forEach((r, i) => message = message.replace(`$${i + 1}`, r));
+      } else {
         message = message.replace('$1', replacements);
       }
     }
-
     return message;
   },
 
-  // Get message from specific language
   _getMessageFromLang(key, lang) {
-    if (this.messages[lang] && this.messages[lang][key]) {
-      return this.messages[lang][key].message;
-    }
-    return null;
+    return this.messages[lang]?.[key]?.message || null;
   },
 
-  // Set language
   async setLanguage(lang) {
-    if (this.language === lang) {
-      return;
-    }
-
+    if (this.language === lang) return;
     this.language = lang;
     await this.loadMessages(lang);
   }
 };
 
-// 初始化变量
 let curTabId = null;
 let preTabId = null;
 let curWindowId = null;
+let tabHistory = [];
+const MAX_HISTORY_SIZE = 20;
 
-// 标签页历史记录栈（用于支持更灵活的切换）
-let tabHistory = []; // 存储历史 tabId，最新的在前面
-const MAX_HISTORY_SIZE = 20; // 最大历史记录数量
-
-// 方法：保存状态到 storage
 async function saveStateToStorage() {
   try {
-    await chrome.storage.local.set({
-      curTabId: curTabId,
-      preTabId: preTabId,
-      curWindowId: curWindowId,
-      tabHistory: tabHistory
-    });
-    // console.log('[Storage] 状态已保存:', {curTabId, preTabId, curWindowId, tabHistory});
+    await chrome.storage.local.set({ curTabId, preTabId, curWindowId, tabHistory });
   } catch (error) {
-    console.error('[Storage] 保存状态失败:', error);
+    console.error('[Storage] Save state error:', error);
   }
 }
 
-// 方法：从 storage 读取状态
 async function loadStateFromStorage() {
   try {
     return await chrome.storage.local.get(['curTabId', 'preTabId', 'curWindowId', 'tabHistory']);
   } catch (error) {
-    console.error('[Storage] 读取状态失败:', error);
+    console.error('[Storage] Load state error:', error);
     return {};
   }
 }
 
-// 方法：通过窗口ID查询当前活动标签页
 async function getActiveTabInWindow(windowId) {
   try {
-    const tabs = await chrome.tabs.query({
-      active: true,
-      windowId: windowId
-    });
-    return tabs[0]; // 返回当前活动标签页
+    const tabs = await chrome.tabs.query({ active: true, windowId });
+    return tabs[0];
   } catch (error) {
-    console.error('Error getting active tab in window:', error);
+    console.error('Error getting active tab:', error);
     return null;
   }
 }
 
-// 方法：初始化扩展状态
 async function initializeState() {
   try {
-    // 首先检查内存中的变量是否有值
-    if (curTabId || preTabId || curWindowId) {
-      // console.log('[initializeState] 内存中已有状态，无需初始化:', {curTabId, preTabId, curWindowId});
-      // 如果内存中有值，说明 service worker 还在活跃状态，不需要从 storage 恢复
-      return;
-    }
-
-    // 获取当前焦点窗口
+    if (curTabId || preTabId || curWindowId) return;
     const currentFocusedWindow = await chrome.windows.getLastFocused({ populate: false });
     if (!currentFocusedWindow) return;
-
-    // 内存中没有值，从 storage 读取已保存的状态
     const savedState = await loadStateFromStorage();
 
-    // 如果 storage 中有数据，尝试恢复
-    if (savedState.curTabId || savedState.preTabId || savedState.curWindowId || (savedState.tabHistory && savedState.tabHistory.length > 0)) {
-      // console.log('[initializeState] 从 storage 恢复状态');
-
-      // 验证 curTabId 是否仍然存在
+    if (savedState.curTabId || savedState.preTabId || savedState.curWindowId || savedState.tabHistory?.length > 0) {
       if (savedState.curTabId) {
         try {
-          const tab = await chrome.tabs.get(savedState.curTabId);
-          // 检查标签页是否仍然存在（不再检查是否在同一窗口，因为用户可能切换了窗口）
-          curTabId = tab.id;
+          await chrome.tabs.get(savedState.curTabId);
+          curTabId = savedState.curTabId;
         } catch (e) {
-          console.warn('[initializeState] 保存的标签页不存在，需要重新初始化');
+          console.info('[initializeState] Saved tab not found');
         }
       }
-
-      // 验证 preTabId 是否仍然存在
       if (savedState.preTabId) {
         try {
           await chrome.tabs.get(savedState.preTabId);
-          // 如果标签页存在，则使用它作为preTabId
           preTabId = savedState.preTabId;
         } catch (e) {
-          console.log('[initializeState] 保存的preTabId不存在，将从历史记录中重新确定');
-          preTabId = null; // 不设置为无效的preTabId
+          preTabId = null;
         }
       }
-
-      // 恢复历史记录（过滤掉不存在的标签页）
       if (savedState.tabHistory && Array.isArray(savedState.tabHistory)) {
         const validHistory = [];
         for (const tabId of savedState.tabHistory) {
           try {
-            await chrome.tabs.get(tabId); // 检查标签页是否存在
+            await chrome.tabs.get(tabId);
             validHistory.push(tabId);
-          } catch (e) {
-            console.log('[initializeState] 历史记录中的标签页不存在，已过滤:', tabId);
-          }
+          } catch (e) {}
         }
         tabHistory = validHistory;
-
-        // 重新计算 preTabId，如果当前preTabId无效的话
         if (tabHistory.length > 1 && preTabId === null && savedState.preTabId) {
-          // 检查历史记录中第二个元素是否有效
           try {
             await chrome.tabs.get(tabHistory[1]);
             preTabId = tabHistory[1];
-          } catch (e) {
-            // 如果历史记录中的preTabId也无效，则使用当前活动标签页之前的标签页作为preTabId
-            console.log('[initializeState] 历史记录中的preTabId也无效');
-          }
+          } catch (e) {}
         }
       }
-
-      // 使用当前焦点窗口作为 curWindowId
       curWindowId = currentFocusedWindow.id;
-
-      // 如果当前活动标签页与存储的curTabId不同，需要更新状态
       const currentActiveTab = await getActiveTabInWindow(currentFocusedWindow.id);
       if (currentActiveTab && currentActiveTab.id !== curTabId) {
-        // 当前活动的标签页与存储的不同，使用当前活动的标签页作为curTabId
         curTabId = currentActiveTab.id;
-
-        // 将当前标签页添加到历史记录（如果不在其中）
         if (!tabHistory.includes(curTabId)) {
           tabHistory.unshift(curTabId);
           if (tabHistory.length > MAX_HISTORY_SIZE) {
@@ -274,33 +172,20 @@ async function initializeState() {
           }
         }
       }
-
-      // 保存恢复后的状态
       await saveStateToStorage();
       return;
     }
 
-    // 如果内存中没有值且 storage 中也没有有效数据或数据无效，进行正常初始化
-    // console.log('[initializeState] 执行正常初始化');
-
-    // 使用当前焦点窗口
     curWindowId = currentFocusedWindow.id;
-
-    // 获取当前活动标签页
     const tab = await getActiveTabInWindow(currentFocusedWindow.id);
     if (tab) {
       curTabId = tab.id;
       preTabId = null;
-      tabHistory = [tab.id]; // 初始化历史记录
-      // console.log('[TabSearch] State initialized:', {curTabId, preTabId, curWindowId, tabHistory});
+      tabHistory = [tab.id];
     }
-
-    // 保存初始状态
     await saveStateToStorage();
   } catch (error) {
     console.error('Error initializing state:', error);
-
-    // 发生错误时，尝试基本的初始化
     try {
       const currentFocusedWindow = await chrome.windows.getLastFocused({ populate: false });
       if (currentFocusedWindow) {
@@ -310,203 +195,102 @@ async function initializeState() {
           curTabId = tab.id;
           tabHistory = [tab.id];
         }
+        await saveStateToStorage();
       }
-      await saveStateToStorage();
     } catch (fallbackError) {
-      console.error('Fallback initialization also failed:', fallbackError);
+      console.error('Fallback initialization failed:', fallbackError);
     }
   }
 }
 
-// 方法：更新标签页历史记录
 async function updateTabHistory(newTabId) {
   if (!newTabId) return;
-
-  // 从历史中移除该 tabId（如果存在）
   tabHistory = tabHistory.filter(id => id !== newTabId);
-
-  // 将新的 tabId 添加到历史记录的开头
   tabHistory.unshift(newTabId);
-
-  // 限制历史记录大小
   if (tabHistory.length > MAX_HISTORY_SIZE) {
     tabHistory = tabHistory.slice(0, MAX_HISTORY_SIZE);
   }
-
-  // 更新 preTabId 为历史记录中的第二个元素（即上一个标签页）
   preTabId = tabHistory.length > 1 ? tabHistory[1] : null;
-
-  // 更新当前标签页
-  if (curTabId !== newTabId) {
-    curTabId = newTabId;
-  }
-
-  // 保存到 storage
+  if (curTabId !== newTabId) curTabId = newTabId;
   await saveStateToStorage();
 }
 
-// 方法：从历史记录中移除已关闭的标签页
 async function removeFromHistory(tabId) {
   tabHistory = tabHistory.filter(id => id !== tabId);
-
-  // 保存到 storage
   await saveStateToStorage();
 }
 
-// 方法：显示通知（已移除通知功能，改为仅打印日志）
-function showNotification(message) {
-  // 已移除通知功能
-}
+function showNotification(message) {}
 
-// 监听标签页激活事件
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  const { tabId, windowId } = activeInfo
+  const { tabId, windowId } = activeInfo;
   if (tabId) {
     try {
       await chrome.tabs.get(tabId);
-      if (chrome.runtime.lastError) {
-        console.warn('获取标签页失败:', chrome.runtime.lastError.message);
-        return;
-      }
-
-      // 更新窗口ID
-      if (windowId !== curWindowId) {
-        curWindowId = windowId;
-      }
-
-      // 只有当激活的标签页与当前记录不同时，才更新状态
-      if (curTabId !== tabId) {
-        // 更新历史记录
-        await updateTabHistory(tabId);
-      }
-
-      // console.log("[标签页激活] windowId:" + windowId +
-      //   " tabId:" + tabId +
-      //   ' curWindowId:' + curWindowId +
-      //   " curTabId:" + curTabId +
-      //   ' preTabId:' + preTabId +
-      //   ' history:' + tabHistory);
+      if (chrome.runtime.lastError) return;
+      if (windowId !== curWindowId) curWindowId = windowId;
+      if (curTabId !== tabId) await updateTabHistory(tabId);
     } catch (error) {
-      console.error('Error handling tab activation:', error);
-      // 处理可能的标签页拖拽错误
-      if (error.message && error.message.includes('Tabs cannot be edited right now')) {
-        // Tab is being dragged, skip activation logic
-      }
+      if (error.message?.includes('Tabs cannot be edited right now')) {}
     }
   }
 });
 
-// 监听标签页更新事件（处理刷新、URL变化等情况）
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-  // 只在标签页加载完成或URL变化时处理
   if (changeInfo.status === 'complete' || changeInfo.url) {
-    try {
-      // 如果更新的标签页是当前标签页，需要更新历史记录中的引用
-      if (curTabId === tabId) {
-        // 检查历史记录中是否有这个 tabId
-        const historyIndex = tabHistory.indexOf(tabId);
-        if (historyIndex !== -1) {
-          // tabId 没有变化，不需要更新历史记录
-          // console.log('[标签页更新] 当前标签页刷新，tabId 未变化');
-        }
-      }
-
-      // 如果更新的标签页是 preTabId，需要验证它是否仍然存在
-      if (preTabId === tabId) {
-        // tabId 没有变化，preTabId 仍然有效
-        // console.log('[标签页更新] preTabId 刷新，仍然有效');
-      }
-    } catch (error) {
-      console.error('Error handling tab update:', error);
-    }
+    // Tab updated
   }
 });
 
-// 监听窗口变化（切换窗口时也要记录）
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
-  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
-  if (windowId === curWindowId) {
-    return;
-  }
+  if (windowId === chrome.windows.WINDOW_ID_NONE || windowId === curWindowId) return;
   try {
     const tab = await getActiveTabInWindow(windowId);
     if (tab) {
-      // 无论标签页 ID 是否相同，都更新状态
-      // 因为窗口切换了，preTabId 应该反映新窗口的状态
       await updateTabHistory(tab.id);
-      // 更新窗口 ID
       curWindowId = windowId;
-      // console.log(`[窗口变化] windowId:${windowId}` +
-      //   ' tabId:' + tab.id +
-      //   ' curWindowId:' + curWindowId +
-      //   ' curTabId:' + curTabId +
-      //   ' preTabId:' + preTabId +
-      //   ' history:' + tabHistory);
     }
   } catch (error) {
-    console.error('处理窗口焦点变更时出错:', error.message);
+    console.error('Window focus change error:', error.message);
   }
 });
 
-// 用于防止快速连续点击的标志
 let isSwitchingToPreviousTab = false;
 
-// 注册快捷键命令
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "switch-to-previous-tab") {
-    // 防止快速连续点击
-    if (isSwitchingToPreviousTab) {
-      return;
-    }
-
+    if (isSwitchingToPreviousTab) return;
     isSwitchingToPreviousTab = true;
 
     try {
-      // 确保状态是最新的，特别是在长时间未使用后
-      // 如果当前状态不完整，尝试重新初始化
-      if ((!curTabId || !curWindowId || tabHistory.length === 0) &&
-        (!preTabId && tabHistory.length <= 1)) {
+      if ((!curTabId || !curWindowId || tabHistory.length === 0) && !preTabId && tabHistory.length <= 1) {
         await initializeState();
       }
 
       let targetTabId = preTabId;
 
-      // 如果 preTabId 无效，尝试从历史记录中获取上一个有效的标签页
       if (!targetTabId && tabHistory.length > 1) {
-        // 查找第一个仍然存在的历史标签页
         for (let i = 1; i < tabHistory.length; i++) {
           try {
             const tab = await chrome.tabs.get(tabHistory[i]);
             if (tab) {
               targetTabId = tab.id;
-              // 更新preTabId以反映正确的状态
               preTabId = targetTabId;
               await saveStateToStorage();
               break;
             }
-          } catch (e) {
-            // 此历史记录中的标签页已不存在，继续检查下一个
-          }
+          } catch (e) {}
         }
       }
 
-      // 如果仍然没有找到目标标签页，尝试获取当前窗口中最近使用的标签页
       if (!targetTabId) {
         try {
-          // 查询当前窗口的所有标签页，并按最近访问时间排序
-          const tabs = await chrome.tabs.query({
-            windowType: 'normal',
-            active: false // 排除当前活动的标签页
-          });
-
-          // 过滤出与当前窗口相同的标签页，并按上次访问时间排序
+          const tabs = await chrome.tabs.query({ windowType: 'normal', active: false });
           const currentWindowTabs = tabs
             .filter(tab => tab.windowId === curWindowId)
-            .sort((a, b) => b.lastAccessed - a.lastAccessed); // 按最后访问时间降序排列
-
+            .sort((a, b) => b.lastAccessed - a.lastAccessed);
           if (currentWindowTabs.length > 0) {
-            targetTabId = currentWindowTabs[0].id; // 使用最新访问的标签页
-            // 更新preTabId
+            targetTabId = currentWindowTabs[0].id;
             preTabId = targetTabId;
             if (!tabHistory.includes(targetTabId)) {
               tabHistory.unshift(targetTabId);
@@ -517,187 +301,92 @@ chrome.commands.onCommand.addListener(async (command) => {
             await saveStateToStorage();
           }
         } catch (e) {
-          console.error('[快捷键] 尝试获取最近访问标签页时出错:', e);
+          console.error('[Shortcut] Get recent tabs error:', e);
         }
       }
 
       if (!targetTabId) {
-        const message = i18n.getMessage('noPrevTab') || '未找到前一个标签页，可能已被关闭。';
-        showNotification(message);
+        showNotification(i18n.getMessage('noPrevTab') || 'No previous tab found');
         return;
       }
 
-      if (targetTabId) {
-        try {
-          // 先检查标签页是否存在
-          const tab = await chrome.tabs.get(targetTabId).catch(() => null);
-          if (!tab) {
-            // 从历史记录中移除无效的标签页
-            await removeFromHistory(targetTabId);
-
-            // 没有找到任何有效的前一个标签页
-            preTabId = null;
-            await saveStateToStorage();
-            const message = i18n.getMessage('noPrevTab') || '未找到前一个标签页，可能已被关闭。';
-            showNotification(message);
-            return;
-          }
-
-          await chrome.tabs.update(targetTabId, { active: true });
-
-          // 更新窗口ID
-          if (curWindowId !== tab.windowId) {
-            await chrome.windows.update(tab.windowId, { focused: true });
-            curWindowId = tab.windowId;
-          }
-
-          // 更新历史记录和当前标签页
-          if (targetTabId !== curTabId) {
-            await updateTabHistory(targetTabId);
-          }
-
-          // console.log("[快捷键] 切换成功 - windowId:" + tab.windowId +
-          //   " tabId:" + targetTabId +
-          //   ' curWindowId:' + curWindowId +
-          //   " curTabId:" + curTabId +
-          //   ' preTabId:' + preTabId +
-          //   ' history:' + tabHistory);
-        } catch (e) {
-          console.error('[快捷键] Could not switch to the previous tab:', e);
-          if ((e.message && e.message.includes('Tabs cannot be edited right now'))) {
-            console.warn('[快捷键] 标签页正在被拖拽，无法切换到上一个标签页');
-            // 标签页拖拽时不重置preTabId，等待拖拽完成后重试
-            return;
-          }
-          // 只在确认标签页不存在时才清空记录
-          try {
-            await chrome.tabs.get(targetTabId);
-          } catch {
-            console.log('[快捷键] Previous tab not found, removing from history');
-            // 从历史记录中移除无效的标签页
-            await removeFromHistory(targetTabId);
-
-            // 尝试从历史记录中找到下一个有效的标签页
-            if (tabHistory.length > 1) {
-              for (let i = 1; i < tabHistory.length; i++) {
-                try {
-                  const validTab = await chrome.tabs.get(tabHistory[i]);
-                  if (validTab) {
-                    preTabId = validTab.id;
-                    await saveStateToStorage();
-                    break;
-                  }
-                } catch (e) {
-                  // 此历史记录中的标签页已不存在，继续检查下一个
-                }
-              }
-            } else {
-              preTabId = null;
-            }
-          }
-        }
-      } else {
-        // console.log('[快捷键] No previous tab available - preTabId:', preTabId, 'tabHistory:', tabHistory);
-        // showNotification('提示', '没有可切换的上一个标签页');
+      const tab = await chrome.tabs.get(targetTabId).catch(() => null);
+      if (!tab) {
+        await removeFromHistory(targetTabId);
+        preTabId = null;
+        await saveStateToStorage();
+        showNotification(i18n.getMessage('noPrevTab') || 'No previous tab found');
+        return;
       }
+
+      await chrome.tabs.update(targetTabId, { active: true });
+      if (curWindowId !== tab.windowId) {
+        await chrome.windows.update(tab.windowId, { focused: true });
+        curWindowId = tab.windowId;
+      }
+      if (targetTabId !== curTabId) await updateTabHistory(targetTabId);
+    } catch (e) {
+      console.error('[Shortcut] Switch tab error:', e);
     } finally {
-      // 重置标志，允许下次操作
       isSwitchingToPreviousTab = false;
     }
   } else if (command === "open-pinned-tabs") {
-    // Toggle 固定标签页弹窗：如果已弹出则关闭，如果未弹出则弹出
     try {
-      // 从 storage 中获取已保存的窗口 ID
       const result = await chrome.storage.local.get('pinnedTabsWindowId');
       const savedWindowId = result.pinnedTabsWindowId;
 
-      // 如果已有保存的窗口 ID，尝试关闭该窗口
       if (savedWindowId) {
         try {
-          // 检查窗口是否存在
           await chrome.windows.get(savedWindowId);
-          // 窗口存在，关闭它
           await chrome.windows.remove(savedWindowId);
-          // 清除保存的 ID
           await chrome.storage.local.remove('pinnedTabsWindowId');
           return;
         } catch (error) {
-          // 窗口不存在，清除保存的 ID，继续创建新窗口
           await chrome.storage.local.remove('pinnedTabsWindowId');
         }
       }
 
-      // 获取所有 popup 类型的窗口
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-
-      // 如果有 popup 窗口，说明已经有弹窗打开了，关闭它
       if (windows.length > 0) {
-        // 关闭第一个 popup 窗口
         await chrome.windows.remove(windows[0].id);
-        // 清除保存的 ID
         await chrome.storage.local.remove('pinnedTabsWindowId');
         return;
       }
 
-      // 如果没有 popup 窗口，则创建新的（位置在屏幕正中间）
-      const windowWidth = PINNED_TABS_WINDOW_CONFIG.WIDTH;
-      const windowHeight = PINNED_TABS_WINDOW_CONFIG.HEIGHT;
+      const windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 400;
+      const windowHeight = PINNED_TABS_CONFIG?.WINDOW_HEIGHT || 600;
+      let screenWidth = 1920, screenHeight = 1080;
 
-      // 获取屏幕信息
-      let screenWidth = 1920;
-      let screenHeight = 1080;
       try {
-        const screenInfo = await chrome.windows.getCurrent();
-        screenWidth = screenInfo.width || 1920;
-        screenHeight = screenInfo.height || 1080;
-      } catch (error) {
-        // 使用默认值
-      }
-
-      const left = Math.round((screenWidth - windowWidth) / 2);
-      const top = Math.round((screenHeight - windowHeight) / 2);
+        const displays = await chrome.system.display.getInfo();
+        if (displays?.length > 0) {
+          const primaryDisplay = displays.find(d => d.isPrimary) || displays[0];
+          screenWidth = primaryDisplay.workArea.width || 1920;
+          screenHeight = primaryDisplay.workArea.height || 1080;
+        }
+      } catch (error) {}
 
       const newWindow = await chrome.windows.create({
         url: chrome.runtime.getURL('html/pinned-list.html'),
         type: 'popup',
         width: windowWidth,
         height: windowHeight,
-        left: left,
-        top: top
+        left: Math.round((screenWidth - windowWidth) / 2),
+        top: Math.round((screenHeight - windowHeight) / 2)
       });
 
-      // 保存窗口 ID 到 storage
       await chrome.storage.local.set({ pinnedTabsWindowId: newWindow.id });
     } catch (error) {
-      console.error('[open-pinned-tabs] Error toggling pinned tabs popup:', error);
-      // 出错时清除保存的窗口 ID
+      console.error('[open-pinned-tabs] Error:', error);
       await chrome.storage.local.remove('pinnedTabsWindowId');
     }
   } else if (command === "_execute_action") {
-    // 打开主搜索弹窗
     try {
-      // 获取所有 popup 类型的窗口
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-
-      // 检查是否有固定标签页弹窗
-      let hasPinnedTabsWindow = false;
       for (const window of windows) {
-        // 由于窗口 URL 可能是 undefined，我们通过窗口数量来判断
-        // 如果有 popup 窗口，我们假设它是固定标签页弹窗
-        hasPinnedTabsWindow = true;
-        // 关闭所有 popup 窗口
         await chrome.windows.remove(window.id);
       }
-
-      // 如果有固定标签页弹窗，已经关闭了，现在打开主搜索弹窗
-      if (hasPinnedTabsWindow) {
-        // 已关闭固定标签页弹窗
-      }
-
-      // 等待一小段时间确保窗口关闭完成
       await new Promise(resolve => setTimeout(resolve, 100));
-
-      // 打开主搜索弹窗（通过 chrome.action.openPopup）
       chrome.action.openPopup();
     } catch (error) {
       console.error('[_execute_action] Error:', error);
@@ -705,187 +394,120 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
-// 监听标签页关闭，清理无效 ID
 chrome.tabs.onRemoved.addListener(async (tabId) => {
-  // console.log('[标签页关闭] tabId:', tabId);
-
-  // 如果关闭的标签页是 preTabId，清空 preTabId
-  if (preTabId === tabId) {
-    preTabId = null;
-  }
-
-  // 从历史记录中移除已关闭的标签页
+  if (preTabId === tabId) preTabId = null;
   await removeFromHistory(tabId);
 
-  // 从固定列表中移除已关闭的标签页
   try {
-    const result = await chrome.storage.sync.get('pinnedTabs');
+    const result = await chrome.storage.local.get('pinnedTabs');
     const pinnedTabs = result.pinnedTabs || [];
-    const filteredTabs = pinnedTabs.filter(tab => tab.tabId !== tabId);
-
+    const filteredTabs = pinnedTabs.filter(tab => {
+      if (tab.isLongTermPinned && tab.tabId === tabId) return true;
+      return tab.tabId !== tabId;
+    });
     if (filteredTabs.length !== pinnedTabs.length) {
-      // 有标签页被移除，更新存储
-      await chrome.storage.sync.set({ pinnedTabs: filteredTabs });
-      console.log('[background] Removed closed tab from pinned list:', tabId);
+      await chrome.storage.local.set({ pinnedTabs: filteredTabs });
     }
   } catch (error) {
-    console.error('[background] Error removing tab from pinned list:', error);
+    console.error('[background] Remove tab from pinned list error:', error);
   }
 
   if (curTabId === tabId) {
-    // 当当前标签页关闭时，尝试找到一个新的当前标签页
     try {
       const tabs = await chrome.tabs.query({ windowId: curWindowId, active: true });
-      if (tabs.length > 0) {
-        curTabId = tabs[0].id;
-      } else {
-        curTabId = null;
-        preTabId = null;
-      }
+      curTabId = tabs.length > 0 ? tabs[0].id : null;
     } catch (e) {
-      console.error('Error updating curTabId after tab closure:', e);
       curTabId = null;
     }
     await updateTabHistory(curTabId);
   }
-
-  // console.log('[标签页关闭后] curTabId:' + curTabId +
-  //   ' preTabId:' + preTabId +
-  //   ' history:' + tabHistory);
 });
 
-// 接收来自其它js的message
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === "switchToTab") {
-    let targetTabId = message.data.tabId;
-    let windowId = message.data.windowId;
-    if (targetTabId) {
-      try {
-        await handleSwitchToTab(targetTabId, windowId);
-        sendResponse({ success: true });
-      } catch (error) {
-        sendResponse({ success: false, error: error.message });
-      }
-    } else {
-      const errorMsg = chrome.i18n.getMessage('invalidTabId') || "无效的标签页ID";
-      sendResponse({ success: false, error: errorMsg });
+    try {
+      await handleSwitchToTab(message.data.tabId, message.data.windowId);
+      sendResponse({ success: true });
+    } catch (error) {
+      sendResponse({ success: false, error: error.message });
     }
-    return true; // 表示异步响应
+    return true;
   }
 
   if (message.action === 'languageChanged') {
-    // Update background i18n language
     await i18n.setLanguage(message.language);
-
-    // 广播语言更改消息给所有标签页
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach(tab => {
         chrome.tabs.sendMessage(tab.id, {
           action: 'languageChanged',
           language: message.language
-        }).catch(() => {
-          // 忽略发送失败的错误（例如，某些系统页面无法接收消息）
-        });
+        }).catch(() => {});
       });
     });
-
     sendResponse({ success: true });
     return true;
   }
 
   if (message.action === 'openMainPopup') {
-    console.log('[background] Opening main popup from message');
     try {
-      // 先关闭所有 popup 窗口（包括 fixedTabList 弹窗）
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-      console.log('[openMainPopup] Closing all popup windows:', windows.map(w => ({ id: w.id, url: w.url })));
-
       for (const window of windows) {
-        try {
-          await chrome.windows.remove(window.id);
-          console.log('[openMainPopup] Closed popup window:', window.id);
-        } catch (error) {
-          console.log('[openMainPopup] Failed to close window:', window.id, error);
-        }
+        await chrome.windows.remove(window.id);
       }
-
-      // 等待一小段时间确保窗口关闭完成
       await new Promise(resolve => setTimeout(resolve, 100));
-
-      // 打开主搜索弹窗（通过 chrome.action.openPopup）
       chrome.action.openPopup();
       sendResponse({ success: true });
     } catch (error) {
-      console.error('[background] Error opening main popup:', error);
       sendResponse({ success: false, error: error.message });
     }
-    return true; // 表示异步响应
+    return true;
   }
 
   if (message.action === 'openPinnedTabs') {
     try {
-      // 直接调用打开固定标签页弹窗的逻辑
-      // 从 storage 中获取已保存的窗口 ID
       const result = await chrome.storage.local.get('pinnedTabsWindowId');
-      const savedWindowId = result.pinnedTabsWindowId;
-
-      // 如果已有保存的窗口 ID，尝试聚焦该窗口
-      if (savedWindowId) {
+      if (result.pinnedTabsWindowId) {
         try {
-          await chrome.windows.update(savedWindowId, { focused: true });
+          await chrome.windows.update(result.pinnedTabsWindowId, { focused: true });
           sendResponse({ success: true });
           return;
         } catch (error) {
-          // 窗口不存在，清除保存的 ID
           await chrome.storage.local.remove('pinnedTabsWindowId');
         }
       }
 
-      // 获取所有 popup 类型的窗口
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-
-      // 如果有 popup 窗口，说明已经有弹窗打开了
       if (windows.length > 0) {
-        // 聚焦第一个 popup 窗口
         await chrome.windows.update(windows[0].id, { focused: true });
-        // 保存窗口 ID
         await chrome.storage.local.set({ pinnedTabsWindowId: windows[0].id });
         sendResponse({ success: true });
         return;
       }
 
-      // 如果没有 popup 窗口，则创建新的（位置在屏幕正中间）
-      const windowWidth = PINNED_TABS_WINDOW_CONFIG.WIDTH;
-      const windowHeight = PINNED_TABS_WINDOW_CONFIG.HEIGHT;
+      const windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 400;
+      const windowHeight = PINNED_TABS_CONFIG?.WINDOW_HEIGHT || 600;
+      let screenWidth = 1920, screenHeight = 1080;
 
-      // 获取屏幕信息
-      let screenWidth = 1920;
-      let screenHeight = 1080;
       try {
-        const screenInfo = await chrome.windows.getCurrent();
-        screenWidth = screenInfo.width || 1920;
-        screenHeight = screenInfo.height || 1080;
-      } catch (error) {
-        // 使用默认值
-      }
-
-      const left = Math.round((screenWidth - windowWidth) / 2);
-      const top = Math.round((screenHeight - windowHeight) / 2);
+        const displays = await chrome.system.display.getInfo();
+        if (displays?.length > 0) {
+          const primaryDisplay = displays.find(d => d.isPrimary) || displays[0];
+          screenWidth = primaryDisplay.workArea.width || 1920;
+          screenHeight = primaryDisplay.workArea.height || 1080;
+        }
+      } catch (error) {}
 
       const newWindow = await chrome.windows.create({
         url: chrome.runtime.getURL('html/pinned-list.html'),
         type: 'popup',
         width: windowWidth,
         height: windowHeight,
-        left: left,
-        top: top
+        left: Math.round((screenWidth - windowWidth) / 2),
+        top: Math.round((screenHeight - windowHeight) / 2)
       });
-
-      // 保存窗口 ID 到 storage
       await chrome.storage.local.set({ pinnedTabsWindowId: newWindow.id });
       sendResponse({ success: true });
     } catch (error) {
-      console.error('[background] Error opening pinned tabs:', error);
       sendResponse({ success: false, error: error.message });
     }
     return true;
@@ -893,11 +515,16 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
   if (message.action === 'openSettings') {
     try {
-      // 打开设置页面
-      chrome.tabs.create({ url: chrome.runtime.getURL('html/settings.html') });
+      const settingsUrl = chrome.runtime.getURL('html/settings.html');
+      const tabs = await chrome.tabs.query({ url: settingsUrl });
+      if (tabs.length > 0) {
+        await chrome.tabs.update(tabs[0].id, { active: true });
+        if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
+      } else {
+        chrome.tabs.create({ url: settingsUrl });
+      }
       sendResponse({ success: true });
     } catch (error) {
-      console.error('[background] Error opening settings:', error);
       sendResponse({ success: false, error: error.message });
     }
     return true;
@@ -905,70 +532,171 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
   if (message.action === 'openAbout') {
     try {
-      // 打开关于页面
-      chrome.tabs.create({ url: chrome.runtime.getURL('html/about.html') });
+      const aboutUrl = chrome.runtime.getURL('html/about.html');
+      const tabs = await chrome.tabs.query({ url: aboutUrl });
+      if (tabs.length > 0) {
+        await chrome.tabs.update(tabs[0].id, { active: true });
+        if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
+      } else {
+        chrome.tabs.create({ url: aboutUrl });
+      }
       sendResponse({ success: true });
     } catch (error) {
-      console.error('[background] Error opening about:', error);
       sendResponse({ success: false, error: error.message });
     }
+    return true;
+  }
+
+  if (message.action === 'syncQueueAddOperation') {
+    SyncQueueService.scheduleSync?.(2000);
+    return false;
+  }
+
+  if (message.action === 'AUTH_SUCCESS') {
+    try {
+      console.log('[background] AUTH_SUCCESS received');
+      const syncResult = await SyncQueueService.performSync();
+      if (syncResult?.success && syncResult.isFirstSync && syncResult.pulledData) {
+        const toastMessage = i18n.getMessage('firstSyncCompleted');
+        await chrome.storage.local.set({ pendingFirstSyncToast: toastMessage });
+      }
+    } catch (error) {
+      console.error('[background] Sync trigger error:', error);
+    }
+    sendResponse({ success: true });
     return true;
   }
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
-  try {
-    // 检查标签页是否存在
-    await chrome.tabs.get(targetTabId);
-
-    // 激活目标标签页并聚焦窗口
-    await chrome.tabs.update(targetTabId, { active: true });
-    if (windowId && windowId !== curWindowId) {
-      await chrome.windows.update(windowId, { focused: true });
-      curWindowId = windowId;
-    }
-
-    // 更新历史记录和当前标签页
-    if (targetTabId !== curTabId) {
-      curTabId = targetTabId;
-      await updateTabHistory(targetTabId);
-    }
-
-    // console.log("[消息发送] windowId:" + windowId +
-    //   " tabId:" + targetTabId +
-    //   ' curWindowId:' + curWindowId +
-    //   " curTabId:" + curTabId +
-    //   ' preTabId:' + preTabId +
-    //   ' history:' + tabHistory);
-  } catch (e) {
-    console.log('Could not switch to the target tab:', e);
-    throw e;
+  await chrome.tabs.get(targetTabId);
+  await chrome.tabs.update(targetTabId, { active: true });
+  if (windowId && windowId !== curWindowId) {
+    await chrome.windows.update(windowId, { focused: true });
+    curWindowId = windowId;
+  }
+  if (targetTabId !== curTabId) {
+    curTabId = targetTabId;
+    await updateTabHistory(targetTabId);
   }
 }
 
-// 扩展安装或更新时初始化状态
-chrome.runtime.onInstalled.addListener(async () => {
-  // console.log('[TabSearch] Extension installed/updated');
+chrome.runtime.onInstalled.addListener(async (details) => {
+  const { reason } = details;
+  if (reason === 'install') {
+    console.log('[TabSearch] Extension newly installed');
+    await clearAllStorage();
+  } else if (reason === 'update') {
+    console.log('[TabSearch] Extension updated');
+  }
   await initializeAll();
 });
 
-// 扩展启动时初始化状态
 chrome.runtime.onStartup.addListener(async () => {
-  // console.log('[TabSearch] Extension started');
   await initializeAll();
 });
 
-// 立即初始化（处理扩展已经在运行的情况）
+async function shouldRefreshToken() {
+  try {
+    const isRegistered = await authService.isRegistered();
+    if (!isRegistered) return false;
+    const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
+      STORAGE_KEYS_LOCAL.accessToken,
+      STORAGE_KEYS_LOCAL.tokenExpiresAt
+    ]);
+    if (!accessToken || !tokenExpiresAt) return true;
+    const expiresAt = new Date(tokenExpiresAt).getTime();
+    const now = Date.now();
+    const refreshThreshold = 5 * 24 * 60 * 60 * 1000;
+    return expiresAt - now < refreshThreshold;
+  } catch (error) {
+    console.error('Error checking token expiration:', error);
+    return true;
+  }
+}
+
+async function refreshAccessToken() {
+  try {
+    const { accessToken } = await chrome.storage.local.get(STORAGE_KEYS_LOCAL.accessToken);
+    if (!accessToken) return false;
+    const response = await authApi.refreshToken(accessToken);
+    if (response.data?.accessToken) {
+      await chrome.storage.local.set({
+        [STORAGE_KEYS_LOCAL.accessToken]: response.data.accessToken,
+        [STORAGE_KEYS_LOCAL.tokenExpiresAt]: response.data.expiresAt
+      });
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to refresh token:', error);
+    await chrome.storage.local.remove([
+      STORAGE_KEYS_LOCAL.accessToken,
+      STORAGE_KEYS_LOCAL.tokenExpiresAt
+    ]);
+    return false;
+  }
+}
+
+async function performSilentRegistration() {
+  try {
+    console.log('Starting silent registration...');
+    const result = await authService.silentRegister();
+    if (result) {
+      console.log('Silent registration completed successfully');
+    }
+  } catch (error) {
+    console.error('Error during silent registration:', error);
+  }
+}
+
+async function periodicTokenRefresh() {
+  try {
+    const needsRefresh = await shouldRefreshToken();
+    if (needsRefresh) {
+      const refreshed = await refreshAccessToken();
+      if (!refreshed) {
+        await authService.getAccessToken();
+      }
+    }
+  } catch (error) {
+    console.error('Error in periodic token refresh:', error);
+  }
+}
+
 async function initializeAll() {
   try {
     await i18n.initialize();
     await initializeState();
+    await performSilentRegistration();
+    await periodicTokenRefresh();
+    initializeSyncQueue();
   } catch (error) {
     console.error('[Background] Failed to initialize:', error);
   }
 }
 
-// 延迟初始化，确保 Service Worker 完全准备好
-setTimeout(() => {
-  initializeAll();
-}, 100);
+function initializeSyncQueue() {
+  try {
+    const syncInterval = PINNED_TABS_CONFIG?.SYNC_INTERVAL || 30 * 60 * 1000;
+    SyncQueueService.startPeriodicSync(syncInterval);
+    console.log('[Background] Sync queue service initialized');
+  } catch (error) {
+    console.error('[Background] Failed to initialize sync queue:', error);
+  }
+}
+
+async function clearAllStorage() {
+  try {
+    await chrome.storage.local.clear();
+  } catch (error) {
+    console.error('[Background] Failed to clear storage:', error);
+  }
+}
+
+chrome.alarms.create('tokenRefresh', { periodInMinutes: 720 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'tokenRefresh') {
+    periodicTokenRefresh();
+  }
+});

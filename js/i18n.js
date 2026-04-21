@@ -35,7 +35,7 @@ class I18nManager {
         return;
       }
 
-      const response = await fetch(`/_locales/${lang}/messages.json`);
+      const response = await fetch(chrome.runtime.getURL(`_locales/${lang}/messages.json`));
       if (!response.ok) {
         throw new Error(`Failed to load messages for ${lang}`);
       }
@@ -45,7 +45,6 @@ class I18nManager {
       this.loadedLanguages.add(lang);
     } catch (error) {
       console.error(`Failed to load messages for ${lang}:`, error);
-      // Fallback to English if loading fails
       if (lang !== 'en') {
         await this.loadMessages('en');
       }
@@ -122,6 +121,49 @@ class I18nManager {
         console.error('Error in language change listener:', error);
       }
     });
+  }
+
+  // Update all elements with data-i18n attribute
+  updatePageI18n() {
+    // Update text content
+    const textElements = document.querySelectorAll('[data-i18n]');
+    textElements.forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const message = this.getMessage(key);
+      if (message && message !== key) {
+        el.textContent = message;
+      }
+    });
+
+    // Update placeholders
+    const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+    placeholderElements.forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      const message = this.getMessage(key);
+      if (message && message !== key) {
+        el.placeholder = message;
+      }
+    });
+
+    // Update titles
+    const titleElements = document.querySelectorAll('[data-i18n-title]');
+    titleElements.forEach(el => {
+      const key = el.getAttribute('data-i18n-title');
+      const message = this.getMessage(key);
+      if (message && message !== key) {
+        el.title = message;
+      }
+    });
+
+    // Update document title
+    const titleEl = document.querySelector('title[data-i18n]');
+    if (titleEl) {
+      const key = titleEl.getAttribute('data-i18n');
+      const message = this.getMessage(key);
+      if (message && message !== key) {
+        document.title = message;
+      }
+    }
   }
 }
 

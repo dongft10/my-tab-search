@@ -1,16 +1,19 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <script src="../js/utils/theme-early.js"></script>
   <link rel="stylesheet" href="../css/pinned-list.css" />
-  <title>Fixed Tab List</title>
+  <title data-i18n="pinnedTabsTitle">Pinned Tab List</title>
 </head>
 
 <body>
-  <div class="pinned-header">
-    <h2 data-i18n="pinnedTabsTitle">Fixed Tab List</h2>
+  <div class="search-container">
+    <img id="magnifying-glass" src="../images/magnifying-glass.png" alt data-i18n="search" />
+    <input id="search-input" aria-label="search pinned tabs" type="text" placeholder="search pinned tabs...">
+    <div id="tab-count">Loading...</div>
   </div>
   <div class="tab-list-container">
     <ul id="pinned-tab-list"></ul>
@@ -32,7 +35,9 @@
     </button>
   </div>
   
+  <script src="../js/utils/theme.js"></script>
   <script src="../js/pinned-list.js" type="module"></script>
+  <script src="../js/utils/theme-init.js"></script>
 </body>
 
 </html>
