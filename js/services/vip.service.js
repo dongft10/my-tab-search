@@ -1,10 +1,10 @@
-﻿/**
+/**
  * VIP 状态管理服务
  * 处理VIP状态的本地存储和同步
  */
 
-import authApi from '../api/auth.js';
 import authService from './auth.service.js';
+import authApi from '../api/auth.js';
 import { getCacheTime } from '../config.js';
 
 class VipService {
@@ -36,9 +36,10 @@ class VipService {
       lastSyncAt: new Date().toISOString()
     };
     
-    return chrome.storage.local.set({
+    await chrome.storage.local.set({
       [this.storageKey]: data
     });
+    await authService.saveSettings({ vipStatus: data });
   }
 
   /**

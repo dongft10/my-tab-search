@@ -63,6 +63,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize i18n
   await i18n.initialize();
 
+  // 尝试从 sync storage 恢复用户数据
+  await authService.restoreFromSyncStorage();
+
   // 更新页面国际化元素
   i18n.updatePageI18n();
 

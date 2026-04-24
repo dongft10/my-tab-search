@@ -1,4 +1,5 @@
 import i18n from './i18n.js';
+import authService from './services/auth.service.js';
 
 class HelpTour {
   constructor() {
@@ -78,7 +79,7 @@ class HelpTour {
     document.addEventListener('keydown', this.handleKeyboard.bind(this));
   }
 
-  end() {
+  async end() {
     this.isActive = false;
     
     if (this.overlay) {
@@ -98,7 +99,8 @@ class HelpTour {
     
     document.removeEventListener('keydown', this.handleKeyboard.bind(this));
     
-    chrome.storage.local.set({ helpTourCompleted: true });
+    await chrome.storage.local.set({ helpTourCompleted: true });
+    await authService.saveSettings({ helpTourCompleted: true });
   }
 
   skip() {

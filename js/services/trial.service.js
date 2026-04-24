@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 体验期管理服务
  * 处理体验期的显示和延展
  */
@@ -47,9 +47,10 @@ class TrialService {
       lastUpdateAt: new Date().toISOString()
     };
     
-    return chrome.storage.local.set({
+    await chrome.storage.local.set({
       [this.storageKey]: data
     });
+    await authService.saveSettings({ trialStatus: data });
   }
 
   /**

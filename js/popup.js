@@ -1,4 +1,4 @@
-﻿// Import i18n manager
+// Import i18n manager
 import i18n from './i18n.js';
 // Import config for environment detection
 import { ENV_TYPE } from './config.js';
@@ -81,6 +81,8 @@ async function checkAndShowHelpTour() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+
+  await authService.restoreFromSyncStorage();
 
   const showHelpTour = await checkAndShowHelpTour();
   if (showHelpTour) {
