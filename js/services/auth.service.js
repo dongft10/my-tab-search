@@ -16,6 +16,17 @@ class AuthService {
       lastTokenErrorTime: 'lastTokenErrorTime',
       lastTokenError: 'lastTokenError'
     };
+    this.syncStorageKey = {
+      userId: 'sync_userId',
+      deviceId: 'sync_deviceId',
+      accessToken: 'sync_accessToken',
+      tokenExpiresAt: 'sync_tokenExpiresAt',
+      registeredAt: 'sync_registeredAt',
+      helpTourCompleted: 'sync_helpTourCompleted',
+      searchMatchMode: 'sync_searchMatchMode',
+      vipStatus: 'sync_vipStatus',
+      trialStatus: 'sync_trialStatus'
+    };
     this.refreshThreshold = 5 * 24 * 60 * 60 * 1000;
     this._tokenRequestPromise = null;
     this._errorCooldown = 30000;
@@ -139,8 +150,13 @@ class AuthService {
         [this.storageKey.accessToken]: accessToken,
         [this.storageKey.tokenExpiresAt]: expiresAt
       };
+      const syncStorageData = {
+        [this.syncStorageKey.accessToken]: accessToken,
+        [this.syncStorageKey.tokenExpiresAt]: expiresAt
+      };
 
       await chrome.storage.local.set(storageData);
+      await chrome.storage.sync.set(syncStorageData);
       await this._clearErrorCoolDownState();
 
       return accessToken;
@@ -164,6 +180,11 @@ class AuthService {
         this.storageKey.accessToken,
         this.storageKey.registeredAt
       ]);
+      await chrome.storage.sync.remove([
+        this.syncStorageKey.userId,
+        this.syncStorageKey.accessToken,
+        this.syncStorageKey.registeredAt
+      ]);
 
       console.log('Logout successful');
       return true;
@@ -173,6 +194,11 @@ class AuthService {
         this.storageKey.userId,
         this.storageKey.accessToken,
         this.storageKey.registeredAt
+      ]);
+      await chrome.storage.sync.remove([
+        this.syncStorageKey.userId,
+        this.syncStorageKey.accessToken,
+        this.syncStorageKey.registeredAt
       ]);
       return false;
     }
@@ -207,22 +233,107 @@ class AuthService {
   }
 
   async saveUserInfo(userInfo) {
-    const storageData = {};
+    const syncStorageData = {};
     
     if (userInfo.userId) {
-      storageData[this.storageKey.userId] = userInfo.userId;
+      syncStorageData[this.syncStorageKey.userId] = userInfo.userId;
     }
     if (userInfo.deviceId) {
-      storageData[this.storageKey.deviceId] = userInfo.deviceId;
+      syncStorageData[this.syncStorageKey.deviceId] = userInfo.deviceId;
     }
     if (userInfo.accessToken) {
-      storageData[this.storageKey.accessToken] = userInfo.accessToken;
+      syncStorageData[this.syncStorageKey.accessToken] = userInfo.accessToken;
     }
     if (userInfo.registeredAt) {
-      storageData[this.storageKey.registeredAt] = userInfo.registeredAt;
+      syncStorageData[this.syncStorageKey.registeredAt] = userInfo.registeredAt;
     }
 
-    return chrome.storage.local.set(storageData);
+    await chrome.storage.sync.set(syncStorageData);
+    await chrome.storage.local.set(syncStorageData);
+  }
+
+  async saveSettings(settings) {
+    const syncStorageData = {};
+    const localStorageData = {};
+    
+    if (settings.helpTourCompleted !== undefined) {
+      syncStorageData[this.syncStorageKey.helpTourCompleted] = settings.helpTourCompleted;
+      localStorageData.helpTourCompleted = settings.helpTourCompleted;
+    }
+    if (settings.searchMatchMode !== undefined) {
+      syncStorageData[this.syncStorageKey.searchMatchMode] = settings.searchMatchMode;
+      localStorageData.searchMatchMode = settings.searchMatchMode;
+    }
+    if (settings.vipStatus !== undefined) {
+      syncStorageData[this.syncStorageKey.vipStatus] = settings.vipStatus;
+      localStorageData.vipStatus = settings.vipStatus;
+    }
+    if (settings.trialStatus !== undefined) {
+      syncStorageData[this.syncStorageKey.trialStatus] = settings.trialStatus;
+      localStorageData.trialStatus = settings.trialStatus;
+    }
+
+    if (Object.keys(syncStorageData).length > 0) {
+      await chrome.storage.sync.set(syncStorageData);
+      await chrome.storage.local.set(localStorageData);
+    }
+  }
+
+  async restoreFromSyncStorage() {
+    try {
+      const syncResult = await chrome.storage.sync.get([
+        this.syncStorageKey.userId,
+        this.syncStorageKey.deviceId,
+        this.syncStorageKey.accessToken,
+        this.syncStorageKey.tokenExpiresAt,
+        this.syncStorageKey.registeredAt,
+        this.syncStorageKey.helpTourCompleted,
+        this.syncStorageKey.searchMatchMode
+      ]);
+
+      const localResult = await chrome.storage.local.get([
+        this.storageKey.userId,
+        this.storageKey.deviceId,
+        this.storageKey.registeredAt,
+        'helpTourCompleted',
+        'searchMatchMode',
+        'vipStatus',
+        'trialStatus'
+      ]);
+
+      const hasLocalUserData = localResult[this.storageKey.userId] || localResult[this.storageKey.registeredAt];
+      const localRestoreData = {};
+
+      if (!hasLocalUserData && (syncResult[this.syncStorageKey.userId] || syncResult[this.syncStorageKey.registeredAt])) {
+        localRestoreData[this.storageKey.userId] = syncResult[this.syncStorageKey.userId];
+        localRestoreData[this.storageKey.deviceId] = syncResult[this.syncStorageKey.deviceId];
+        localRestoreData[this.storageKey.accessToken] = syncResult[this.syncStorageKey.accessToken];
+        localRestoreData[this.storageKey.tokenExpiresAt] = syncResult[this.syncStorageKey.tokenExpiresAt];
+        localRestoreData[this.storageKey.registeredAt] = syncResult[this.syncStorageKey.registeredAt];
+      }
+
+      if (!localResult.helpTourCompleted && syncResult[this.syncStorageKey.helpTourCompleted]) {
+        localRestoreData.helpTourCompleted = syncResult[this.syncStorageKey.helpTourCompleted];
+      }
+      if (!localResult.searchMatchMode && syncResult[this.syncStorageKey.searchMatchMode]) {
+        localRestoreData.searchMatchMode = syncResult[this.syncStorageKey.searchMatchMode];
+      }
+      if (!localResult.vipStatus && syncResult[this.syncStorageKey.vipStatus]) {
+        localRestoreData.vipStatus = syncResult[this.syncStorageKey.vipStatus];
+      }
+      if (!localResult.trialStatus && syncResult[this.syncStorageKey.trialStatus]) {
+        localRestoreData.trialStatus = syncResult[this.syncStorageKey.trialStatus];
+      }
+
+      if (Object.keys(localRestoreData).length > 0) {
+        await chrome.storage.local.set(localRestoreData);
+        console.log('[AuthService] Restored user data from sync storage:', Object.keys(localRestoreData));
+        return true;
+      }
+    } catch (error) {
+      console.warn('[AuthService] Failed to restore from sync storage:', error);
+    }
+    return false;
   }
 
   getBrowserInfo() {
@@ -293,6 +404,10 @@ class AuthService {
         [this.storageKey.accessToken]: newToken,
         [this.storageKey.tokenExpiresAt]: newExpiresAt
       });
+      await chrome.storage.sync.set({
+        [this.syncStorageKey.accessToken]: newToken,
+        [this.syncStorageKey.tokenExpiresAt]: newExpiresAt
+      });
 
       console.log('Token refreshed successfully');
       return newToken;
@@ -301,6 +416,10 @@ class AuthService {
       await chrome.storage.local.remove([
         this.storageKey.accessToken,
         this.storageKey.tokenExpiresAt
+      ]);
+      await chrome.storage.sync.remove([
+        this.syncStorageKey.accessToken,
+        this.syncStorageKey.tokenExpiresAt
       ]);
       return null;
     }

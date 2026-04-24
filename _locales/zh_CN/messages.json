@@ -694,11 +694,11 @@
     "description": "Toast message when first sync is completed with data pulled from server"
   },
   "errorCode1001": {
-    "message": "今日验证码发送已达上限（10次），请明天再来吧",
+    "message": "今日验证码发送已达上限（10次），请明天再试",
     "description": "Error message when email daily limit exceeded"
   },
   "errorCode1002": {
-    "message": "今日验证码发送已达上限，感谢您的热情参与！为确保服务稳定，请明日再来注册，我们会为您提供更好的体验。",
+    "message": "今日验证码发送已达上限，为确保服务稳定，请明天再试",
     "description": "Error message when global daily limit exceeded"
   },
   "errorCode1003": {

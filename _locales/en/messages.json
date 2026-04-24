@@ -694,11 +694,11 @@
     "description": "Toast message when first sync is completed with data pulled from server"
   },
   "errorCode1001": {
-    "message": "You have reached the daily limit for sending verification codes (10 times). Please try again tomorrow.",
+    "message": "Daily verification code limit reached (10 times). Please try again tomorrow.",
     "description": "Error message when email daily limit exceeded"
   },
   "errorCode1002": {
-    "message": "You have reached the daily limit for sending verification codes. Thank you for your enthusiasm! To ensure service stability, please try again tomorrow.",
+    "message": "Daily verification code limit reached. Please try again tomorrow.",
     "description": "Error message when global daily limit exceeded"
   },
   "errorCode1003": {

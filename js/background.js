@@ -667,6 +667,7 @@ async function periodicTokenRefresh() {
 async function initializeAll() {
   try {
     await i18n.initialize();
+    await authService.restoreFromSyncStorage();
     await initializeState();
     await performSilentRegistration();
     await periodicTokenRefresh();
