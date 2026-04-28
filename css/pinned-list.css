@@ -318,7 +318,7 @@ body::after {
   align-items: center;
   gap: 4px;
   position: absolute;
-  right: 0px;
+  right: 0;
   opacity: 0;
   visibility: hidden;
   transform: translateX(10px);
@@ -479,7 +479,7 @@ body::after {
 .tab-title .highlight {
   background-color: var(--highlight-bg);
   color: var(--highlight-text);
-  padding: 0 1px;
+  padding: 0;
   border-radius: 2px;
 }
 
