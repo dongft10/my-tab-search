@@ -54,6 +54,7 @@ const entryPoints = {
   'js/utils/theme-init': 'js/utils/theme-init.js',
   'js/utils/theme-settings': 'js/utils/theme-settings.js',
   'js/i18n': 'js/i18n.js',
+  'js/index': 'js/index.js',
   // ESM modules (loaded via <script type="module">)
   'js/popup': 'js/popup.js',
   'js/popup-icons': 'js/popup-icons.js',
@@ -89,7 +90,8 @@ async function build() {
       'js/utils/theme',
       'js/utils/theme-init',
       'js/utils/theme-settings',
-      'js/i18n'
+      'js/i18n',
+      'js/index'
     ];
     
     console.log('Building IIFE scripts...');
