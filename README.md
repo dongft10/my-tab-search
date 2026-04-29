@@ -338,7 +338,7 @@ A: 请联系开发者或在关于页面查看升级方式。
 
 ## 致谢
 
-- 图标来自 [www.pngsucai.com](https://www.pngsucai.com)
+- 图标来自 [Flaticon](https://www.Flaticon.com)
 - 感谢所有贡献者的支持
 
 ## 联系方式
