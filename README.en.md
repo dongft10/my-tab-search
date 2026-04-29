@@ -338,7 +338,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Icons from [www.pngsucai.com](https://www.pngsucai.com)
+- Icons from [Flaticon](https://www.Flaticon.com)
 - Thanks to all contributors for their support
 
 ## Contact
