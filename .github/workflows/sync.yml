@@ -13,7 +13,7 @@ jobs:
         uses: Yikun/hub-mirror-action@master
         with:
           src: gitee/dongft
-          dst: github/dongft10-dev
+          dst: github/dongft10
           static_list: "my-tab-search"
           dst_key: ${{ secrets.SSH_PRIVATE_KEY }}
           dst_token:  ${{ secrets.GIT_TOKEN }}

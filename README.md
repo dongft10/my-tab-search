@@ -8,7 +8,7 @@ MyTabSearch 是一个高效的 Chrome 浏览器标签页管理扩展，旨在帮
 
 ## 在线演示
 
-访问我们的 [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) 查看扩展的详细介绍和功能演示。
+访问我们的 [GitHub Pages](https://dongft10.github.io/my-tab-search/) 查看扩展的详细介绍和功能演示。
 
 ## 功能特性
 
@@ -58,10 +58,9 @@ MyTabSearch 是一个高效的 Chrome 浏览器标签页管理扩展，旨在帮
 
 ### 方法一：从 Chrome Web Store 安装（推荐）
 
-1. 访问 Chrome Web Store（即将上线）
-2. 搜索 "MyTabSearch"
-3. 点击"添加到 Chrome"按钮
-4. 完成安装
+1. 访问 [Chrome Web Store](https://chrome.google.com/webstore/detail/mytabsearch-extension/adfbidbchmbodidfjmimbkfndnenljjp)
+2. 点击"添加到 Chrome"按钮
+3. 完成安装
 
 ### 方法二：手动安装 CRX 文件
 
@@ -344,7 +343,7 @@ A: 请联系开发者或在关于页面查看升级方式。
 
 ## 联系方式
 
-- **GitHub Issues**: [提交问题](https://github.com/dongft10-dev/my-tab-search/issues)
+- **GitHub Issues**: [提交问题](https://github.com/dongft10/my-tab-search/issues)
 - **Email**: [dongft10@gmail.com](mailto:dongft10@gmail.com)
 
 ---
