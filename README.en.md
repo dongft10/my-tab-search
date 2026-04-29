@@ -8,7 +8,7 @@ MyTabSearch is an efficient Chrome browser tab management extension designed to 
 
 ## Online Demo
 
-Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for detailed introduction and feature demonstration.
+Visit our [GitHub Pages](https://dongft10.github.io/my-tab-search/) for detailed introduction and feature demonstration.
 
 ## Features
 
@@ -58,10 +58,9 @@ Visit our [GitHub Pages](https://dongft10-dev.github.io/my-tab-search/) for deta
 
 ### Method 1: Install from Chrome Web Store (Recommended)
 
-1. Visit Chrome Web Store (coming soon)
-2. Search for "MyTabSearch"
-3. Click "Add to Chrome" button
-4. Complete installation
+1. Visit [Chrome Web Store](https://chromewebstore.google.com/detail/mytabsearch-extension/adfbidbchmbodidfjmimbkfndnenljjp)
+2. Click "Add to Chrome" button
+3. Complete installation
 
 ### Method 2: Manual CRX Installation
 
@@ -344,7 +343,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- **GitHub Issues**: [Submit Issues](https://github.com/dongft10-dev/my-tab-search/issues)
+- **GitHub Issues**: [Submit Issues](https://github.com/dongft10/my-tab-search/issues)
 - **Email**: [dongft10@gmail.com](dongft10@gmail.com)
 
 ---
