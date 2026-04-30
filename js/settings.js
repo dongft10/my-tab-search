@@ -1003,6 +1003,28 @@ async function handleLoginVerify() {
   }
 }
 
+// 请求 identity 权限
+async function requestIdentityPermission() {
+  try {
+    const hasPermission = await chrome.permissions.contains({
+      permissions: ['identity']
+    });
+    
+    if (hasPermission) {
+      return true;
+    }
+    
+    const granted = await chrome.permissions.request({
+      permissions: ['identity']
+    });
+    
+    return granted;
+  } catch (error) {
+    console.error('Request identity permission error:', error);
+    return false;
+  }
+}
+
 // 登录弹窗 - OAuth 登录
 async function handleLoginOAuth(provider) {
   if (provider === 'microsoft') {
@@ -1011,6 +1033,12 @@ async function handleLoginOAuth(provider) {
   }
   
   try {
+    const granted = await requestIdentityPermission();
+    if (!granted) {
+      showLoginMessage(i18n.getMessage('oauthPermissionDenied'), 'error');
+      return;
+    }
+
     const clientId = provider === 'google'
       ? '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'
       : 'YOUR_MICROSOFT_CLIENT_ID';

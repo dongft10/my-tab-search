@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "2.0.2",
+  "version": "2.0.3",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkVGhmKdilSA+OWoQSzwu6H6SpPhgIMOI3EJqMsNvYg41x51/LtKn6Yg3+ZYyAyeJpJS7oxmPYmsydHLpE17dc+lgXhvpUVS4PxBZ5R34wM16SxXEzD7bKzwMJLvPNZ0hv+8NT9sR9bjucBo3VVHGFcn3JxMtP+YSjjE+HTDM/x0Gj+1PXsXBZNK5T1FJiS1z6Nqc2spTlMs8K89gDTYoREqiEMsfFC0Qc8JXjyfkcnxl3yQOfWeoHj5Qa/rLnicUzoemocZmGZ82t5sZP/b3PP2CU49p8u2hEEVao5hSmFQfGDvxpM7Zi1+1kUjSzZl+y1HDHYipWvuAgUW9C10CowIDAQAB",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "icons": {
@@ -20,8 +21,10 @@
     "storage",
     "activeTab",
     "alarms",
-    "identity",
     "system.display"
+  ],
+  "optional_permissions": [
+    "identity"
   ],
   "host_permissions": [
     "http://localhost:41532/*",

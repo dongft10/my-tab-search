@@ -254,6 +254,19 @@ function processManifest() {
     }));
   }
   
+  // prod 环境移除 key 字段（用于固定扩展 ID，仅开发测试需要）
+  if (env === 'prod' && manifest.key) {
+    delete manifest.key;
+    console.log('  Removed key field for production build');
+  }
+  
+  // prod 环境只保留生产环境的 host_permissions
+  if (env === 'prod' && manifest.host_permissions) {
+    const prodHosts = ['https://mytabsearch.us.kg/*'];
+    manifest.host_permissions = prodHosts;
+    console.log('  Filtered host_permissions for production');
+  }
+  
   fs.writeFileSync(destPath, JSON.stringify(manifest, null, 2), 'utf8');
   console.log('  ✓ manifest.json');
 }
