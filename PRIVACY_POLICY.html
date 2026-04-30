@@ -115,22 +115,31 @@
     <h1>Privacy Policy - MyTabSearch</h1>
 
     <div class="highlight">
-      <p><strong>MyTabSearch extension does not collect, store, or transmit any personal data to external servers.</strong></p>
-      <p>This extension runs entirely in the user's local browser, and all data processing is completed on the user's device.</p>
+      <p><strong>MyTabSearch extension respects your privacy. Core functionality works entirely locally without any server communication.</strong></p>
+      <p>If you choose to register/login, we only collect your email address to identify your account. No other personal data is collected.</p>
     </div>
 
     <div class="section">
       <h2>1. Data Collection</h2>
-      <p>MyTabSearch extension does not collect, store, or transmit any personal data to external servers.</p>
-      <p>This extension runs entirely in user's local browser, and all data processing is completed on user's device. We do not collect:</p>
+      <p>MyTabSearch extension collects minimal data based on your usage:</p>
+      
+      <h3>1.1 Local-Only Data (No Account Required)</h3>
+      <p>Core extension functionality runs entirely in your local browser. We do not collect:</p>
       <ul>
-        <li>Browsing history</li>
+        <li>Browsing history beyond what's needed for tab switching</li>
         <li>Search query content</li>
-        <li>User identity information</li>
-        <li>Device information</li>
         <li>Location information</li>
         <li>Any other personal data</li>
       </ul>
+      
+      <h3>1.2 Account Data (Optional, When You Register)</h3>
+      <p>If you choose to register/login, we collect:</p>
+      <ul>
+        <li><strong>Email address</strong> - Used as your account identifier</li>
+        <li><strong>Device ID</strong> - To manage synced data across devices</li>
+        <li><strong>Pinned tabs data</strong> - URLs and titles of tabs you pin (synced across devices)</li>
+      </ul>
+      <p>This data is stored securely on our servers and is only used to provide sync functionality.</p>
     </div>
 
     <div class="section">
@@ -176,6 +185,30 @@
         <li><strong>Purpose:</strong> Access the currently active tab</li>
         <li><strong>Data Types:</strong> Current tab information</li>
         <li><strong>Use Cases:</strong> Get current active tab information to work with other permissions for tab switching functionality</li>
+      </ul>
+
+      <h3>2.5 Identity Permission (Optional)</h3>
+      <div class="highlight">
+        <p><strong>This permission is optional and only requested when you choose to sign in with Google/Microsoft.</strong></p>
+        <p>You can always use email verification code login without granting this permission.</p>
+      </div>
+      <ul>
+        <li><strong>Purpose:</strong> Enable OAuth login with Google/Microsoft accounts</li>
+        <li><strong>Data Types:</strong> Email address, user ID</li>
+        <li><strong>When Requested:</strong> Only when you click "Sign in with Google" or "Sign in with Microsoft" button</li>
+        <li><strong>Use Cases:</strong>
+          <ul>
+            <li>Obtain OAuth authorization code to verify your identity</li>
+            <li>Retrieve your email address to create your account</li>
+            <li>Enable cross-device data sync for registered users</li>
+          </ul>
+        </li>
+      </ul>
+      <p><strong>What we do NOT do:</strong></p>
+      <ul>
+        <li>Access your connected accounts beyond basic profile info</li>
+        <li>Impersonate you on any service</li>
+        <li>Store OAuth tokens (we only store user ID and email)</li>
       </ul>
     </div>
 
@@ -276,6 +309,7 @@
 
     <div class="last-updated">
       <p><strong>Last Updated:</strong> January 31, 2026</p>
+      <p><strong>Note:</strong> Updated to clarify optional identity permission for OAuth login (v2.0.3)</p>
     </div>
   </div>
 </body>
