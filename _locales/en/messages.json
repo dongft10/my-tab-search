@@ -908,5 +908,9 @@
   "tourBtnSetupShortcuts": {
     "message": "Set Shortcuts",
     "description": "Setup shortcuts button in tour"
+  },
+  "oauthPermissionDenied": {
+    "message": "OAuth login requires additional permission. You can use email verification code to login instead, which is equally secure and convenient.",
+    "description": "Message when OAuth permission is denied"
   }
 }

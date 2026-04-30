@@ -908,5 +908,9 @@
   "tourBtnSetupShortcuts": {
     "message": "设置快捷键",
     "description": "Setup shortcuts button in tour"
+  },
+  "oauthPermissionDenied": {
+    "message": "OAuth 登录需要额外权限授权。您可以使用邮箱验证码登录，同样安全便捷。",
+    "description": "OAuth 权限被拒绝时的提示"
   }
 }
