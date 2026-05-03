@@ -405,9 +405,37 @@ async function handleVerify() {
   }
 }
 
+// 请求 identity 权限
+async function requestIdentityPermission() {
+  try {
+    const hasPermission = await chrome.permissions.contains({
+      permissions: ['identity']
+    });
+    
+    if (hasPermission) {
+      return true;
+    }
+    
+    const granted = await chrome.permissions.request({
+      permissions: ['identity']
+    });
+    
+    return granted;
+  } catch (error) {
+    console.error('Request identity permission error:', error);
+    return false;
+  }
+}
+
 // OAuth 登录 - Google
 async function handleOAuthGoogle() {
   try {
+    const granted = await requestIdentityPermission();
+    if (!granted) {
+      showError(i18n.getMessage('oauthPermissionDenied'));
+      return;
+    }
+
     const clientId = '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com';
     const redirectUri = chrome.identity.getRedirectURL();
     
