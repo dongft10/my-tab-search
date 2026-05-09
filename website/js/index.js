@@ -219,6 +219,7 @@ function bindEventListeners() {
                 const delta = e.deltaY > 0 ? -1 : 1;
                 lightboxZoom(delta);
             });
+            lightboxImageContainer.addEventListener('click', closeLightbox);
         }
     }
 
