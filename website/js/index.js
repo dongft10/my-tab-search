@@ -58,6 +58,8 @@ function toggleTheme() {
 initTheme();
 
 let slideIndex = 1;
+let lightboxIndex = 1;
+let lightboxScale = 1;
 
 function resetSlideInterval() {
     clearInterval(slideInterval);
@@ -98,6 +100,69 @@ function showSlides(n) {
     slides[slideIndex - 1].classList.add('active');
     if (indicators[slideIndex - 1]) {
         indicators[slideIndex - 1].classList.add('active');
+    }
+}
+
+function openLightbox(index) {
+    lightboxIndex = index;
+    lightboxScale = 1;
+    updateLightboxImage();
+    document.getElementById('lightbox').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox) {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    lightboxScale = 1;
+}
+
+function updateLightboxImage() {
+    const slides = document.querySelectorAll('.carousel-slide img');
+    const lightboxImg = document.querySelector('.lightbox-image');
+    const counter = document.querySelector('.lightbox-counter');
+    
+    if (!slides.length || !lightboxImg) return;
+    
+    const targetIndex = lightboxIndex - 1;
+    if (targetIndex >= 0 && targetIndex < slides.length) {
+        lightboxImg.src = slides[targetIndex].src;
+        lightboxImg.alt = slides[targetIndex].alt;
+        lightboxImg.style.transform = `scale(${lightboxScale})`;
+        if (counter) {
+            counter.textContent = `${lightboxIndex} / ${slides.length}`;
+        }
+    }
+}
+
+function lightboxNavigate(direction) {
+    const slides = document.querySelectorAll('.carousel-slide');
+    const totalSlides = slides.length;
+    
+    if (totalSlides === 0) return;
+    
+    lightboxIndex += direction;
+    
+    if (lightboxIndex < 1) {
+        lightboxIndex = totalSlides;
+    } else if (lightboxIndex > totalSlides) {
+        lightboxIndex = 1;
+    }
+    
+    lightboxScale = 1;
+    updateLightboxImage();
+}
+
+function lightboxZoom(delta) {
+    lightboxScale += delta * 0.1;
+    lightboxScale = Math.max(0.5, Math.min(2, lightboxScale));
+    
+    const lightboxImg = document.querySelector('.lightbox-image');
+    if (lightboxImg) {
+        lightboxImg.style.transform = `scale(${lightboxScale})`;
     }
 }
 
