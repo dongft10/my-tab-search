@@ -190,6 +190,63 @@ function bindEventListeners() {
         indicator.addEventListener('click', () => currentSlide(index + 1));
     });
 
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox) {
+        const lightboxOverlay = document.querySelector('.lightbox-overlay');
+        if (lightboxOverlay) {
+            lightboxOverlay.addEventListener('click', closeLightbox);
+        }
+
+        const lightboxClose = document.querySelector('.lightbox-close');
+        if (lightboxClose) {
+            lightboxClose.addEventListener('click', closeLightbox);
+        }
+
+        const lightboxPrev = document.querySelector('.lightbox-prev');
+        if (lightboxPrev) {
+            lightboxPrev.addEventListener('click', () => lightboxNavigate(-1));
+        }
+
+        const lightboxNext = document.querySelector('.lightbox-next');
+        if (lightboxNext) {
+            lightboxNext.addEventListener('click', () => lightboxNavigate(1));
+        }
+
+        const lightboxImageContainer = document.querySelector('.lightbox-image-container');
+        if (lightboxImageContainer) {
+            lightboxImageContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -1 : 1;
+                lightboxZoom(delta);
+            });
+        }
+    }
+
+    const carouselSlides = document.querySelectorAll('.carousel-slide img');
+    carouselSlides.forEach((img, index) => {
+        img.addEventListener('click', () => {
+            openLightbox(index + 1);
+        });
+        img.style.cursor = 'pointer';
+    });
+
+    document.addEventListener('keydown', (e) => {
+        const lightbox = document.getElementById('lightbox');
+        if (!lightbox || !lightbox.classList.contains('active')) return;
+        
+        switch (e.key) {
+            case 'Escape':
+                closeLightbox();
+                break;
+            case 'ArrowLeft':
+                lightboxNavigate(-1);
+                break;
+            case 'ArrowRight':
+                lightboxNavigate(1);
+                break;
+        }
+    });
+
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
