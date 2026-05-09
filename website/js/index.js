@@ -107,8 +107,11 @@ function openLightbox(index) {
     lightboxIndex = index;
     lightboxScale = 1;
     updateLightboxImage();
-    document.getElementById('lightbox').classList.add('active');
-    document.body.style.overflow = 'hidden';
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox) {
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
 }
 
 function closeLightbox() {
