@@ -29,7 +29,7 @@ export const API_CONFIG = {
   REQUEST: {
     MAX_RETRIES: 3,
     RETRY_DELAY: 1000,
-    TIMEOUT: 30000
+    TIMEOUT: 15000
   },
   ENDPOINTS: {
     AUTH: {

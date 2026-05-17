@@ -391,13 +391,15 @@ async function handleVerify() {
     }
   } catch (error) {
     console.error('[Auth] Verify code error:', error);
-    // 根据错误类型显示不同的错误信息
     if (error.isTimeout) {
       showError('The request has timed out. Please check the network connection and try again');
     } else if (error.message === 'Failed to fetch' || error.message === 'NetworkError') {
       showError('The network connection failed. Please check the network Settings');
+    } else if (error.bizCode) {
+      const errorMsg = i18n.getMessage('errorCode' + error.bizCode) || error.message;
+      showError(errorMsg);
     } else {
-      showError(i18n.getMessage('networkError'));
+      showError(error.message || i18n.getMessage('networkError'));
     }
   } finally {
     setLoading(false);
