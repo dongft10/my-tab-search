@@ -19,7 +19,7 @@ export function getCacheTime() {
 
 const API_BASE_URLS = {
   dev: 'http://localhost:41532',
-  qa: 'https://habpbyhrqiik.ap-southeast-1.clawcloudrun.com',
+  qa: 'https://my-tab-search-backend.onrender.com',
   prod: 'https://mytabsearch.us.kg'
 };
 
@@ -29,7 +29,7 @@ export const API_CONFIG = {
   REQUEST: {
     MAX_RETRIES: 3,
     RETRY_DELAY: 1000,
-    TIMEOUT: 30000
+    TIMEOUT: 15000
   },
   ENDPOINTS: {
     AUTH: {
