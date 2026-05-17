@@ -997,7 +997,11 @@ async function handleLoginVerify() {
     }
   } catch (error) {
     console.error('Verify error:', error);
-    showLoginMessage(i18n.getMessage('loginFailed'), 'error');
+    const errorMsg = error.bizCode
+      ? (i18n.getMessage('errorCode' + error.bizCode) || error.message)
+      : (error.message || i18n.getMessage('loginFailed'));
+    showLoginMessage(errorMsg, 'error');
+  } finally {
     btnVerify.disabled = false;
     btnVerify.textContent = i18n.getMessage('verifyAndLogin');
   }

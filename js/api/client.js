@@ -74,9 +74,10 @@ class ApiClient {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+          const error = new Error(errorData.msg || errorData.message || `HTTP error! status: ${response.status}`);
           error.status = response.status;
           error.endpoint = endpoint;
+          error.bizCode = errorData.code;
           throw error;
         }
 
@@ -96,6 +97,11 @@ class ApiClient {
 
         if (error.status === 429) {
           console.info('[ApiClient] Rate limited, no retry');
+          throw error;
+        }
+
+        if (error.status >= 400 && error.status < 500) {
+          console.info(`[ApiClient] Client error ${error.status}, no retry`);
           throw error;
         }
 
