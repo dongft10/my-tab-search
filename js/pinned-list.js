@@ -12,6 +12,7 @@ import vipService from './services/vip.service.js';
 import syncQueueService from './services/sync-queue.service.js';
 // Import search match service
 import searchMatchService from './services/search-match.service.js';
+import { applyFaviconFallback, getFaviconURL as buildFaviconURL } from './utils/favicon.mjs';
 
 // DOM elements
 let pinnedTabList;
@@ -519,6 +520,7 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       const icon = document.createElement('img');
       icon.classList.add('li-icon');
       icon.src = getFaviconURL(tab.url);
+      applyFaviconFallback(icon);
       
       const listItemDiv = document.createElement('div');
       listItemDiv.classList.add('li-item');
@@ -960,10 +962,7 @@ async function closeTabAndRemoveFromPinnedList(tabId, tabUrl = null) {
 // 获取网站图标
 function getFaviconURL(url) {
   try {
-    const faviconUrl = new URL(chrome.runtime.getURL('/_favicon/'));
-    faviconUrl.searchParams.set('pageUrl', url);
-    faviconUrl.searchParams.set('size', '26');
-    return faviconUrl.toString();
+    return buildFaviconURL(url);
   } catch (error) {
     return '';
   }

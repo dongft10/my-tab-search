@@ -14,6 +14,7 @@ import authApi from './api/auth.js';
 import trialService from './services/trial.service.js';
 // Import search match service
 import searchMatchService from './services/search-match.service.js';
+import { applyFaviconFallback, getFaviconURL } from './utils/favicon.mjs';
 
 // 检查并上报设备活跃状态
 async function checkAndReportActive() {
@@ -360,6 +361,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const icon = document.createElement('img');
         icon.classList.add("li-icon");
         icon.src = faviconURL(tab.url);
+        applyFaviconFallback(icon);
 
         const listItemDiv = document.createElement("div");
         listItemDiv.classList.add("li-item");
@@ -534,10 +536,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function faviconURL(u) {
-    const url = new URL(chrome.runtime.getURL("/_favicon/"));
-    url.searchParams.set("pageUrl", u);
-    url.searchParams.set("size", "26");
-    return url.toString();
+    return getFaviconURL(u);
   }
 
   // 检查标签页是否已固定（同步版本，使用预构建的 pinnedMap）

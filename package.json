@@ -7,6 +7,7 @@
     "build": "node build.config.js --env=prod",
     "build:dev": "node build.config.js --env=dev",
     "build:qa": "node build.config.js --env=qa",
+    "test:favicon": "node tests/favicon-utils.test.mjs",
     "package": "node pack/scripts/build.js",
     "clean": "node pack/scripts/clean.js",
     "sync-version": "node pack/scripts/sync-version.js"
