@@ -123,7 +123,7 @@ function copySourceFiles(srcDir, destDir) {
       copySourceFiles(srcPath, destPath);
     } else if (stat.isFile() && !isExcludedFile) {
       // 只复制项目实际需要的文件
-      const allowedExtensions = ['.js', '.json', '.css', '.html', '.htm', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.txt', '.md'];
+      const allowedExtensions = ['.js', '.mjs', '.json', '.css', '.html', '.htm', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.txt', '.md'];
       const fileExt = path.extname(item).toLowerCase();
 
       // 如果文件扩展名在允许列表中，则复制
