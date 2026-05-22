@@ -18,7 +18,7 @@ class AuthService {
     };
     this.refreshThreshold = 5 * 24 * 60 * 60 * 1000;
     this._tokenRequestPromise = null;
-    this._errorCooldown = 30000;
+    this._errorCooldown = 10000;
   }
 
   async _getErrorCoolDownState() {
@@ -164,6 +164,7 @@ class AuthService {
         this.storageKey.accessToken,
         this.storageKey.registeredAt
       ]);
+      await this._clearErrorCoolDownState();
 
       console.log('Logout successful');
       return true;
@@ -174,6 +175,7 @@ class AuthService {
         this.storageKey.accessToken,
         this.storageKey.registeredAt
       ]);
+      await this._clearErrorCoolDownState();
       return false;
     }
   }
@@ -250,16 +252,30 @@ class AuthService {
   }
 
   async getAuthHeaders() {
-    const { accessToken } = await chrome.storage.local.get(this.storageKey.accessToken);
-    if (!accessToken) {
-      await this.getAccessToken();
-      const { accessToken: newToken } = await chrome.storage.local.get(this.storageKey.accessToken);
-      if (newToken) {
-        return { 'Authorization': `Bearer ${newToken}` };
+    const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
+      this.storageKey.accessToken,
+      this.storageKey.tokenExpiresAt
+    ]);
+
+    // token 存在且未过期，直接返回
+    if (accessToken && tokenExpiresAt) {
+      const expiresAt = new Date(tokenExpiresAt).getTime();
+      if (expiresAt > Date.now()) {
+        return { 'Authorization': `Bearer ${accessToken}` };
       }
-      return {};
     }
-    return { 'Authorization': `Bearer ${accessToken}` };
+
+    // token 不存在或已过期，尝试获取新 token
+    const newToken = await this.getAccessToken();
+    if (newToken) {
+      return { 'Authorization': `Bearer ${newToken}` };
+    }
+
+    // 获取失败，如果有旧 token 仍然返回（让服务端决定是否拒绝）
+    if (accessToken) {
+      return { 'Authorization': `Bearer ${accessToken}` };
+    }
+    return {};
   }
 
   async shouldRefreshToken() {
@@ -307,17 +323,7 @@ class AuthService {
   }
 
   async getValidAccessToken() {
-    if (await this._isInErrorCoolDown()) {
-      console.log('Token request in cooldown period, skipping');
-      return null;
-    }
-
-    const isVerified = await this.isEmailVerified();
-    if (!isVerified) {
-      console.log('User not verified, skipping token request');
-      return null;
-    }
-
+    // 优先检查存储中是否有有效的 token，不受冷却期阻断
     const { accessToken, tokenExpiresAt } = await chrome.storage.local.get([
       this.storageKey.accessToken,
       this.storageKey.tokenExpiresAt
@@ -329,7 +335,19 @@ class AuthService {
         return accessToken;
       }
     }
-    
+
+    // token 不存在或已过期，才检查冷却期
+    if (await this._isInErrorCoolDown()) {
+      console.log('Token request in cooldown period, skipping');
+      return null;
+    }
+
+    const isVerified = await this.isEmailVerified();
+    if (!isVerified) {
+      console.log('User not verified, skipping token request');
+      return null;
+    }
+
     try {
       if (accessToken) {
         const needsRefresh = await this.shouldRefreshToken();
@@ -343,9 +361,6 @@ class AuthService {
       }
       
       const newToken = await this.getAccessToken();
-      if (newToken) {
-        await this._clearErrorCoolDownState();
-      }
       return newToken;
     } catch (e) {
       console.error('Failed to get valid access token:', e);
