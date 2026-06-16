@@ -570,7 +570,7 @@ closeBtn.addEventListener('click', function (e) {
       unpinBtn.title = i18n.getMessage('unpinTab') || '取消固定标签页';
       unpinBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        removeFromPinnedList(tab.tabId);
+        removeFromPinnedList(tab.tabId, tab.url);
       });
       
       // 如果是长期固定的tab，隐藏取消固定按钮
