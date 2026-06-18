@@ -165,9 +165,12 @@ function showOAuthError(message) {
 async function handleOAuthCallback(provider, code) {
   try {
     const { default: authApi } = await import('../api/auth.js');
-    
+
+    // 从 sessionStorage 读取实际的 redirect_uri
+    const redirectUri = sessionStorage.getItem('oauth_redirect_uri') || '';
+
     // 发送 code 给后端换取 token
-    const response = await authApi.verifyOAuthCode(provider, code);
+    const response = await authApi.verifyOAuthCode(provider, code, redirectUri);
     
     if (response.code === 0 || response.data?.success) {
       const data = response.data;
@@ -440,24 +443,27 @@ async function handleOAuthGoogle() {
 
     const clientId = '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com';
     const redirectUri = chrome.identity.getRedirectURL();
-    
+
+    // 保存 redirectUri 到 sessionStorage，供回调使用
+    sessionStorage.setItem('oauth_redirect_uri', redirectUri);
+
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('redirect_uri', redirectUri);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', 'openid email profile');
     authUrl.searchParams.set('state', 'google');
-    
+
     const responseUrl = await chrome.identity.launchWebAuthFlow({
       url: authUrl.toString(),
       interactive: true
     });
-    
+
     if (responseUrl) {
       const url = new URL(responseUrl);
       const code = url.searchParams.get('code');
       const error = url.searchParams.get('error');
-      
+
       if (code) {
         // 跳转到带参数的页面处理回调
         window.location.href = `auth.html?provider=google&code=${code}`;
