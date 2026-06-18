@@ -121,7 +121,7 @@ function checkOAuthCallback() {
       showOAuthOverlay();
       
       // 处理 OAuth 回调
-      handleOAuthCallback(provider, code);
+      handleOAuthCallback(provider, code, decodeURIComponent(urlParams.get('redirect_uri') || ''));
       return;
     }
     
@@ -162,15 +162,12 @@ function showOAuthError(message) {
 }
 
 // 处理 OAuth 回调
-async function handleOAuthCallback(provider, code) {
+async function handleOAuthCallback(provider, code, redirectUri) {
   try {
     const { default: authApi } = await import('../api/auth.js');
 
-    // 从 sessionStorage 读取实际的 redirect_uri
-    const redirectUri = sessionStorage.getItem('oauth_redirect_uri') || '';
-
-    // 发送 code 给后端换取 token
-    const response = await authApi.verifyOAuthCode(provider, code, redirectUri);
+    // 发送 code 和实际的 redirect_uri 给后端换取 token
+    const response = await authApi.verifyOAuthCode(provider, code, redirectUri || '');
     
     if (response.code === 0 || response.data?.success) {
       const data = response.data;
@@ -444,9 +441,6 @@ async function handleOAuthGoogle() {
     const clientId = '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com';
     const redirectUri = chrome.identity.getRedirectURL();
 
-    // 保存 redirectUri 到 sessionStorage，供回调使用
-    sessionStorage.setItem('oauth_redirect_uri', redirectUri);
-
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('redirect_uri', redirectUri);
@@ -465,8 +459,8 @@ async function handleOAuthGoogle() {
       const error = url.searchParams.get('error');
 
       if (code) {
-        // 跳转到带参数的页面处理回调
-        window.location.href = `auth.html?provider=google&code=${code}`;
+        // 将 redirectUri 通过 URL 参数传递给回调（比 sessionStorage 更可靠）
+        window.location.href = `auth.html?provider=google&code=${code}&redirect_uri=${encodeURIComponent(redirectUri)}`;
       } else if (error) {
         showError(decodeURIComponent(error));
       }

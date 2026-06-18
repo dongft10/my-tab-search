@@ -22,7 +22,7 @@ console.log(`Building for environment: ${env}`);
 // 环境配置
 const API_BASE_URLS = {
   dev: 'http://localhost:41532',
-  qa: 'https://my-tab-search-backend.onrender.com',
+  qa: 'https://mts-backend-qa.vercel.app',
   prod: 'https://mytabsearch.us.kg'
 };
 
