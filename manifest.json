@@ -29,7 +29,7 @@
   "host_permissions": [
     "http://localhost:41532/*",
     "http://127.0.0.1:41532/*",
-    "https://my-tab-search-backend.onrender.com/*",
+    "https://mts-backend-qa.vercel.app/*",
     "https://mytabsearch.us.kg/*"
   ],
   "web_accessible_resources": [
