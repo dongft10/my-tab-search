@@ -251,6 +251,69 @@ async function runTests() {
     console.log(`  剩余: ${state.storage.pinnedTabs.map(t => t.url).join(', ')}\n`);
   }
 
+  // 测试7: URL 匹配优先级 - 同时传 tabId 和 url，以 url 为准
+  console.log('测试7: URL 匹配优先级 - 同时传 tabId 和 url');
+  {
+    const { chrome, state } = mockChromeAPI();
+    // tabId=999 不存在于列表中，但 url 可以匹配到
+    state.storage.pinnedTabs = [
+      { tabId: 100, url: 'https://www.target.com', title: 'Target', isLongTermPinned: false }
+    ];
+
+    const result = await removeFromPinnedListCore(999, 'https://www.target.com', chrome, mockConsole);
+
+    const passed = result.success && result.remainingCount === 0;
+    results.push({ name: '测试7-URL优先级', passed, result, expected: '以url匹配为准，忽略无效tabId' });
+    console.log(`  结果: ${passed ? '✓ 通过' : '✗ 失败'}`);
+    console.log(`  详情: success=${result.success}, remainingCount=${result.remainingCount}\n`);
+  }
+
+  // 测试8: 重复 URL - 两个 tab 相同 URL，按 URL 匹配会全部移除
+  console.log('测试8: 重复 URL - 按 URL 匹配移除全部同 URL tab');
+  {
+    const { chrome, state } = mockChromeAPI();
+    state.storage.pinnedTabs = [
+      { tabId: 100, url: 'https://www.same-url.com', title: 'Instance A', isLongTermPinned: false },
+      { tabId: 200, url: 'https://www.same-url.com', title: 'Instance B', isLongTermPinned: false },
+      { tabId: 300, url: 'https://www.other.com', title: 'Other', isLongTermPinned: false }
+    ];
+
+    // 按 url 匹配会移除所有相同 URL 的 tab
+    const result = await removeFromPinnedListCore(undefined, 'https://www.same-url.com', chrome, mockConsole);
+
+    const passed = result.success
+      && result.remainingCount === 1  // 两个 same-url 都被移除，只剩 Other
+      && !state.storage.pinnedTabs.some(t => t.url === 'https://www.same-url.com')  // 全部移除
+      && state.storage.pinnedTabs.some(t => t.url === 'https://www.other.com');       // Other 未被影响
+    results.push({ name: '测试8-重复URL', passed, result, expected: '按URL匹配移除所有同URL tab，保留其他' });
+    console.log(`  结果: ${passed ? '✓ 通过' : '✗ 失败'}`);
+    console.log(`  详情: success=${result.success}, remainingCount=${result.remainingCount}`);
+    console.log(`  剩余 URLs: ${state.storage.pinnedTabs.map(t => t.url).join(', ')}\n`);
+  }
+
+  // 测试9: URL 含特殊字符 - 确保 encodeURIComponent 不影响匹配
+  console.log('测试9: URL 含特殊字符 - 健壮性验证');
+  {
+    const { chrome, state } = mockChromeAPI();
+    const specialUrls = [
+      { tabId: undefined, url: 'https://example.com/path?query=value&key=123', title: 'Query', isLongTermPinned: false },
+      { tabId: undefined, url: 'https://example.com/path#section', title: 'Hash', isLongTermPinned: false },
+      { tabId: undefined, url: 'https://example.com/path%20with%20spaces', title: 'Encoded', isLongTermPinned: false },
+    ];
+    state.storage.pinnedTabs = [...specialUrls];
+
+    // 移除带 query string 的 tab
+    const result1 = await removeFromPinnedListCore(undefined, 'https://example.com/path?query=value&key=123', chrome, mockConsole);
+    const result2 = await removeFromPinnedListCore(undefined, 'https://example.com/path#section', chrome, mockConsole);
+    const result3 = await removeFromPinnedListCore(undefined, 'https://example.com/path%20with%20spaces', chrome, mockConsole);
+
+    const passed = result1.success && result2.success && result3.success
+      && state.storage.pinnedTabs.length === 0;
+    results.push({ name: '测试9-特殊字符URL', passed, result: { r1: result1.success, r2: result2.success, r3: result3.success }, expected: '所有特殊字符 URL 均可正确匹配并移除' });
+    console.log(`  结果: ${passed ? '✓ 通过' : '✗ 失败'}`);
+    console.log(`  详情: query=${result1.success}, hash=${result2.success}, encoded=${result3.success}, remaining=${state.storage.pinnedTabs.length}\n`);
+  }
+
   // 输出汇总
   console.log('========================================');
   console.log('测试汇总');
