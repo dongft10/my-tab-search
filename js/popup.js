@@ -14,6 +14,8 @@ import authApi from './api/auth.js';
 import trialService from './services/trial.service.js';
 // Import search match service
 import searchMatchService from './services/search-match.service.js';
+// Import pinyin utility for Chinese character conversion
+import { isPureEnglish, toPinyin, toPinyinPerChar } from './pinyin-util.js';
 import { applyFaviconFallback, getFaviconURL } from './utils/favicon.mjs';
 
 // 检查并上报设备活跃状态
@@ -212,6 +214,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     return result;
   }
 
+  // 拼音感知高亮：当拼音回退匹配成功时，反向映射中文字符进行高亮
+  // @param text - 原始文本（含中文）
+  // @param keywords - 英文字关键字数组
+  function highlightPinyinMatches(text, keywords) {
+    if (!keywords || keywords.length === 0) {
+      return text;
+    }
+
+    // 逐字获取拼音映射
+    const charMap = toPinyinPerChar(text);
+
+    // 构建全拼音字符串并记录每个字符的位置范围
+    let pinyinStr = '';
+    const ranges = []; // [{charIndex, start, end}]
+    for (let i = 0; i < charMap.length; i++) {
+      const start = pinyinStr.length;
+      pinyinStr += charMap[i].pinyin;
+      const end = pinyinStr.length;
+      ranges.push({ charIndex: i, start, end });
+    }
+
+    const lowerPinyinStr = pinyinStr.toLowerCase();
+    const matched = new Array(text.length).fill(false);
+
+    // 每个关键字在拼音串中查找，命中区间对应的汉字标记为需高亮
+    keywords.forEach(keyword => {
+      const lowerKw = keyword.toLowerCase();
+      let pos = 0;
+      while (pos < lowerPinyinStr.length) {
+        const idx = lowerPinyinStr.indexOf(lowerKw, pos);
+        if (idx === -1) break;
+        const matchEnd = idx + lowerKw.length;
+        for (const range of ranges) {
+          // 字符的拼音区间与匹配区间有交集 → 高亮该字符
+          if (range.start < matchEnd && range.end > idx) {
+            matched[range.charIndex] = true;
+          }
+        }
+        pos = idx + 1; // 继续查找后续匹配
+      }
+    });
+
+    // 构建高亮 HTML
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      if (matched[i]) {
+        result += `<span class="highlight">${text[i]}</span>`;
+      } else {
+        result += text[i];
+      }
+    }
+    return result;
+  }
+
   // 计算匹配度分数
   // 考虑因素：完整单词匹配、连续字符匹配、匹配数量、匹配位置
   function calculateMatchScore(text, keywords) {
@@ -319,6 +375,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const searchMatchMode = await searchMatchService.getSearchMatchMode();
     
     let filteredTabs;
+    // 标记是否使用了拼音回退匹配（用于高亮逻辑切换）
+    let usedPinyinFallback = false;
 
     // 按空格分割查询字符串，得到多个关键字
     const keywords = query.split(/\s+/).filter(kw => kw.length > 0);
@@ -343,6 +401,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         const scoreB = calculateMatchScore(b.title, keywords);
         return scoreB - scoreA;
       });
+
+      // --- 拼音回退逻辑 ---
+      // 当正常匹配结果为 0，且搜索输入是纯英文字符串时，
+      // 将所有标签页标题中的汉字转为拼音，再用模式2（子序列匹配）进行二次匹配
+      if (filteredTabs.length === 0 && isPureEnglish(query)) {
+        usedPinyinFallback = true;
+
+        filteredTabs = tabs.filter((tab) => {
+          // 将标题中的汉字转为拼音（保留英文、数字等非汉字字符）
+          const pinyinTitle = toPinyin(tab.title);
+          
+          // 使用模式2（子序列匹配）进行拼音匹配
+          return keywords.every(keyword => {
+            return searchMatchService.matchSync(keyword, pinyinTitle, '2');
+          });
+        });
+
+        // 拼音匹配结果按原标题计算匹配度并排序
+        filteredTabs.sort((a, b) => {
+          const scoreA = calculateMatchScore(a.title, keywords);
+          const scoreB = calculateMatchScore(b.title, keywords);
+          return scoreB - scoreA;
+        });
+      }
     }
 
     tabList.innerHTML = "";
@@ -372,7 +454,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // 高亮匹配的字符
         if (keywords.length > 0) {
-          titleDiv.innerHTML = highlightMatches(tab.title, keywords, searchMatchMode);
+          if (usedPinyinFallback) {
+            // 拼音回退模式：反向映射拼音命中到汉字，高亮对应的中文原始字符
+            titleDiv.innerHTML = highlightPinyinMatches(tab.title, keywords);
+          } else {
+            titleDiv.innerHTML = highlightMatches(tab.title, keywords, searchMatchMode);
+          }
         } else {
           titleDiv.textContent = tab.title;
         }

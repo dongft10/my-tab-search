@@ -12,6 +12,8 @@ import vipService from './services/vip.service.js';
 import syncQueueService from './services/sync-queue.service.js';
 // Import search match service
 import searchMatchService from './services/search-match.service.js';
+// Import pinyin utility for Chinese character conversion
+import { isPureEnglish, toPinyin, toPinyinPerChar } from './pinyin-util.js';
 import { applyFaviconFallback, getFaviconURL as buildFaviconURL } from './utils/favicon.mjs';
 
 // DOM elements
@@ -340,6 +342,7 @@ async function loadPinnedTabs(targetTabId = null) {
     const searchMatchMode = await searchMatchService.getSearchMatchMode();
     
     // 如果有搜索关键字，对标签页进行过滤
+    let usedPinyinFallback = false;
     if (keywords.length > 0) {
       // 根据当前搜索匹配模式过滤标题
       pinnedTabs = pinnedTabs.filter((tab) => {
@@ -356,9 +359,29 @@ async function loadPinnedTabs(targetTabId = null) {
         const scoreB = calculateMatchScore(b.title, keywords);
         return scoreB - scoreA;
       });
+
+      // --- 拼音回退逻辑 ---
+      if (pinnedTabs.length === 0 && isPureEnglish(query)) {
+        usedPinyinFallback = true;
+
+        // 重新加载完整列表用于拼音搜索
+        const allTabs = result.pinnedTabs || [];
+        pinnedTabs = allTabs.filter((tab) => {
+          const pinyinTitle = toPinyin(tab.title || '');
+          return keywords.every(keyword => {
+            return searchMatchService.matchSync(keyword, pinyinTitle, '2');
+          });
+        });
+
+        pinnedTabs.sort((a, b) => {
+          const scoreA = calculateMatchScore(a.title, keywords);
+          const scoreB = calculateMatchScore(b.title, keywords);
+          return scoreB - scoreA;
+        });
+      }
     }
     
-    renderPinnedTabs(pinnedTabs, targetTabId, keywords, searchMatchMode);
+    renderPinnedTabs(pinnedTabs, targetTabId, keywords, searchMatchMode, usedPinyinFallback);
   } catch (error) {
     console.error('Error loading pinned tabs:', error);
     renderEmptyState();
@@ -482,12 +505,66 @@ function highlightMatches(text, keywords, matchMode = '1') {
   return result;
 }
 
+// 拼音感知高亮：当拼音回退匹配成功时，反向映射中文字符进行高亮
+// @param text - 原始文本（含中文）
+// @param keywords - 英文字关键字数组
+function highlightPinyinMatches(text, keywords) {
+  if (!keywords || keywords.length === 0 || !text) {
+    return text;
+  }
+
+  // 逐字获取拼音映射
+  const charMap = toPinyinPerChar(text);
+
+  // 构建全拼音字符串并记录每个字符的位置范围
+  let pinyinStr = '';
+  const ranges = []; // [{charIndex, start, end}]
+  for (let i = 0; i < charMap.length; i++) {
+    const start = pinyinStr.length;
+    pinyinStr += charMap[i].pinyin;
+    const end = pinyinStr.length;
+    ranges.push({ charIndex: i, start, end });
+  }
+
+  const lowerPinyinStr = pinyinStr.toLowerCase();
+  const matched = new Array(text.length).fill(false);
+
+  // 每个关键字在拼音串中查找，命中区间对应的汉字标记为需高亮
+  keywords.forEach(keyword => {
+    const lowerKw = keyword.toLowerCase();
+    let pos = 0;
+    while (pos < lowerPinyinStr.length) {
+      const idx = lowerPinyinStr.indexOf(lowerKw, pos);
+      if (idx === -1) break;
+      const matchEnd = idx + lowerKw.length;
+      for (const range of ranges) {
+        if (range.start < matchEnd && range.end > idx) {
+          matched[range.charIndex] = true;
+        }
+      }
+      pos = idx + 1;
+    }
+  });
+
+  // 构建高亮 HTML
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    if (matched[i]) {
+      result += `<span class="highlight">${text[i]}</span>`;
+    } else {
+      result += text[i];
+    }
+  }
+  return result;
+}
+
 // 渲染固定标签页
 // @param pinnedTabs 固定标签页列表
 // @param targetTabId 可选，指定要滚动到的标签页ID
 // @param keywords 可选，搜索关键字用于高亮
 // @param matchMode 可选，搜索匹配模式
-function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMode = '1') {
+// @param usedPinyinFallback 可选，是否使用了拼音回退（用于切换高亮逻辑）
+function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMode = '1', usedPinyinFallback = false) {
   pinnedTabList.innerHTML = '';
   
   // 更新数量显示
@@ -528,7 +605,11 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       // 标题和 URL
       const titleDiv = document.createElement('div');
       titleDiv.classList.add('tab-title');
-      titleDiv.innerHTML = highlightMatches(tab.title, keywords, matchMode);
+      if (usedPinyinFallback) {
+        titleDiv.innerHTML = highlightPinyinMatches(tab.title, keywords);
+      } else {
+        titleDiv.innerHTML = highlightMatches(tab.title, keywords, matchMode);
+      }
       
       const urlHostNameDiv = document.createElement('div');
       urlHostNameDiv.classList.add('tab-url-hostname');
