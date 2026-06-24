@@ -58,6 +58,8 @@ function toggleTheme() {
 initTheme();
 
 let slideIndex = 1;
+let lightboxIndex = 1;
+let lightboxScale = 1;
 
 function resetSlideInterval() {
     clearInterval(slideInterval);
@@ -101,6 +103,72 @@ function showSlides(n) {
     }
 }
 
+function openLightbox(index) {
+    lightboxIndex = index;
+    lightboxScale = 1;
+    updateLightboxImage();
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox) {
+        lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox) {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    lightboxScale = 1;
+}
+
+function updateLightboxImage() {
+    const slides = document.querySelectorAll('.carousel-slide img');
+    const lightboxImg = document.querySelector('.lightbox-image');
+    const counter = document.querySelector('.lightbox-counter');
+    
+    if (!slides.length || !lightboxImg) return;
+    
+    const targetIndex = lightboxIndex - 1;
+    if (targetIndex >= 0 && targetIndex < slides.length) {
+        lightboxImg.src = slides[targetIndex].src;
+        lightboxImg.alt = slides[targetIndex].alt;
+        lightboxImg.style.transform = `scale(${lightboxScale})`;
+        if (counter) {
+            counter.textContent = `${lightboxIndex} / ${slides.length}`;
+        }
+    }
+}
+
+function lightboxNavigate(direction) {
+    const slides = document.querySelectorAll('.carousel-slide');
+    const totalSlides = slides.length;
+    
+    if (totalSlides === 0) return;
+    
+    lightboxIndex += direction;
+    
+    if (lightboxIndex < 1) {
+        lightboxIndex = totalSlides;
+    } else if (lightboxIndex > totalSlides) {
+        lightboxIndex = 1;
+    }
+    
+    lightboxScale = 1;
+    updateLightboxImage();
+}
+
+function lightboxZoom(delta) {
+    lightboxScale += delta * 0.1;
+    lightboxScale = Math.max(0.5, Math.min(2, lightboxScale));
+    
+    const lightboxImg = document.querySelector('.lightbox-image');
+    if (lightboxImg) {
+        lightboxImg.style.transform = `scale(${lightboxScale})`;
+    }
+}
+
 function bindEventListeners() {
     const themeToggle = document.querySelector('.theme-toggle');
     if (themeToggle) {
@@ -120,6 +188,64 @@ function bindEventListeners() {
     const indicators = document.querySelectorAll('.carousel-indicators .indicator');
     indicators.forEach((indicator, index) => {
         indicator.addEventListener('click', () => currentSlide(index + 1));
+    });
+
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox) {
+        const lightboxOverlay = document.querySelector('.lightbox-overlay');
+        if (lightboxOverlay) {
+            lightboxOverlay.addEventListener('click', closeLightbox);
+        }
+
+        const lightboxClose = document.querySelector('.lightbox-close');
+        if (lightboxClose) {
+            lightboxClose.addEventListener('click', closeLightbox);
+        }
+
+        const lightboxPrev = document.querySelector('.lightbox-prev');
+        if (lightboxPrev) {
+            lightboxPrev.addEventListener('click', () => lightboxNavigate(-1));
+        }
+
+        const lightboxNext = document.querySelector('.lightbox-next');
+        if (lightboxNext) {
+            lightboxNext.addEventListener('click', () => lightboxNavigate(1));
+        }
+
+        const lightboxImageContainer = document.querySelector('.lightbox-image-container');
+        if (lightboxImageContainer) {
+            lightboxImageContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -1 : 1;
+                lightboxZoom(delta);
+            });
+            lightboxImageContainer.addEventListener('click', closeLightbox);
+        }
+    }
+
+    const carouselSlides = document.querySelectorAll('.carousel-slide img');
+    carouselSlides.forEach((img, index) => {
+        img.addEventListener('click', () => {
+            openLightbox(index + 1);
+        });
+        img.style.cursor = 'pointer';
+    });
+
+    document.addEventListener('keydown', (e) => {
+        const lightbox = document.getElementById('lightbox');
+        if (!lightbox || !lightbox.classList.contains('active')) return;
+        
+        switch (e.key) {
+            case 'Escape':
+                closeLightbox();
+                break;
+            case 'ArrowLeft':
+                lightboxNavigate(-1);
+                break;
+            case 'ArrowRight':
+                lightboxNavigate(1);
+                break;
+        }
     });
 
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
