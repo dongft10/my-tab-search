@@ -1032,7 +1032,6 @@ async function requestIdentityPermission() {
 
 // 登录弹窗 - OAuth 登录
 async function handleLoginOAuth(provider) {
-  alert(`[DEBUG] handleLoginOAuth called, provider=${provider}, extId=${chrome.runtime.id}`);
   if (provider === 'microsoft') {
     showLoginMessage(i18n.getMessage('microsoftLoginDeveloping'), 'info');
     return;
@@ -1046,19 +1045,12 @@ async function handleLoginOAuth(provider) {
     }
 
     const clientId = getGoogleOAuthClientId();
-    alert(`[DEBUG] clientId=${clientId}, extId=${chrome.runtime.id}`);
     if (!clientId) {
       showLoginMessage('Google 登录配置错误，请联系开发者', 'error');
       return;
     }
 
-    const redirectUri = chrome.identity.getRedirectURL().replace(/\/$/, '');
-    alert(`[DEBUG] redirectUri=${redirectUri}`);
-
-    // OAuth 调试日志
-    console.log('[OAuth Debug] extension_id:', chrome.runtime.id);
-    console.log('[OAuth Debug] client_id:', clientId);
-    console.log('[OAuth Debug] redirect_uri:', redirectUri);
+    const redirectUri = chrome.identity.getRedirectURL();
 
     let authUrl;
     if (provider === 'google') {

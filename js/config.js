@@ -27,9 +27,6 @@ const GOOGLE_OAUTH_CLIENT_IDS = {
 export function getGoogleOAuthClientId() {
   const extensionId = chrome.runtime.id;
   const clientId = GOOGLE_OAUTH_CLIENT_IDS[extensionId];
-  console.log('[OAuth Config] extension_id:', extensionId);
-  console.log('[OAuth Config] 已注册的映射:', Object.keys(GOOGLE_OAUTH_CLIENT_IDS));
-  console.log('[OAuth Config] 匹配结果:', clientId || '未命中!');
   if (!clientId) {
     console.error(`[OAuth] 未配置扩展 ID "${extensionId}" 对应的 Google Client ID，请更新 config.js`);
   }

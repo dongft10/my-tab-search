@@ -444,8 +444,7 @@ async function handleOAuthGoogle() {
       showError('Google 登录配置错误，请联系开发者');
       return;
     }
-    // GCP 要求重定向 URI 不能以 / 结尾，但 chrome.identity.getRedirectURL() 固定返回带 / 的值
-    const redirectUri = chrome.identity.getRedirectURL().replace(/\/$/, '');
+    const redirectUri = chrome.identity.getRedirectURL();
 
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);
