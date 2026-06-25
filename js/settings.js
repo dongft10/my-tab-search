@@ -1046,12 +1046,14 @@ async function handleLoginOAuth(provider) {
     }
 
     const clientId = getGoogleOAuthClientId();
+    alert(`[DEBUG] clientId=${clientId}, extId=${chrome.runtime.id}`);
     if (!clientId) {
       showLoginMessage('Google 登录配置错误，请联系开发者', 'error');
       return;
     }
 
     const redirectUri = chrome.identity.getRedirectURL().replace(/\/$/, '');
+    alert(`[DEBUG] redirectUri=${redirectUri}`);
 
     // OAuth 调试日志
     console.log('[OAuth Debug] extension_id:', chrome.runtime.id);
