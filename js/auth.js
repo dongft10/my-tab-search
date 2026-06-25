@@ -6,7 +6,6 @@
 import authApi from './api/auth.js';
 import authService from './services/auth.service.js';
 import i18n from './i18n.js';
-import { getGoogleOAuthClientId } from './config.js';
 
 // 状态管理
 const state = {
@@ -26,8 +25,6 @@ const elements = {
   btnSendEmail: document.getElementById('btn-send-email'),
   btnSendCode: document.getElementById('btn-send-code'),
   btnVerify: document.getElementById('btn-verify'),
-  btnGoogle: document.getElementById('btn-google'),
-  btnMicrosoft: document.getElementById('btn-microsoft'),
   authTip: document.getElementById('auth-tip'),
   authStatus: document.getElementById('auth-status')
 };
@@ -61,13 +58,6 @@ async function init() {
   }).catch(err => {
     console.error('i18n init error:', err);
   });
-
-  // 检查是否是 OAuth 回调（非阻塞）
-  try {
-    checkOAuthCallback();
-  } catch (err) {
-    console.error('OAuth callback check error:', err);
-  }
 
   bindEvents();
 }
@@ -106,111 +96,6 @@ function resetState() {
   }
 }
 
-// 检查是否是 OAuth 回调
-function checkOAuthCallback() {
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    
-    // 检查 URL 中是否有 OAuth 参数
-    const code = urlParams.get('code') || hashParams.get('code');
-    const provider = urlParams.get('provider') || hashParams.get('provider');
-    const error = urlParams.get('error') || hashParams.get('error');
-    
-    if (code && provider) {
-      // 显示加载遮罩
-      showOAuthOverlay();
-      
-      // 处理 OAuth 回调
-      handleOAuthCallback(provider, code, decodeURIComponent(urlParams.get('redirect_uri') || ''));
-      return;
-    }
-    
-    if (error) {
-      showOAuthOverlay();
-      showOAuthError(decodeURIComponent(error));
-      return;
-    }
-  } catch (err) {
-    console.error('checkOAuthCallback error:', err);
-  }
-}
-
-// 显示 OAuth 处理遮罩
-function showOAuthOverlay() {
-  const overlay = document.getElementById('oauth-callback-overlay');
-  const main = document.getElementById('auth-main');
-  if (overlay) overlay.style.display = 'flex';
-  if (main) main.style.display = 'none';
-}
-
-// 显示 OAuth 错误
-function showOAuthError(message) {
-  const overlay = document.getElementById('oauth-callback-overlay');
-  if (overlay) {
-    const content = overlay.querySelector('.oauth-callback-content');
-    if (content) {
-      content.innerHTML = `
-        <div class="spinner" style="border-top-color: #ea4335;"></div>
-        <p class="error">${message || '授权失败，请重试'}</p>
-        <p style="margin-top: 16px;">
-          <a href="auth.html" style="color: #4285f4; text-decoration: none;">返回登录</a>
-        </p>
-      `;
-    }
-    overlay.style.display = 'flex';
-  }
-}
-
-// 处理 OAuth 回调
-async function handleOAuthCallback(provider, code, redirectUri) {
-  try {
-    const { default: authApi } = await import('../api/auth.js');
-
-    // 发送 code 和实际的 redirect_uri 给后端换取 token
-    const response = await authApi.verifyOAuthCode(provider, code, redirectUri || '');
-    
-    if (response.code === 0 || response.data?.success) {
-      const data = response.data;
-      
-      // 保存用户信息
-      const { default: authService } = await import('../services/auth.service.js');
-      await authService.saveUserInfo({
-        userId: data.userId,
-        deviceId: data.deviceId || data.userId,
-        accessToken: data.accessToken,
-        registeredAt: new Date().toISOString()
-      });
-      
-      // 显示成功
-      const overlay = document.getElementById('oauth-callback-overlay');
-      if (overlay) {
-        const content = overlay.querySelector('.oauth-callback-content');
-        if (content) {
-          content.innerHTML = `
-            <div class="spinner" style="border-top-color: #34a853;"></div>
-            <p class="success">登录成功！正在跳转...</p>
-          `;
-        }
-      }
-      
-      // 通知扩展并关闭
-      setTimeout(() => {
-        chrome.runtime.sendMessage({
-          action: 'AUTH_SUCCESS',
-          data: data
-        });
-        window.close();
-      }, 1500);
-    } else {
-      showOAuthError(response.msg || '登录失败');
-    }
-  } catch (error) {
-    console.error('OAuth callback error:', error);
-    showOAuthError('网络错误，请重试');
-  }
-}
-
 // 绑定事件
 function bindEvents() {
   // 邮箱输入
@@ -225,10 +110,6 @@ function bindEvents() {
   elements.btnSendEmail.addEventListener('click', handleSendEmail);
   elements.btnSendCode.addEventListener('click', handleSendCode);
   elements.btnVerify.addEventListener('click', handleVerify);
-  
-  // OAuth 按钮
-  elements.btnGoogle.addEventListener('click', handleOAuthGoogle);
-  elements.btnMicrosoft.addEventListener('click', handleOAuthMicrosoft);
 }
 
 // 处理邮箱输入
@@ -406,79 +287,6 @@ async function handleVerify() {
     setLoading(false);
     elements.btnVerify.disabled = false;
   }
-}
-
-// 请求 identity 权限
-async function requestIdentityPermission() {
-  try {
-    const hasPermission = await chrome.permissions.contains({
-      permissions: ['identity']
-    });
-    
-    if (hasPermission) {
-      return true;
-    }
-    
-    const granted = await chrome.permissions.request({
-      permissions: ['identity']
-    });
-    
-    return granted;
-  } catch (error) {
-    console.error('Request identity permission error:', error);
-    return false;
-  }
-}
-
-// OAuth 登录 - Google
-async function handleOAuthGoogle() {
-  try {
-    const granted = await requestIdentityPermission();
-    if (!granted) {
-      showError(i18n.getMessage('oauthPermissionDenied'));
-      return;
-    }
-
-    const clientId = getGoogleOAuthClientId();
-    if (!clientId) {
-      showError('Google 登录配置错误，请联系开发者');
-      return;
-    }
-    const redirectUri = chrome.identity.getRedirectURL();
-
-    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-    authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', 'openid email profile');
-    authUrl.searchParams.set('state', 'google');
-
-    const responseUrl = await chrome.identity.launchWebAuthFlow({
-      url: authUrl.toString(),
-      interactive: true
-    });
-
-    if (responseUrl) {
-      const url = new URL(responseUrl);
-      const code = url.searchParams.get('code');
-      const error = url.searchParams.get('error');
-
-      if (code) {
-        // 将 redirectUri 通过 URL 参数传递给回调（比 sessionStorage 更可靠）
-        window.location.href = `auth.html?provider=google&code=${code}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-      } else if (error) {
-        showError(decodeURIComponent(error));
-      }
-    }
-  } catch (error) {
-    console.error('Google OAuth error:', error);
-    showError('授权失败，请重试');
-  }
-}
-
-// OAuth 登录 - Microsoft
-async function handleOAuthMicrosoft() {
-  showError(i18n.getMessage('microsoftLoginDeveloping'));
 }
 
 // 显示验证码输入区域
