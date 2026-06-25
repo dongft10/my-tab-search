@@ -1,4 +1,4 @@
-﻿// Import i18n manager
+// Import i18n manager
 import i18n from './i18n.js';
 // Import feature limit service
 import featureLimitService from './services/feature-limit.service.js';
@@ -135,9 +135,11 @@ function bindEvents() {
     });
   }
   
-  // 窗口失去焦点时关闭窗口
+  // 窗口失去焦点时延迟关闭，给 pending 的异步操作留出完成时间
   window.addEventListener('blur', () => {
-    window.close();
+    setTimeout(() => {
+      window.close();
+    }, 300);
   });
   
   // 设置按钮
@@ -932,6 +934,7 @@ async function switchToTab(tabOrId, event) {
 // @param tabUrl - 标签页URL（作为备选标识）
 async function removeFromPinnedList(tabId, tabUrl = null) {
   try {
+    // 读取最新数据后立即修改并写回，最小化竞态窗口
     const result = await chrome.storage.local.get('pinnedTabs');
     let pinnedTabs = result.pinnedTabs || [];
     
@@ -958,11 +961,6 @@ async function removeFromPinnedList(tabId, tabUrl = null) {
     
     // 保存到存储
     await chrome.storage.local.set({ pinnedTabs });
-    
-    // 只有长期固定标签页的变化才同步到服务器
-    if (targetTab && targetTab.isLongTermPinned) {
-      syncQueueService.addOperation('unpinTab', { tabId: targetTab.tabId, url: targetTab.url }).catch(err => console.info('Sync unpinTab failed:', err));
-    }
     
     // 确定要滚动到的标签页ID
     // 优先选择下一个标签页，如果没有则选择上一个
@@ -1191,6 +1189,10 @@ async function handleLongTermPinnedClick(tabId, isCurrentlyLongTermPinned, tab) 
 // 设置长期固定Tab
 async function setLongTermPinned(tabId, tab) {
   try {
+    // 先执行同步操作，再读取storage，最小化竞态窗口
+    const timestamp = new Date().toISOString();
+    
+    // 读取最新数据后立即修改并写回
     const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
     
@@ -1201,7 +1203,7 @@ async function setLongTermPinned(tabId, tab) {
         return {
           ...t,
           isLongTermPinned: true,
-          longTermPinnedAt: new Date().toISOString()
+          longTermPinnedAt: timestamp
         };
       }
       return t;
@@ -1216,7 +1218,7 @@ async function setLongTermPinned(tabId, tab) {
         tabId: tabId || 'url:' + syncUrl,
         url: syncUrl,
         isLongTermPinned: true,
-        longTermPinnedAt: new Date().toISOString()
+        longTermPinnedAt: timestamp
       }).catch(err => console.info('Sync updateTab failed:', err));
     }
     
@@ -1233,6 +1235,7 @@ async function setLongTermPinned(tabId, tab) {
 // 取消长期固定Tab
 async function cancelLongTermPinned(tabId, tab) {
   try {
+    // 读取最新数据后立即修改并写回，最小化竞态窗口
     const result = await chrome.storage.local.get('pinnedTabs');
     const tabs = result.pinnedTabs || [];
     

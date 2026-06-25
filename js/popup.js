@@ -660,10 +660,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 添加标签页到固定列表
   async function pinTab(tab) {
     try {
+      // ❶ 先完成所有业务逻辑检查（不涉及 pinnedTabs），避免读-改-写竞态
+      const isEmailVerified = await authService.isEmailVerified();
+      
+      let limit = 5; // 默认静默用户限制
+      if (isEmailVerified) {
+        try {
+          limit = await featureLimitService.getFeatureLimit('pinnedTabs', false, true);
+        } catch (e) {
+          console.info('[pinTab] Failed to get feature limit, using default 100');
+          limit = 100;
+        }
+      }
+
+      // ❷ 写入前一刻再读取最新数据，最小化竞态窗口
       const result = await new Promise((resolve) => {
         chrome.storage.local.get('pinnedTabs', resolve);
       });
       let pinnedTabs = result.pinnedTabs || [];
+
+      // ❸ 基于最新数据做检查
 
       // 检查是否已固定（通过 tabId）
       if (pinnedTabs.some(t => t.tabId === tab.id)) {
@@ -700,23 +716,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return { success: true, message: '已重新固定' };
       }
 
-      // 检查用户是否已完成邮箱验证或OAuth登录
-      const isEmailVerified = await authService.isEmailVerified();
-      
-      // 检查容量限制
-      // 静默注册用户（未完成邮箱验证）：限制5个
-      // 已完成注册用户（体验期/VIP）：限制100个
-      let limit = 5; // 默认静默用户限制
-      if (isEmailVerified) {
-        // 已完成注册用户，使用乐观模式获取限制（服务器异常时使用本地缓存）
-        try {
-          limit = await featureLimitService.getFeatureLimit('pinnedTabs', false, true);
-        } catch (e) {
-          console.info('[pinTab] Failed to get feature limit, using default 100');
-          limit = 100;
-        }
-      }
-      
+      // 容量检查（基于最新数据）
       if (pinnedTabs.length >= limit) {
         let message;
         if (!isEmailVerified) {
@@ -746,7 +746,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return { success: false, message };
       }
 
-      // 添加到固定列表
+      // ❹ 添加到固定列表并立即写入（最小化竞态窗口）
       pinnedTabs.push({
         tabId: tab.id,
         title: tab.title,
@@ -760,14 +760,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       await new Promise((resolve) => {
         chrome.storage.local.set({ pinnedTabs }, resolve);
       });
-
-      // 异步同步到服务器（不阻塞用户操作）
-      syncQueueService.addOperation('pinTab', {
-        tabId: tab.id,
-        title: tab.title,
-        url: tab.url,
-        icon: faviconURL(tab.url)
-      }).catch(err => console.info('Sync pinTab failed:', err));
 
       return { success: true, message: '固定成功' };
     } catch (error) {
@@ -798,11 +790,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       await new Promise((resolve) => {
         chrome.storage.local.set({ pinnedTabs }, resolve);
       });
-
-      // 异步同步到服务器（不阻塞用户操作）
-      syncQueueService.addOperation('unpinTab', {
-        tabId: tabId
-      }).catch(err => console.info('Sync unpinTab failed:', err));
 
       return { success: true, message: '取消固定成功' };
     } catch (error) {
