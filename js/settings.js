@@ -1115,6 +1115,7 @@ async function handleLoginOAuthToken(provider, accessToken) {
 
     if (userInfo && userInfo.email) {
       const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo);
+      alert(`[DEBUG] response=${JSON.stringify(response)}`);
 
       if (response.code === 0 || response.data?.success) {
         const data = response.data;
