@@ -439,7 +439,8 @@ async function handleOAuthGoogle() {
     }
 
     const clientId = '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com';
-    const redirectUri = chrome.identity.getRedirectURL();
+    // GCP 要求重定向 URI 不能以 / 结尾，但 chrome.identity.getRedirectURL() 固定返回带 / 的值
+    const redirectUri = chrome.identity.getRedirectURL().replace(/\/$/, '');
 
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);

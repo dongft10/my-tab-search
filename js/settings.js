@@ -1047,7 +1047,7 @@ async function handleLoginOAuth(provider) {
       ? '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'
       : 'YOUR_MICROSOFT_CLIENT_ID';
 
-    const redirectUri = chrome.identity.getRedirectURL();
+    const redirectUri = chrome.identity.getRedirectURL().replace(/\/$/, '');
 
     let authUrl;
     if (provider === 'google') {
