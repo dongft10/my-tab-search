@@ -1047,24 +1047,21 @@ async function handleLoginOAuth(provider) {
       ? '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'
       : 'YOUR_MICROSOFT_CLIENT_ID';
 
-    const extensionId = chrome.runtime.id;
-    const redirectBase = `https://${extensionId}.chromiumapp.org`;
-    const redirectUri = `${redirectBase}/${provider}`;
+    const redirectUri = chrome.identity.getRedirectURL();
 
     let authUrl;
     if (provider === 'google') {
       authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       authUrl.searchParams.set('client_id', clientId);
       authUrl.searchParams.set('redirect_uri', redirectUri);
-      authUrl.searchParams.set('response_type', 'token');
+      authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('scope', 'openid email profile');
       authUrl.searchParams.set('state', 'google');
-      authUrl.searchParams.set('access_type', 'online');
     } else {
       authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
       authUrl.searchParams.set('client_id', clientId);
       authUrl.searchParams.set('redirect_uri', redirectUri);
-      authUrl.searchParams.set('response_type', 'token');
+      authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('scope', 'openid email profile User.read');
       authUrl.searchParams.set('state', 'microsoft');
     }
@@ -1078,16 +1075,15 @@ async function handleLoginOAuth(provider) {
 
     if (responseUrl) {
       const url = new URL(responseUrl);
-      const hashParams = new URLSearchParams(url.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
+      const code = url.searchParams.get('code');
       const error = url.searchParams.get('error');
 
-      if (accessToken) {
-        await handleLoginOAuthToken(provider, accessToken);
+      if (code) {
+        await handleLoginOAuthCode(provider, code, redirectUri);
       } else if (error) {
         showLoginMessage(decodeURIComponent(error), 'error');
       } else {
-        showLoginMessage('未收到授权令牌', 'error');
+        showLoginMessage('未收到授权码', 'error');
       }
     }
   } catch (error) {
@@ -1096,7 +1092,7 @@ async function handleLoginOAuth(provider) {
   }
 }
 
-async function handleLoginOAuthToken(provider, accessToken) {
+async function handleLoginOAuthCode(provider, code, redirectUri) {
   try {
     showLoginMessage('处理中...', 'info');
 
@@ -1104,59 +1100,46 @@ async function handleLoginOAuthToken(provider, accessToken) {
     const { default: authService } = await import('./services/auth.service.js');
     const { default: featureLimitService } = await import('./services/feature-limit.service.js');
 
-    let userInfo;
-    if (provider === 'google') {
-      const resp = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      userInfo = await resp.json();
-    }
+    const response = await authApi.verifyOAuthCode(provider, code, redirectUri);
 
-    if (userInfo && userInfo.email) {
-      // 发送 OAuth 登录请求
-      const response = await authApi.verifyOAuthToken(provider, accessToken, userInfo);
+    if (response.code === 0 || response.data?.success) {
+      const data = response.data;
 
-      if (response.code === 0 || response.data?.success) {
-        const data = response.data;
+      const storageData = {
+        [authService.storageKey.userId]: data.userId,
+        [authService.storageKey.accessToken]: data.accessToken,
+        [authService.storageKey.tokenExpiresAt]: data.expiresAt,
+        [authService.storageKey.registeredAt]: new Date().toISOString()
+      };
 
-        const storageData = {
-          [authService.storageKey.userId]: data.userId,
-          [authService.storageKey.accessToken]: data.accessToken,
-          [authService.storageKey.tokenExpiresAt]: data.expiresAt,
-          [authService.storageKey.registeredAt]: new Date().toISOString()
-        };
-
-        if (data.deviceId) {
-          storageData[authService.storageKey.deviceId] = data.deviceId;
-        }
-
-        await chrome.storage.local.set(storageData);
-
-        if (featureLimitService) {
-          await featureLimitService.clearCache();
-        }
-
-        showLoginMessage('登录成功！', 'success');
-
-        setTimeout(async () => {
-          try {
-            await chrome.runtime.sendMessage({
-              action: 'AUTH_SUCCESS',
-              data: data
-            });
-          } catch (err) {
-            console.info('[OAuth] AUTH_SUCCESS send failed:', err);
-          }
-          window.location.reload();
-        }, 1000);
-      } else {
-        showLoginMessage(response.msg || '登录失败', 'error');
+      if (data.deviceId) {
+        storageData[authService.storageKey.deviceId] = data.deviceId;
       }
+
+      await chrome.storage.local.set(storageData);
+
+      if (featureLimitService) {
+        await featureLimitService.clearCache();
+      }
+
+      showLoginMessage('登录成功！', 'success');
+
+      setTimeout(async () => {
+        try {
+          await chrome.runtime.sendMessage({
+            action: 'AUTH_SUCCESS',
+            data: data
+          });
+        } catch (err) {
+          console.info('[OAuth] AUTH_SUCCESS send failed:', err);
+        }
+        window.location.reload();
+      }, 1000);
     } else {
-      showLoginMessage('获取用户信息失败', 'error');
+      showLoginMessage(response.msg || '登录失败', 'error');
     }
   } catch (error) {
-    console.error('OAuth token error:', error);
+    console.error('OAuth code exchange error:', error);
     showLoginMessage('登录失败: ' + error.message, 'error');
   }
 }
