@@ -5,6 +5,34 @@
 // 环境配置
 export const ENV_TYPE = globalThis.ENV_TYPE || 'dev';
 
+/**
+ * Google OAuth Client ID 映射表
+ * key: Chrome 扩展 ID（chrome.runtime.id）
+ * value: 对应的 GCP OAuth Client ID
+ *
+ * 注意：GCP 中 OAuth 客户端类型必须为 Chrome extension，不能用 Web application
+ * 每个扩展 ID 需要在 GCP 创建单独的 Chrome extension 类型客户端
+ */
+const GOOGLE_OAUTH_CLIENT_IDS = {
+  // 开发/pre-prod 环境（manifest key 固定）
+  'bgmhkhckclnkdjehcnemcggbmnmiichf': '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com',
+  // CWS 生产环境（提审后填入 CWS 分配的扩展 ID 和对应的 Client ID）
+  // '<cws-extension-id>': '<cws-client-id>.apps.googleusercontent.com'
+};
+
+/**
+ * 获取当前扩展对应的 Google OAuth Client ID
+ * 根据 chrome.runtime.id 自动匹配，无需硬编码环境判断
+ */
+export function getGoogleOAuthClientId() {
+  const extensionId = chrome.runtime.id;
+  const clientId = GOOGLE_OAUTH_CLIENT_IDS[extensionId];
+  if (!clientId) {
+    console.error(`[OAuth] 未配置扩展 ID "${extensionId}" 对应的 Google Client ID，请更新 config.js`);
+  }
+  return clientId || '';
+}
+
 const ENV_CONFIG = {
   DEBUG: ENV_TYPE !== 'prod',
   CACHE: {

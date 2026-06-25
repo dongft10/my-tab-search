@@ -6,6 +6,7 @@
 import authApi from './api/auth.js';
 import authService from './services/auth.service.js';
 import i18n from './i18n.js';
+import { getGoogleOAuthClientId } from './config.js';
 
 // 状态管理
 const state = {
@@ -438,7 +439,11 @@ async function handleOAuthGoogle() {
       return;
     }
 
-    const clientId = '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com';
+    const clientId = getGoogleOAuthClientId();
+    if (!clientId) {
+      showError('Google 登录配置错误，请联系开发者');
+      return;
+    }
     // GCP 要求重定向 URI 不能以 / 结尾，但 chrome.identity.getRedirectURL() 固定返回带 / 的值
     const redirectUri = chrome.identity.getRedirectURL().replace(/\/$/, '');
 

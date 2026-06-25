@@ -8,6 +8,7 @@ import authService from './services/auth.service.js';
 import vipService from './services/vip.service.js';
 import trialService from './services/trial.service.js';
 import deviceService from './services/device.service.js';
+import { getGoogleOAuthClientId } from './config.js';
 import featureLimitService from './services/feature-limit.service.js';
 import searchMatchService from './services/search-match.service.js';
 import i18n from './i18n.js';
@@ -1043,9 +1044,11 @@ async function handleLoginOAuth(provider) {
       return;
     }
 
-    const clientId = provider === 'google'
-      ? '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com'
-      : 'YOUR_MICROSOFT_CLIENT_ID';
+    const clientId = getGoogleOAuthClientId();
+    if (!clientId) {
+      showLoginMessage('Google 登录配置错误，请联系开发者', 'error');
+      return;
+    }
 
     const redirectUri = chrome.identity.getRedirectURL().replace(/\/$/, '');
 
