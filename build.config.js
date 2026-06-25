@@ -10,10 +10,14 @@ const path = require('path');
 // 解析命令行参数
 const args = process.argv.slice(2);
 let env = 'dev';
+let keepKey = false;
 
 args.forEach(arg => {
   if (arg.startsWith('--env=')) {
     env = arg.split('=')[1];
+  }
+  if (arg === '--keep-key' || arg.startsWith('--keep-key=')) {
+    keepKey = arg.includes('=') ? arg.split('=')[1] === 'true' : true;
   }
 });
 
@@ -255,9 +259,12 @@ function processManifest() {
   }
   
   // prod 环境移除 key 字段（用于固定扩展 ID，仅开发测试需要）
-  if (env === 'prod' && manifest.key) {
+  // 传入 --keep-key 时保留 key（用于 pre-prod 手动测试，保持扩展 ID 稳定）
+  if (env === 'prod' && !keepKey && manifest.key) {
     delete manifest.key;
     console.log('  Removed key field for production build');
+  } else if (env === 'prod' && keepKey && manifest.key) {
+    console.log('  Kept key field (pre-prod mode, extension ID stable)');
   }
   
   // prod 环境只保留生产环境的 host_permissions
