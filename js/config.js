@@ -15,7 +15,7 @@ export const ENV_TYPE = globalThis.ENV_TYPE || 'dev';
  */
 const GOOGLE_OAUTH_CLIENT_IDS = {
   // 开发/pre-prod 环境（manifest key 固定）
-  'bgmhkhckclnkdjehcnemcggbmnmiichf': '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com',
+  'bgmhkhckclnkdjehcnemcggbmnmiichf': '45721927150-gj6tb847fvg7pis37ne3kvlml39ok20t.apps.googleusercontent.com',
   // CWS 生产环境（提审后填入 CWS 分配的扩展 ID 和对应的 Client ID）
   // '<cws-extension-id>': '<cws-client-id>.apps.googleusercontent.com'
 };
@@ -27,6 +27,9 @@ const GOOGLE_OAUTH_CLIENT_IDS = {
 export function getGoogleOAuthClientId() {
   const extensionId = chrome.runtime.id;
   const clientId = GOOGLE_OAUTH_CLIENT_IDS[extensionId];
+  console.log('[OAuth Config] extension_id:', extensionId);
+  console.log('[OAuth Config] 已注册的映射:', Object.keys(GOOGLE_OAUTH_CLIENT_IDS));
+  console.log('[OAuth Config] 匹配结果:', clientId || '未命中!');
   if (!clientId) {
     console.error(`[OAuth] 未配置扩展 ID "${extensionId}" 对应的 Google Client ID，请更新 config.js`);
   }

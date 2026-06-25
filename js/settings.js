@@ -1052,6 +1052,11 @@ async function handleLoginOAuth(provider) {
 
     const redirectUri = chrome.identity.getRedirectURL().replace(/\/$/, '');
 
+    // OAuth 调试日志
+    console.log('[OAuth Debug] extension_id:', chrome.runtime.id);
+    console.log('[OAuth Debug] client_id:', clientId);
+    console.log('[OAuth Debug] redirect_uri:', redirectUri);
+
     let authUrl;
     if (provider === 'google') {
       authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
