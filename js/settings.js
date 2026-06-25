@@ -1032,6 +1032,7 @@ async function requestIdentityPermission() {
 
 // 登录弹窗 - OAuth 登录
 async function handleLoginOAuth(provider) {
+  alert(`[DEBUG] handleLoginOAuth called, provider=${provider}, extId=${chrome.runtime.id}`);
   if (provider === 'microsoft') {
     showLoginMessage(i18n.getMessage('microsoftLoginDeveloping'), 'info');
     return;
