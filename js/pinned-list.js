@@ -371,13 +371,13 @@ async function loadPinnedTabs(targetTabId = null) {
         pinnedTabs = allTabs.filter((tab) => {
           const pinyinTitle = toPinyin(tab.title || '');
           return keywords.every(keyword => {
-            return searchMatchService.matchSync(keyword, pinyinTitle, '2');
+            return searchMatchService.matchSync(keyword, pinyinTitle, '1');
           });
         });
 
         pinnedTabs.sort((a, b) => {
-          const scoreA = calculateMatchScore(a.title, keywords);
-          const scoreB = calculateMatchScore(b.title, keywords);
+          const scoreA = calculateMatchScore(toPinyin(a.title), keywords);
+          const scoreB = calculateMatchScore(toPinyin(b.title), keywords);
           return scoreB - scoreA;
         });
       }

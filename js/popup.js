@@ -404,24 +404,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       // --- 拼音回退逻辑 ---
       // 当正常匹配结果为 0，且搜索输入是纯英文字符串时，
-      // 将所有标签页标题中的汉字转为拼音，再用模式2（子序列匹配）进行二次匹配
+      // 将所有标签页标题中的汉字转为拼音，再用模式1（连续子字符串匹配）进行二次匹配
       if (filteredTabs.length === 0 && isPureEnglish(query)) {
         usedPinyinFallback = true;
 
         filteredTabs = tabs.filter((tab) => {
           // 将标题中的汉字转为拼音（保留英文、数字等非汉字字符）
           const pinyinTitle = toPinyin(tab.title);
-          
-          // 使用模式2（子序列匹配）进行拼音匹配
+
+          // 使用模式1（连续子字符串匹配）进行拼音匹配
           return keywords.every(keyword => {
-            return searchMatchService.matchSync(keyword, pinyinTitle, '2');
+            return searchMatchService.matchSync(keyword, pinyinTitle, '1');
           });
         });
 
-        // 拼音匹配结果按原标题计算匹配度并排序
+        // 拼音匹配结果按拼音标题计算匹配度并排序
         filteredTabs.sort((a, b) => {
-          const scoreA = calculateMatchScore(a.title, keywords);
-          const scoreB = calculateMatchScore(b.title, keywords);
+          const scoreA = calculateMatchScore(toPinyin(a.title), keywords);
+          const scoreB = calculateMatchScore(toPinyin(b.title), keywords);
           return scoreB - scoreA;
         });
       }
