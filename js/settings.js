@@ -8,7 +8,7 @@ import authService from './services/auth.service.js';
 import vipService from './services/vip.service.js';
 import trialService from './services/trial.service.js';
 import deviceService from './services/device.service.js';
-import { getGoogleOAuthClientId } from './config.js';
+import { getGoogleOAuthClientId, getMicrosoftOAuthClientId } from './config.js';
 import featureLimitService from './services/feature-limit.service.js';
 import searchMatchService from './services/search-match.service.js';
 import i18n from './i18n.js';
@@ -1032,11 +1032,6 @@ async function requestIdentityPermission() {
 
 // 登录弹窗 - OAuth 登录
 async function handleLoginOAuth(provider) {
-  if (provider === 'microsoft') {
-    showLoginMessage(i18n.getMessage('microsoftLoginDeveloping'), 'info');
-    return;
-  }
-  
   try {
     const granted = await requestIdentityPermission();
     if (!granted) {
@@ -1044,9 +1039,21 @@ async function handleLoginOAuth(provider) {
       return;
     }
 
-    const clientId = getGoogleOAuthClientId();
-    if (!clientId) {
-      showLoginMessage('Google 登录配置错误，请联系开发者', 'error');
+    let clientId;
+    if (provider === 'google') {
+      clientId = getGoogleOAuthClientId();
+      if (!clientId) {
+        showLoginMessage('Google 登录配置错误，请联系开发者', 'error');
+        return;
+      }
+    } else if (provider === 'microsoft') {
+      clientId = getMicrosoftOAuthClientId();
+      if (!clientId) {
+        showLoginMessage('Microsoft 登录配置错误，请联系开发者', 'error');
+        return;
+      }
+    } else {
+      showLoginMessage('不支持的登录方式', 'error');
       return;
     }
 
@@ -1061,12 +1068,12 @@ async function handleLoginOAuth(provider) {
       authUrl.searchParams.set('scope', 'openid email profile');
       authUrl.searchParams.set('state', 'google');
       authUrl.searchParams.set('access_type', 'online');
-    } else {
+    } else if (provider === 'microsoft') {
       authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
       authUrl.searchParams.set('client_id', clientId);
       authUrl.searchParams.set('redirect_uri', redirectUri);
       authUrl.searchParams.set('response_type', 'token');
-      authUrl.searchParams.set('scope', 'openid email profile User.read');
+      authUrl.searchParams.set('scope', 'openid email profile User.Read');
       authUrl.searchParams.set('state', 'microsoft');
     }
 
@@ -1111,6 +1118,17 @@ async function handleLoginOAuthToken(provider, accessToken) {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       userInfo = await resp.json();
+    } else if (provider === 'microsoft') {
+      const resp = await fetch('https://graph.microsoft.com/v1.0/me', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      const msUser = await resp.json();
+      // Microsoft Graph API 返回的邮箱字段可能在 mail 或 userPrincipalName
+      userInfo = {
+        email: msUser.mail || msUser.userPrincipalName,
+        name: msUser.displayName,
+        picture: null // Microsoft Graph 需要额外请求头像
+      };
     }
 
     if (userInfo && userInfo.email) {

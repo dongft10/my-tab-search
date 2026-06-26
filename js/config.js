@@ -21,6 +21,21 @@ const GOOGLE_OAUTH_CLIENT_IDS = {
 };
 
 /**
+ * Microsoft OAuth Client ID 映射表
+ * key: Chrome 扩展 ID（chrome.runtime.id）
+ * value: 对应的 Azure AD OAuth Client ID
+ *
+ * 注意：需要在 Azure Portal 中注册应用，获取 Client ID
+ * 应用类型为 "单页应用程序(SPA)" 或 "Web"
+ */
+const MICROSOFT_OAUTH_CLIENT_IDS = {
+  // 开发/pre-prod 环境（manifest key 固定）
+  'bgmhkhckclnkdjehcnemcggbmnmiichf': 'your-microsoft-client-id-here',
+  // CWS 生产环境（提审后填入 CWS 分配的扩展 ID 和对应的 Client ID）
+  'adfbidbchmbodidfjmimbkfndnenljjp': 'your-microsoft-client-id-here'
+};
+
+/**
  * 获取当前扩展对应的 Google OAuth Client ID
  * 根据 chrome.runtime.id 自动匹配，无需硬编码环境判断
  */
@@ -29,6 +44,19 @@ export function getGoogleOAuthClientId() {
   const clientId = GOOGLE_OAUTH_CLIENT_IDS[extensionId];
   if (!clientId) {
     console.error(`[OAuth] 未配置扩展 ID "${extensionId}" 对应的 Google Client ID，请更新 config.js`);
+  }
+  return clientId || '';
+}
+
+/**
+ * 获取当前扩展对应的 Microsoft OAuth Client ID
+ * 根据 chrome.runtime.id 自动匹配，无需硬编码环境判断
+ */
+export function getMicrosoftOAuthClientId() {
+  const extensionId = chrome.runtime.id;
+  const clientId = MICROSOFT_OAUTH_CLIENT_IDS[extensionId];
+  if (!clientId) {
+    console.error(`[OAuth] 未配置扩展 ID "${extensionId}" 对应的 Microsoft Client ID，请更新 config.js`);
   }
   return clientId || '';
 }
