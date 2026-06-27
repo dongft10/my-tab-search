@@ -138,7 +138,25 @@ class AuthApi {
       console.info('Failed to get deviceId from storage:', e);
     }
 
-    const data = { provider, code };
+    const userAgent = navigator.userAgent;
+    const browserInfo = this.parseUserAgent(userAgent);
+    let extensionVersion = '';
+    try {
+      extensionVersion = chrome.runtime.getManifest().version;
+    } catch (e) {
+      // ignore
+    }
+
+    const data = {
+      provider,
+      code,
+      deviceId: deviceId || undefined,
+      browserName: browserInfo.name,
+      browserVersion: browserInfo.version,
+      platform: browserInfo.platform,
+      language: navigator.language,
+      extensionVersion
+    };
     if (redirectUri) {
       data.redirectUri = redirectUri;
     }

@@ -1,6 +1,6 @@
 /**
  * 扩展配置文件
- * 集中管理所有可配置�? */
+ * 集中管理所有可配置项 */
 
 // 环境配置
 export const ENV_TYPE = globalThis.ENV_TYPE || 'dev';
@@ -30,7 +30,7 @@ const GOOGLE_OAUTH_CLIENT_IDS = {
  */
 const MICROSOFT_OAUTH_CLIENT_IDS = {
   // 开发/pre-prod 环境（manifest key 固定）
-  'bgmhkhckclnkdjehcnemcggbmnmiichf': 'your-microsoft-client-id-here',
+  'bgmhkhckclnkdjehcnemcggbmnmiichf': 'e4c0fb3b-dbf9-4785-892a-6c9fecdb5c75',
   // CWS 生产环境（提审后填入 CWS 分配的扩展 ID 和对应的 Client ID）
   'adfbidbchmbodidfjmimbkfndnenljjp': 'your-microsoft-client-id-here'
 };

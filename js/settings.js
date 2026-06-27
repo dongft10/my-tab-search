@@ -1072,9 +1072,10 @@ async function handleLoginOAuth(provider) {
       authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
       authUrl.searchParams.set('client_id', clientId);
       authUrl.searchParams.set('redirect_uri', redirectUri);
-      authUrl.searchParams.set('response_type', 'token');
+      authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('scope', 'openid email profile User.Read');
       authUrl.searchParams.set('state', 'microsoft');
+      authUrl.searchParams.set('response_mode', 'query');
     }
 
     showLoginMessage('正在跳转...', 'info');
@@ -1086,21 +1087,68 @@ async function handleLoginOAuth(provider) {
 
     if (responseUrl) {
       const url = new URL(responseUrl);
+      const queryParams = url.searchParams;
       const hashParams = new URLSearchParams(url.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const error = url.searchParams.get('error');
+      
+      const code = queryParams.get('code');
+      const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+      const error = queryParams.get('error') || hashParams.get('error');
 
-      if (accessToken) {
+      if (provider === 'microsoft' && code) {
+        // Microsoft 授权码流程：用 code 换取 token
+        await handleMicrosoftAuthCode(code, redirectUri);
+      } else if (accessToken) {
         await handleLoginOAuthToken(provider, accessToken);
       } else if (error) {
-        showLoginMessage(decodeURIComponent(error), 'error');
+        const errorDesc = queryParams.get('error_description') || error;
+        showLoginMessage(decodeURIComponent(errorDesc), 'error');
       } else {
+        console.error('OAuth response URL:', responseUrl);
         showLoginMessage('未收到授权令牌', 'error');
       }
     }
   } catch (error) {
     console.error('OAuth error:', error);
     showLoginMessage('授权失败，请重试', 'error');
+  }
+}
+
+// Microsoft 授权码流程：用 code 换取 access_token，再获取用户信息
+async function handleMicrosoftAuthCode(code, redirectUri) {
+  try {
+    showLoginMessage('正在验证授权...', 'info');
+
+    const { default: authApi } = await import('./api/auth.js');
+
+    // 将 code 发送到后端验证
+    const response = await authApi.verifyOAuthCode('microsoft', code, redirectUri);
+    console.log('[Microsoft OAuth] verifyOAuthCode response:', response);
+
+    if (response.code === 0 && response.data?.success) {
+      const authService = (await import('./services/auth.service.js')).default;
+
+      // 保存用户信息
+      await authService.saveUserInfo({
+        userId: response.data.userId,
+        deviceId: response.data.deviceId,
+        accessToken: response.data.accessToken,
+        registeredAt: new Date().toISOString()
+      });
+
+      showLoginMessage(i18n.getMessage('loginSuccess') || '登录成功', 'success');
+
+      // 通知扩展刷新状态
+      setTimeout(() => {
+        chrome.runtime.sendMessage({ action: 'AUTH_SUCCESS', data: response.data });
+        // 刷新设置页面
+        window.location.reload();
+      }, 1000);
+    } else {
+      showLoginMessage(response.msg || 'Microsoft 登录验证失败', 'error');
+    }
+  } catch (error) {
+    console.error('[Microsoft OAuth] handleMicrosoftAuthCode error:', error);
+    showLoginMessage('Microsoft 登录验证失败，请重试', 'error');
   }
 }
 
