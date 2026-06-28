@@ -912,5 +912,53 @@
   "oauthPermissionDenied": {
     "message": "OAuth 登录需要额外权限授权。您可以使用邮箱验证码登录，同样安全便捷。",
     "description": "OAuth 权限被拒绝时的提示"
+  },
+  "oauthStateInvalid": {
+    "message": "授权验证失败，请重试",
+    "description": "OAuth state 参数验证失败时的提示"
+  },
+  "oauthInvalidCode": {
+    "message": "无效的授权码",
+    "description": "授权码为空或类型错误"
+  },
+  "oauthCodeTooLong": {
+    "message": "授权码过长",
+    "description": "授权码超过最大长度限制"
+  },
+  "oauthInvalidRedirect": {
+    "message": "无效的重定向地址",
+    "description": "重定向地址为空或类型错误"
+  },
+  "oauthVerifying": {
+    "message": "正在验证授权...",
+    "description": "正在验证 OAuth 授权码"
+  },
+  "microsoftLoginFailed": {
+    "message": "Microsoft 登录验证失败",
+    "description": "Microsoft OAuth 登录验证失败"
+  },
+  "microsoftLoginRetry": {
+    "message": "Microsoft 登录验证失败，请重试",
+    "description": "Microsoft OAuth 登录验证失败，提示用户重试"
+  },
+  "oauthFailed": {
+    "message": "授权失败",
+    "description": "OAuth 授权失败"
+  },
+  "oauthAccessDenied": {
+    "message": "您取消了授权",
+    "description": "用户取消 OAuth 授权"
+  },
+  "oauthInvalidScope": {
+    "message": "权限请求无效",
+    "description": "OAuth scope 参数无效"
+  },
+  "oauthNoToken": {
+    "message": "未收到授权令牌",
+    "description": "OAuth 响应中没有收到令牌"
+  },
+  "oauthFailedRetry": {
+    "message": "授权失败，请重试",
+    "description": "OAuth 授权失败，提示用户重试"
   }
 }

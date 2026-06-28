@@ -912,5 +912,53 @@
   "oauthPermissionDenied": {
     "message": "OAuth login requires additional permission. You can use email verification code to login instead, which is equally secure and convenient.",
     "description": "Message when OAuth permission is denied"
+  },
+  "oauthStateInvalid": {
+    "message": "Authorization verification failed, please retry",
+    "description": "OAuth state parameter validation failed"
+  },
+  "oauthInvalidCode": {
+    "message": "Invalid authorization code",
+    "description": "Authorization code is empty or has wrong type"
+  },
+  "oauthCodeTooLong": {
+    "message": "Authorization code too long",
+    "description": "Authorization code exceeds maximum length limit"
+  },
+  "oauthInvalidRedirect": {
+    "message": "Invalid redirect URI",
+    "description": "Redirect URI is empty or has wrong type"
+  },
+  "oauthVerifying": {
+    "message": "Verifying authorization...",
+    "description": "Verifying OAuth authorization code"
+  },
+  "microsoftLoginFailed": {
+    "message": "Microsoft login verification failed",
+    "description": "Microsoft OAuth login verification failed"
+  },
+  "microsoftLoginRetry": {
+    "message": "Microsoft login verification failed, please retry",
+    "description": "Microsoft OAuth login verification failed, prompt user to retry"
+  },
+  "oauthFailed": {
+    "message": "Authorization failed",
+    "description": "OAuth authorization failed"
+  },
+  "oauthAccessDenied": {
+    "message": "You cancelled authorization",
+    "description": "User cancelled OAuth authorization"
+  },
+  "oauthInvalidScope": {
+    "message": "Invalid permission request",
+    "description": "OAuth scope parameter is invalid"
+  },
+  "oauthNoToken": {
+    "message": "No authorization token received",
+    "description": "No token received in OAuth response"
+  },
+  "oauthFailedRetry": {
+    "message": "Authorization failed, please retry",
+    "description": "OAuth authorization failed, prompt user to retry"
   }
 }
