@@ -30,12 +30,60 @@ const API_BASE_URLS = {
   prod: 'https://mytabsearch.us.kg'
 };
 
+// === OAuth Client ID 配置 ===
+// 从环境变量读取，按市场命名（同一市场的所有包 ID 使用相同的 Client ID）
+const OAUTH_CONFIG = {
+  // Chrome Web Store（开发和生产共用）
+  CHROME_GOOGLE_CLIENT_ID: process.env.CHROME_GOOGLE_CLIENT_ID || null,
+  CHROME_MICROSOFT_CLIENT_ID: process.env.CHROME_MICROSOFT_CLIENT_ID || null,
+
+  // Edge Add-ons
+  EDGE_GOOGLE_CLIENT_ID: process.env.EDGE_GOOGLE_CLIENT_ID || null,
+  EDGE_MICROSOFT_CLIENT_ID: process.env.EDGE_MICROSOFT_CLIENT_ID || null,
+
+  // Firefox Add-ons
+  FIREFOX_GOOGLE_CLIENT_ID: process.env.FIREFOX_GOOGLE_CLIENT_ID || null,
+  FIREFOX_MICROSOFT_CLIENT_ID: process.env.FIREFOX_MICROSOFT_CLIENT_ID || null
+};
+
 // 定义环境变量替换
 const define = {
   'process.env.ENV_TYPE': JSON.stringify(env),
   'process.env.API_BASE_URL': JSON.stringify(API_BASE_URLS[env]),
-  'globalThis.ENV_TYPE': JSON.stringify(env)
+  'globalThis.ENV_TYPE': JSON.stringify(env),
+
+  // OAuth Client ID 注入（按市场命名）
+  'globalThis.CHROME_GOOGLE_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.CHROME_GOOGLE_CLIENT_ID),
+  'globalThis.CHROME_MICROSOFT_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.CHROME_MICROSOFT_CLIENT_ID),
+  'globalThis.EDGE_GOOGLE_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.EDGE_GOOGLE_CLIENT_ID),
+  'globalThis.EDGE_MICROSOFT_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.EDGE_MICROSOFT_CLIENT_ID),
+  'globalThis.FIREFOX_GOOGLE_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.FIREFOX_GOOGLE_CLIENT_ID),
+  'globalThis.FIREFOX_MICROSOFT_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.FIREFOX_MICROSOFT_CLIENT_ID)
 };
+
+// === 构建验证 ===
+// 生产环境必须提供所有必需的 Client ID
+if (env === 'prod') {
+  const missing = [];
+
+  if (!OAUTH_CONFIG.CHROME_GOOGLE_CLIENT_ID) {
+    missing.push('CHROME_GOOGLE_CLIENT_ID');
+  }
+  if (!OAUTH_CONFIG.CHROME_MICROSOFT_CLIENT_ID) {
+    missing.push('CHROME_MICROSOFT_CLIENT_ID');
+  }
+
+  if (missing.length > 0) {
+    console.error('❌ Production build missing required environment variables:');
+    missing.forEach(name => console.error(`   - ${name}`));
+    console.error('\nPlease set these variables before building:');
+    console.error('   export CHROME_GOOGLE_CLIENT_ID="your-client-id"');
+    console.error('   export CHROME_MICROSOFT_CLIENT_ID="your-client-id"');
+    process.exit(1);
+  }
+
+  console.log('✅ OAuth Client ID configuration validated for production');
+}
 
 // 输出目录
 const outDir = 'pack/out/build';
