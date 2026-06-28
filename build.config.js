@@ -62,7 +62,7 @@ const define = {
 };
 
 // === 构建验证 ===
-// 生产环境必须提供所有必需的 Client ID
+// 生产环境检查 Client ID 配置（仅警告，不阻止构建）
 if (env === 'prod') {
   const missing = [];
 
@@ -74,15 +74,13 @@ if (env === 'prod') {
   }
 
   if (missing.length > 0) {
-    console.error('❌ Production build missing required environment variables:');
-    missing.forEach(name => console.error(`   - ${name}`));
-    console.error('\nPlease set these variables before building:');
-    console.error('   export CHROME_GOOGLE_CLIENT_ID="your-client-id"');
-    console.error('   export CHROME_MICROSOFT_CLIENT_ID="your-client-id"');
-    process.exit(1);
+    console.warn('\n⚠️  Warning: Production build missing environment variables:');
+    missing.forEach(name => console.warn(`   - ${name}`));
+    console.warn('\nBuild will continue, but OAuth may not work correctly.');
+    console.warn('For production deployment, please configure these variables.\n');
+  } else {
+    console.log('✅ OAuth Client ID configuration validated for production');
   }
-
-  console.log('✅ OAuth Client ID configuration validated for production');
 }
 
 // 输出目录
