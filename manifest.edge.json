@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "version": "2.1.2",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
+  "icons": {
+    "16": "images/icon-16.png",
+    "32": "images/icon-32.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  },
+  "action": {
+    "default_popup": "html/popup.html",
+    "default_icon": "images/icon-48.png"
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "alarms",
+    "system.display"
+  ],
+  "optional_permissions": [
+    "identity"
+  ],
+  "host_permissions": [
+    "https://mytabsearch.us.kg/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "_favicon/*",
+        "manifest.json",
+        "html/about.html",
+        "html/settings.html",
+        "html/help.html",
+        "html/help-tour.html",
+        "html/auth.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Q",
+        "mac": "Alt+Q"
+      }
+    },
+    "switch-to-previous-tab": {
+      "suggested_key": {
+        "default": "Alt+W",
+        "mac": "Alt+W"
+      },
+      "description": "__MSG_prevTabDesc__"
+    },
+    "open-pinned-tabs": {
+      "suggested_key": {
+        "default": "Alt+E",
+        "mac": "Alt+E"
+      },
+      "description": "__MSG_pinnedTabsDesc__"
+    }
+  }
+}
