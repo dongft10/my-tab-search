@@ -34,7 +34,6 @@
         "manifest.json",
         "html/about.html",
         "html/settings.html",
-        "html/help.html",
         "html/help-tour.html",
         "html/auth.html"
       ],
