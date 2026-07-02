@@ -50,10 +50,10 @@ const MARKET_CREDENTIALS = {
     description: 'Chrome Web Store（所有环境）'
   },
 
-  // Edge Add-ons（近期上架）
+  // Edge Add-ons
   'edge-addons': {
-    google: null, // 通过 EDGE_GOOGLE_CLIENT_ID 环境变量注入
-    microsoft: null, // 通过 EDGE_MICROSOFT_CLIENT_ID 环境变量注入
+    google: '45721927150-pphehddi5o6ttqrnv7mlrfk1i24m9e6d.apps.googleusercontent.com',
+    microsoft: 'e4c0fb3b-dbf9-4785-892a-6c9fecdb5c75',
     description: 'Edge Add-ons（所有环境）'
   },
 
@@ -70,9 +70,8 @@ const EXTENSION_TO_MARKET = {
   // Chrome Web Store（多个包 ID 映射到同一个市场）
   'bgmhkhckclnkdjehcnemcggbmnmiichf': 'chrome-web-store', // 开发/测试包
   'adfbidbchmbodidfjmimbkfndnenljjp': 'chrome-web-store', // 生产包
-
-  // Edge Add-ons（包 ID 待分配后取消注释）
-  // 'edge-production-extension-id': 'edge-addons',
+  // Edge Add-ons
+  'goemcphhpfajifddhebagehkkaeblcpf': 'edge-addons', // 生产包
 
   // Firefox Add-ons（包 ID 待分配后取消注释）
   // 'firefox-production-extension-id': 'firefox-addons'
