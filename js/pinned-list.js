@@ -881,6 +881,28 @@ function selectBestTab(tabs) {
 }
 
 /**
+ * 判断是否是扩展自身的页面（不应该作为匹配结果）
+ * @param {string} url - tab 的 URL
+ * @returns {boolean} 是否是扩展页面
+ */
+function isExtensionPage(url) {
+  if (!url) return false;
+
+  // 扩展页面的特征：包含 html/ 目录下的页面
+  const extensionPages = [
+    'html/pinned-list.html',
+    'html/popup.html',
+    'html/settings.html',
+    'html/about.html',
+    'html/help.html',
+    'html/help-tour.html',
+    'html/auth.html'
+  ];
+
+  return extensionPages.some(page => url.includes(page));
+}
+
+/**
  * 按回退规则查找匹配的 tab
  * @param {string} targetUrl - 目标 URL
  * @param {Array} allTabs - 所有已打开的 tab
@@ -893,15 +915,19 @@ function findTabWithFallback(targetUrl, allTabs) {
     let matchedTabs = [];
 
     if (rule.matchType === 'exact') {
-      matchedTabs = allTabs.filter(t => t.url === rule.pattern);
+      matchedTabs = allTabs.filter(t =>
+        t.url === rule.pattern &&
+        !isExtensionPage(t.url)  // 排除扩展页面
+      );
     } else if (rule.matchType === 'startsWith') {
       // 确保是完整的路径段匹配，避免 /api 匹配到 /api-v2
       // 包含 /、?、# 三种边界情况
       matchedTabs = allTabs.filter(t =>
-        t.url === rule.pattern ||
-        t.url.startsWith(rule.pattern + '/') ||
-        t.url.startsWith(rule.pattern + '?') ||
-        t.url.startsWith(rule.pattern + '#')
+        !isExtensionPage(t.url) &&  // 排除扩展页面
+        (t.url === rule.pattern ||
+         t.url.startsWith(rule.pattern + '/') ||
+         t.url.startsWith(rule.pattern + '?') ||
+         t.url.startsWith(rule.pattern + '#'))
       );
     }
 
