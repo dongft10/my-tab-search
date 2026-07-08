@@ -586,9 +586,10 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
   pinnedTabs.forEach((tab, index) => {
     try {
       const li = document.createElement('li');
-      // 存储 tabId 和 url，便于后续查找（tabId 可能无效，url 作为备选）
+      // 存储 tabId、url 和 title，便于后续查找（tabId 可能无效，url 和 title 作为备选）
       li.dataset.tabId = tab.tabId !== undefined && tab.tabId !== null ? tab.tabId : '';
       li.dataset.tabUrl = tab.url || '';
+      li.dataset.tabTitle = tab.title || '';
       
       // 如果是长期固定的Tab，添加专属底色
       if (tab.isLongTermPinned) {
