@@ -1024,13 +1024,14 @@ function showUrlMatchConfirmDialog({ targetUrl, matchedUrl, matchLevel, matchPat
 }
 
 /**
- * 更新 pinned-list 中 tab 的 URL 和 tabId
+ * 更新 pinned-list 中 tab 的 URL、tabId 和 title
  * @param {string} oldUrl - 旧的 URL（用于查找 tab）
  * @param {string} newUrl - 新的 URL
  * @param {number} newTabId - 新的 tabId
+ * @param {string} [newTitle] - 新的标题（可选）
  * @returns {Promise<boolean>} 是否更新成功
  */
-async function updatePinnedTabUrlAndId(oldUrl, newUrl, newTabId) {
+async function updatePinnedTabUrlAndId(oldUrl, newUrl, newTabId, newTitle) {
   // 参数验证
   if (!oldUrl || !newUrl || newTabId === undefined || newTabId === null) {
     console.error('[updatePinnedTabUrlAndId] Invalid parameters:', { oldUrl, newUrl, newTabId });
@@ -1046,7 +1047,11 @@ async function updatePinnedTabUrlAndId(oldUrl, newUrl, newTabId) {
   const updatedTabs = pinnedTabs.map(t => {
     if (!updated && t.url === oldUrl) {
       updated = true;
+      // 更新 URL、tabId，如果有新 title 也更新
       updatedTab = { ...t, url: newUrl, tabId: newTabId };
+      if (newTitle) {
+        updatedTab.title = newTitle;
+      }
       return updatedTab;
     }
     return t;
@@ -1059,15 +1064,21 @@ async function updatePinnedTabUrlAndId(oldUrl, newUrl, newTabId) {
 
   await chrome.storage.local.set({ pinnedTabs: updatedTabs });
 
-  // 如果是长期固定的 tab，需要同步 URL 变化到服务器
+  // 如果是长期固定的 tab，需要同步 URL 和 title 变化到服务器
   if (updatedTab.isLongTermPinned) {
-    console.log('[updatePinnedTabUrlAndId] Syncing URL change for long-term pinned tab to server');
-    syncQueueService.addOperation('updateTab', {
+    console.log('[updatePinnedTabUrlAndId] Syncing URL/title change for long-term pinned tab to server');
+    const syncData = {
       tabId: 'url:' + newUrl,  // 使用新 URL 作为标识
       url: newUrl,
       isLongTermPinned: true,
       longTermPinnedAt: updatedTab.longTermPinnedAt
-    }).catch(err => console.info('[updatePinnedTabUrlAndId] Sync updateTab failed:', err));
+    };
+    // 如果有新 title，也同步 title
+    if (newTitle) {
+      syncData.title = newTitle;
+    }
+    syncQueueService.addOperation('updateTab', syncData)
+      .catch(err => console.info('[updatePinnedTabUrlAndId] Sync updateTab failed:', err));
   }
 
   return true;
@@ -1232,12 +1243,13 @@ async function switchToTab(tabOrId, event) {
         switch (userChoice) {
           case 'switchAndUpdate':
             // 选项 1：切换并更新
-            // 切换到匹配的 tab，并更新 pinned-list 中的 URL 和 tabId
+            // 切换到匹配的 tab，并更新 pinned-list 中的 URL、tabId 和 title
             await chrome.tabs.update(matchedTab.id, { active: true });
             if (matchedTab.windowId) {
               await chrome.windows.update(matchedTab.windowId, { focused: true });
             }
-            await updatePinnedTabUrlAndId(targetUrl, matchedUrl, matchedTab.id);
+            // 传入 matchedTab.title 以更新标题
+            await updatePinnedTabUrlAndId(targetUrl, matchedUrl, matchedTab.id, matchedTab.title);
             // 添加延迟确保切换操作完成后再关闭窗口
             await new Promise(resolve => setTimeout(resolve, 100));
             window.close();
