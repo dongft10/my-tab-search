@@ -1269,8 +1269,8 @@ async function switchToTab(tabOrId, event) {
           case 'cancel':
           default:
             // 选项 4：取消
-            // 不做任何操作，直接关闭窗口
-            window.close();
+            // 只关闭确认弹窗，保留在 pinned-list 窗口内
+            // 不调用 window.close()，直接 return
             return;
         }
       }
