@@ -895,8 +895,7 @@ function isExtensionPage(url) {
     'html/settings.html',
     'html/about.html',
     'html/help.html',
-    'html/help-tour.html',
-    'html/auth.html'
+    'html/help-tour.html'
   ];
 
   return extensionPages.some(page => url.includes(page));
