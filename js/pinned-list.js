@@ -943,15 +943,19 @@ function getMatchRuleDescription(matchLevel, matchPattern) {
  * 显示 URL 匹配确认弹窗
  * @param {Object} options - 配置选项
  * @param {string} options.targetUrl - 目标 URL（pinned-list 中固定的）
+ * @param {string} options.targetTitle - 目标标题（pinned-list 中固定的）
  * @param {string} options.matchedUrl - 匹配到的 URL（浏览器中打开的）
+ * @param {string} options.matchedTitle - 匹配到的标题（浏览器中打开的）
  * @param {number} options.matchLevel - 匹配级别
  * @param {string} options.matchPattern - 匹配模式
  * @returns {Promise<string>} 用户选择：'switchAndUpdate', 'switchOnly', 'openNew', 'cancel'
  */
-function showUrlMatchConfirmDialog({ targetUrl, matchedUrl, matchLevel, matchPattern }) {
+function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matchedTitle, matchLevel, matchPattern }) {
   return new Promise((resolve) => {
     const dialog = document.getElementById('url-match-confirm-dialog');
+    const targetTitleEl = document.getElementById('confirm-target-title');
     const targetUrlEl = document.getElementById('confirm-target-url');
+    const matchedTitleEl = document.getElementById('confirm-matched-title');
     const matchedUrlEl = document.getElementById('confirm-matched-url');
     const matchInfoEl = document.getElementById('confirm-match-info');
 
@@ -962,7 +966,9 @@ function showUrlMatchConfirmDialog({ targetUrl, matchedUrl, matchLevel, matchPat
     const overlay = dialog.querySelector('.confirm-dialog-overlay');
 
     // 填充内容
+    targetTitleEl.textContent = targetTitle || '(无标题)';
     targetUrlEl.textContent = targetUrl;
+    matchedTitleEl.textContent = matchedTitle || '(无标题)';
     matchedUrlEl.textContent = matchedUrl;
     matchInfoEl.textContent = getMatchRuleDescription(matchLevel, matchPattern);
 
@@ -1126,11 +1132,13 @@ async function switchToTab(tabOrId, event) {
   try {
     // 优先从 tabOrId 中获取 URL（如果它是对象）
     let targetUrl = null;
+    let targetTab = null;  // 保存固定的 tab 信息
     let tabId = null;
-    
+
     if (tabOrId && typeof tabOrId === 'object') {
       // 传入的是 tab 对象
       targetUrl = tabOrId.url;
+      targetTab = tabOrId;  // 保存完整的 tab 对象
       tabId = tabOrId.tabId;
     } else {
       // 传入的是 tabId
@@ -1177,9 +1185,13 @@ async function switchToTab(tabOrId, event) {
       const clickedLi = event.target.closest('li');
       if (clickedLi) {
         targetUrl = clickedLi.dataset.tabUrl || clickedLi.querySelector('.tab-url-hostname')?.title;
+        // 从 dataset 中获取 title
+        if (clickedLi.dataset.tabTitle) {
+          targetTab = { url: targetUrl, title: clickedLi.dataset.tabTitle };
+        }
       }
     }
-    
+
     // 如果还没有，从存储中查找
     if (!targetUrl) {
       const result = await chrome.storage.local.get('pinnedTabs');
@@ -1187,6 +1199,7 @@ async function switchToTab(tabOrId, event) {
       const tab = pinnedTabs.find(t => t.tabId === tabId);
       if (tab) {
         targetUrl = tab.url;
+        targetTab = tab;  // 保存完整的 tab 对象
       }
     }
     
@@ -1235,7 +1248,9 @@ async function switchToTab(tabOrId, event) {
 
         const userChoice = await showUrlMatchConfirmDialog({
           targetUrl,
+          targetTitle: targetTab?.title || '',
           matchedUrl,
+          matchedTitle: matchedTab.title || '',
           matchLevel,
           matchPattern
         });

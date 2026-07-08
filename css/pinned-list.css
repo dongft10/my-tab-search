@@ -671,6 +671,20 @@ body::after {
   font-weight: 500;
 }
 
+.confirm-dialog-title-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 4px;
+  padding: 6px 10px;
+  background-color: var(--bg-hover);
+  border-radius: 4px;
+  line-height: 1.4;
+  max-height: 60px;  /* 限制标题显示区域的最大高度 */
+  overflow-y: auto;  /* 超出时可以滚动 */
+  word-break: break-word;
+}
+
 .confirm-dialog-url {
   font-size: 12px;
   color: var(--text-primary);
