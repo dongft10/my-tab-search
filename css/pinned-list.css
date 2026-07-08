@@ -636,6 +636,9 @@ body::after {
   padding: 20px;
   max-width: 90%;
   min-width: 360px;
+  max-height: 80vh;  /* 限制最大高度为视口的80% */
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   z-index: 1;
 }
@@ -647,10 +650,14 @@ body::after {
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;  /* 标题不收缩 */
 }
 
 .confirm-dialog-body {
   margin-bottom: 20px;
+  flex: 1;  /* 占据剩余空间 */
+  overflow-y: auto;  /* 内容过多时可以滚动 */
+  min-height: 0;  /* 允许flex子元素收缩到内容以下 */
 }
 
 .confirm-dialog-section {
@@ -674,6 +681,8 @@ body::after {
   line-height: 1.4;
   font-family: 'Courier New', monospace;
   border: 1px solid var(--border-light);
+  max-height: 80px;  /* 限制URL显示区域的最大高度 */
+  overflow-y: auto;  /* 超出时可以滚动 */
 }
 
 .confirm-dialog-info {
@@ -684,12 +693,14 @@ body::after {
   background-color: var(--bg-tertiary);
   border-radius: 4px;
   border-left: 3px solid var(--primary);
+  flex-shrink: 0;  /* 信息区域不收缩 */
 }
 
 .confirm-dialog-actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;  /* 按钮区域不收缩 */
 }
 
 .confirm-btn {
