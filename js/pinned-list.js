@@ -1042,10 +1042,12 @@ async function updatePinnedTabUrlAndId(oldUrl, newUrl, newTabId) {
 
   // 只更新第一个匹配项
   let updated = false;
+  let updatedTab = null;
   const updatedTabs = pinnedTabs.map(t => {
     if (!updated && t.url === oldUrl) {
       updated = true;
-      return { ...t, url: newUrl, tabId: newTabId };
+      updatedTab = { ...t, url: newUrl, tabId: newTabId };
+      return updatedTab;
     }
     return t;
   });
@@ -1056,6 +1058,18 @@ async function updatePinnedTabUrlAndId(oldUrl, newUrl, newTabId) {
   }
 
   await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+
+  // 如果是长期固定的 tab，需要同步 URL 变化到服务器
+  if (updatedTab.isLongTermPinned) {
+    console.log('[updatePinnedTabUrlAndId] Syncing URL change for long-term pinned tab to server');
+    syncQueueService.addOperation('updateTab', {
+      tabId: 'url:' + newUrl,  // 使用新 URL 作为标识
+      url: newUrl,
+      isLongTermPinned: true,
+      longTermPinnedAt: updatedTab.longTermPinnedAt
+    }).catch(err => console.info('[updatePinnedTabUrlAndId] Sync updateTab failed:', err));
+  }
+
   return true;
 }
 
