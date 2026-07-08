@@ -1224,7 +1224,10 @@ async function switchToTab(tabOrId, event) {
               await chrome.windows.update(matchedTab.windowId, { focused: true });
             }
             await updatePinnedTabUrlAndId(targetUrl, matchedUrl, matchedTab.id);
-            break;
+            // 添加延迟确保切换操作完成后再关闭窗口
+            await new Promise(resolve => setTimeout(resolve, 100));
+            window.close();
+            return;
 
           case 'switchOnly':
             // 选项 2：仅切换（不更新）
@@ -1234,20 +1237,27 @@ async function switchToTab(tabOrId, event) {
               await chrome.windows.update(matchedTab.windowId, { focused: true });
             }
             // 不更新 pinned-list
-            break;
+            // 添加延迟确保切换操作完成后再关闭窗口
+            await new Promise(resolve => setTimeout(resolve, 100));
+            window.close();
+            return;
 
           case 'openNew':
             // 选项 3：新页面打开
             // 创建新 tab 打开目标 URL，更新 pinned-list 中的 tabId
             const newTab = await chrome.tabs.create({ url: targetUrl, active: true });
             await updatePinnedTabId(targetUrl, newTab.id);
-            break;
+            // 添加延迟确保操作完成后再关闭窗口
+            await new Promise(resolve => setTimeout(resolve, 100));
+            window.close();
+            return;
 
           case 'cancel':
           default:
             // 选项 4：取消
-            // 不做任何操作
-            break;
+            // 不做任何操作，直接关闭窗口
+            window.close();
+            return;
         }
       }
     } else {
