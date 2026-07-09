@@ -1059,6 +1059,9 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
 
     // 处理键盘事件
     const handleKeydown = (e) => {
+      // 阻止事件冒泡，避免影响 pinned-list 的键盘事件处理
+      e.stopPropagation();
+
       switch (e.key) {
         case 'Escape':
           e.preventDefault();
