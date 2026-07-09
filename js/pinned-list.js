@@ -1326,8 +1326,8 @@ async function switchToTab(tabOrId, event) {
             }
             // 传入 matchedTab.title 以更新标题
             await updatePinnedTabUrlAndId(targetUrl, matchedUrl, matchedTab.id, matchedTab.title);
-            // 添加延迟确保切换操作完成后再关闭窗口
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // 使用双重保障确保操作完成：先等待渲染帧，再等待一小段时间
+            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
             window.close();
             return;
 
@@ -1339,8 +1339,8 @@ async function switchToTab(tabOrId, event) {
               await chrome.windows.update(matchedTab.windowId, { focused: true });
             }
             // 不更新 pinned-list
-            // 添加延迟确保切换操作完成后再关闭窗口
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // 使用双重保障确保操作完成
+            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
             window.close();
             return;
 
@@ -1349,8 +1349,8 @@ async function switchToTab(tabOrId, event) {
             // 创建新 tab 打开目标 URL，更新 pinned-list 中的 tabId
             const newTab = await chrome.tabs.create({ url: targetUrl, active: true });
             await updatePinnedTabId(targetUrl, newTab.id);
-            // 添加延迟确保操作完成后再关闭窗口
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // 使用双重保障确保操作完成
+            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
             window.close();
             return;
 
