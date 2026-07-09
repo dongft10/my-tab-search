@@ -966,6 +966,41 @@ function getMatchRuleDescription(matchLevel, matchPattern) {
 }
 
 /**
+ * 切换到指定 tab 并等待激活完成
+ * @param {number} tabId - 要切换的 tab ID
+ * @param {number} windowId - 要聚焦的窗口 ID（可选）
+ * @returns {Promise<void>}
+ */
+async function switchToTabAndWait(tabId, windowId) {
+  return new Promise((resolve) => {
+    // 设置超时保护，避免无限等待
+    const timeout = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve();
+    }, 2000);  // 2秒超时
+
+    // 监听 tab 更新事件
+    const listener = (updatedTabId, changeInfo) => {
+      if (updatedTabId === tabId && changeInfo.status === 'complete') {
+        clearTimeout(timeout);
+        chrome.tabs.onUpdated.removeListener(listener);
+        // 再等待一小段时间确保窗口焦点切换完成
+        setTimeout(resolve, 100);
+      }
+    };
+
+    chrome.tabs.onUpdated.addListener(listener);
+
+    // 执行切换操作
+    chrome.tabs.update(tabId, { active: true }).then(() => {
+      if (windowId) {
+        chrome.windows.update(windowId, { focused: true });
+      }
+    });
+  });
+}
+
+/**
  * 显示 URL 匹配确认弹窗
  * @param {Object} options - 配置选项
  * @param {string} options.targetUrl - 目标 URL（pinned-list 中固定的）
@@ -1334,13 +1369,8 @@ async function switchToTab(tabOrId, event) {
           case 'switchOnly':
             // 选项 2：仅切换（不更新）
             // 切换到匹配的 tab，但不更新 pinned-list
-            await chrome.tabs.update(matchedTab.id, { active: true });
-            if (matchedTab.windowId) {
-              await chrome.windows.update(matchedTab.windowId, { focused: true });
-            }
-            // 不更新 pinned-list
-            // 使用双重保障确保操作完成
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+            // 使用事件监听确保 tab 真正激活后再关闭窗口
+            await switchToTabAndWait(matchedTab.id, matchedTab.windowId);
             window.close();
             return;
 
