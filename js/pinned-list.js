@@ -991,6 +991,10 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
     const cancelBtn = document.getElementById('confirm-cancel-btn');
     const overlay = dialog.querySelector('.confirm-dialog-overlay');
 
+    // 按钮数组，方便键盘导航
+    const buttons = [switchUpdateBtn, switchOnlyBtn, openNewBtn, cancelBtn];
+    let currentButtonIndex = 0;
+
     // 填充内容
     targetTitleEl.textContent = targetTitle || '(无标题)';
     targetUrlEl.textContent = targetUrl;
@@ -1009,11 +1013,42 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
       document.removeEventListener('keydown', handleKeydown);
     };
 
-    // 处理 Escape 键
+    // 更新按钮焦点
+    const updateButtonFocus = () => {
+      buttons.forEach((btn, index) => {
+        if (index === currentButtonIndex) {
+          btn.focus();
+        }
+      });
+    };
+
+    // 处理键盘事件
     const handleKeydown = (e) => {
-      if (e.key === 'Escape') {
-        cleanup();
-        resolve('cancel');
+      switch (e.key) {
+        case 'Escape':
+          e.preventDefault();
+          cleanup();
+          resolve('cancel');
+          break;
+
+        case 'ArrowUp':
+          e.preventDefault();
+          currentButtonIndex = (currentButtonIndex - 1 + buttons.length) % buttons.length;
+          updateButtonFocus();
+          break;
+
+        case 'ArrowDown':
+          e.preventDefault();
+          currentButtonIndex = (currentButtonIndex + 1) % buttons.length;
+          updateButtonFocus();
+          break;
+
+        case 'Enter':
+        case ' ':  // 空格键
+          e.preventDefault();
+          // 触发当前焦点按钮的点击事件
+          buttons[currentButtonIndex].click();
+          break;
       }
     };
 
@@ -1044,14 +1079,14 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
       resolve('cancel');
     };
 
-    // 添加键盘监听（Escape 键关闭）
+    // 添加键盘监听
     document.addEventListener('keydown', handleKeydown);
 
     // 显示弹窗
     dialog.style.display = 'flex';
 
-    // 聚焦到第一个按钮，便于键盘操作
-    switchUpdateBtn.focus();
+    // 聚焦到第一个按钮
+    updateButtonFocus();
   });
 }
 
