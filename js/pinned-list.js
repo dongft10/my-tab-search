@@ -1026,8 +1026,8 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
     const cancelBtn = document.getElementById('confirm-cancel-btn');
     const overlay = dialog.querySelector('.confirm-dialog-overlay');
 
-    // 按钮数组，方便键盘导航
-    const buttons = [switchUpdateBtn, switchOnlyBtn, openNewBtn, cancelBtn];
+    // 按钮数组，方便键盘导航（顺序与 HTML 中一致）
+    const buttons = [switchOnlyBtn, switchUpdateBtn, openNewBtn, cancelBtn];
     let currentButtonIndex = 0;
 
     // 填充内容
