@@ -993,13 +993,13 @@
     "message": "Domain Match",
     "description": "Match level: domain match"
   },
-  "switchAndUpdate": {
-    "message": "Switch & Update",
-    "description": "Switch and update button text"
+  "updateAndJump": {
+    "message": "Update & Jump",
+    "description": "Update and jump button text"
   },
-  "switchOnly": {
-    "message": "Switch Only (No Update)",
-    "description": "Switch only button text"
+  "jumpOnly": {
+    "message": "Jump Only (No Update)",
+    "description": "Jump only button text"
   },
   "openNew": {
     "message": "Open in New Tab",

@@ -1009,7 +1009,7 @@ async function switchToTabAndWait(tabId, windowId) {
  * @param {string} options.matchedTitle - 匹配到的标题（浏览器中打开的）
  * @param {number} options.matchLevel - 匹配级别
  * @param {string} options.matchPattern - 匹配模式
- * @returns {Promise<string>} 用户选择：'switchAndUpdate', 'switchOnly', 'openNew', 'cancel'
+ * @returns {Promise<string>} 用户选择：'updateAndJump', 'jumpOnly', 'openNew', 'cancel'
  */
 function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matchedTitle, matchLevel, matchPattern }) {
   return new Promise((resolve) => {
@@ -1093,12 +1093,12 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
     // 绑定按钮事件
     switchUpdateBtn.onclick = () => {
       cleanup();
-      resolve('switchAndUpdate');
+      resolve('updateAndJump');
     };
 
     switchOnlyBtn.onclick = () => {
       cleanup();
-      resolve('switchOnly');
+      resolve('jumpOnly');
     };
 
     openNewBtn.onclick = () => {
@@ -1355,7 +1355,7 @@ async function switchToTab(tabOrId, event) {
         });
 
         switch (userChoice) {
-          case 'switchAndUpdate':
+          case 'updateAndJump':
             // 选项 1：切换并更新
             // 切换到匹配的 tab，并更新 pinned-list 中的 URL、tabId 和 title
             await chrome.tabs.update(matchedTab.id, { active: true });
@@ -1369,7 +1369,7 @@ async function switchToTab(tabOrId, event) {
             window.close();
             return;
 
-          case 'switchOnly':
+          case 'jumpOnly':
             // 选项 2：仅切换（不更新）
             // 切换到匹配的 tab，但不更新 pinned-list
             // 使用事件监听确保 tab 真正激活后再关闭窗口

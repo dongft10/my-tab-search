@@ -993,13 +993,13 @@
     "message": "域名匹配",
     "description": "匹配级别：域名匹配"
   },
-  "switchAndUpdate": {
-    "message": "切换并更新",
-    "description": "切换并更新按钮文本"
+  "updateAndJump": {
+    "message": "更新并跳转",
+    "description": "更新并跳转按钮文本"
   },
-  "switchOnly": {
-    "message": "仅切换（不更新）",
-    "description": "仅切换按钮文本"
+  "jumpOnly": {
+    "message": "仅跳转（不更新）",
+    "description": "仅跳转按钮文本"
   },
   "openNew": {
     "message": "新页面打开",
