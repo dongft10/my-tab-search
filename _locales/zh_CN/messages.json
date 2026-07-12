@@ -960,5 +960,65 @@
   "oauthFailedRetry": {
     "message": "授权失败，请重试",
     "description": "OAuth 授权失败，提示用户重试"
+  },
+  "urlMatchTitle": {
+    "message": "找到相似页面",
+    "description": "URL 匹配确认弹窗标题"
+  },
+  "pinnedPage": {
+    "message": "固定的页面：",
+    "description": "固定页面标签"
+  },
+  "matchedPage": {
+    "message": "已打开的相似页面：",
+    "description": "匹配页面标签"
+  },
+  "multipleMatchesTitle": {
+    "message": "找到 {count} 个相似页面",
+    "description": "多候选匹配时弹窗标题，{count} 会被替换为数量"
+  },
+  "selectCandidate": {
+    "message": "相似页面（点击选择）：",
+    "description": "多候选列表标签"
+  },
+  "untitled": {
+    "message": "(无标题)",
+    "description": "tab 没有标题时的占位文本"
+  },
+  "matchRule": {
+    "message": "匹配规则：",
+    "description": "匹配规则标签"
+  },
+  "matchLevelExact": {
+    "message": "完全匹配",
+    "description": "匹配级别：完全匹配"
+  },
+  "matchLevelPath": {
+    "message": "路径匹配",
+    "description": "匹配级别：路径匹配"
+  },
+  "matchLevelParentPath": {
+    "message": "父路径匹配",
+    "description": "匹配级别：父路径匹配"
+  },
+  "matchLevelDomain": {
+    "message": "域名匹配",
+    "description": "匹配级别：域名匹配"
+  },
+  "updateAndJump": {
+    "message": "更新并跳转",
+    "description": "更新并跳转按钮文本"
+  },
+  "jumpOnly": {
+    "message": "仅跳转（不更新）",
+    "description": "仅跳转按钮文本"
+  },
+  "openNew": {
+    "message": "新页面打开",
+    "description": "新页面打开按钮文本"
+  },
+  "cancel": {
+    "message": "取消",
+    "description": "取消按钮文本"
   }
 }

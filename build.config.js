@@ -64,8 +64,7 @@ const entryPoints = {
   'js/popup-icons': 'js/popup-icons.js',
   'js/settings': 'js/settings.js',
   'js/pinned-list': 'js/pinned-list.js',
-  'js/about': 'js/about.js',
-  'js/auth': 'js/auth.js'
+  'js/about': 'js/about.js'
 };
 
 async function build() {
@@ -121,7 +120,6 @@ async function build() {
       'js/settings',
       'js/pinned-list',
       'js/about',
-      'js/auth',
       'js/help-tour-page'
     ];
     

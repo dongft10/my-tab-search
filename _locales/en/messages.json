@@ -960,5 +960,65 @@
   "oauthFailedRetry": {
     "message": "Authorization failed, please retry",
     "description": "OAuth authorization failed, prompt user to retry"
+  },
+  "urlMatchTitle": {
+    "message": "Similar Page Found",
+    "description": "URL match confirm dialog title"
+  },
+  "pinnedPage": {
+    "message": "Pinned Page:",
+    "description": "Pinned page label"
+  },
+  "matchedPage": {
+    "message": "Opened Similar Page:",
+    "description": "Matched page label"
+  },
+  "multipleMatchesTitle": {
+    "message": "Found {count} Similar Pages",
+    "description": "Dialog title when multiple candidates match, {count} is replaced with the number"
+  },
+  "selectCandidate": {
+    "message": "Similar Pages (click to select):",
+    "description": "Candidate list label"
+  },
+  "untitled": {
+    "message": "(No Title)",
+    "description": "Placeholder text when tab has no title"
+  },
+  "matchRule": {
+    "message": "Match Rule: ",
+    "description": "Match rule label"
+  },
+  "matchLevelExact": {
+    "message": "Exact Match",
+    "description": "Match level: exact match"
+  },
+  "matchLevelPath": {
+    "message": "Path Match",
+    "description": "Match level: path match"
+  },
+  "matchLevelParentPath": {
+    "message": "Parent Path Match",
+    "description": "Match level: parent path match"
+  },
+  "matchLevelDomain": {
+    "message": "Domain Match",
+    "description": "Match level: domain match"
+  },
+  "updateAndJump": {
+    "message": "Update & Jump",
+    "description": "Update and jump button text"
+  },
+  "jumpOnly": {
+    "message": "Jump Only (No Update)",
+    "description": "Jump only button text"
+  },
+  "openNew": {
+    "message": "Open in New Tab",
+    "description": "Open in new tab button text"
+  },
+  "cancel": {
+    "message": "Cancel",
+    "description": "Cancel button text"
   }
 }
