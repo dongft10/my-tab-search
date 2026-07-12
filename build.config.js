@@ -27,6 +27,7 @@ console.log(`Building for environment: ${env}`);
 const API_BASE_URLS = {
   dev: 'http://localhost:41532',
   qa: 'https://mts-backend-qa.vercel.app',
+  preprod: 'https://mytabsearch.us.kg',
   prod: 'https://mytabsearch.us.kg'
 };
 
@@ -79,8 +80,8 @@ async function build() {
       platform: 'browser',
       target: ['chrome120'],
       define,
-      minify: env === 'prod',
-      sourcemap: env !== 'prod' ? 'inline' : false,
+      minify: env === 'prod' || env === 'preprod',
+      sourcemap: (env !== 'prod' && env !== 'preprod') ? 'inline' : false,
       banner: {
         js: '// Built with esbuild - Service Worker Bundle'
       }
@@ -107,8 +108,8 @@ async function build() {
         platform: 'browser',
         target: ['chrome120'],
         define,
-        minify: env === 'prod',
-        sourcemap: env !== 'prod' ? 'inline' : false
+        minify: env === 'prod' || env === 'preprod',
+        sourcemap: (env !== 'prod' && env !== 'preprod') ? 'inline' : false
       });
       console.log(`  ✓ ${entry}.js`);
     }
@@ -133,8 +134,8 @@ async function build() {
         platform: 'browser',
         target: ['chrome120'],
         define,
-        minify: env === 'prod',
-        sourcemap: env !== 'prod' ? 'inline' : false,
+        minify: env === 'prod' || env === 'preprod',
+        sourcemap: (env !== 'prod' && env !== 'preprod') ? 'inline' : false,
         splitting: false
       });
       console.log(`  ✓ ${entry}.js`);
@@ -265,11 +266,11 @@ function processManifest() {
     console.log('  Kept key field (pre-prod mode, extension ID stable)');
   }
   
-  // prod 环境只保留生产环境的 host_permissions
-  if (env === 'prod' && manifest.host_permissions) {
+  // prod/preprod 环境只保留生产环境的 host_permissions
+  if ((env === 'prod' || env === 'preprod') && manifest.host_permissions) {
     const prodHosts = ['https://mytabsearch.us.kg/*'];
     manifest.host_permissions = prodHosts;
-    console.log('  Filtered host_permissions for production');
+    console.log(`  Filtered host_permissions for ${env} environment`);
   }
   
   fs.writeFileSync(destPath, JSON.stringify(manifest, null, 2), 'utf8');

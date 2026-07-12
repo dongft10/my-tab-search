@@ -62,7 +62,7 @@ export function getMicrosoftOAuthClientId() {
 }
 
 const ENV_CONFIG = {
-  DEBUG: ENV_TYPE !== 'prod',
+  DEBUG: ENV_TYPE === 'dev' || ENV_TYPE === 'qa',
   CACHE: {
     DEV_CACHE_TIME: 1 * 60 * 1000,
     PROD_CACHE_TIME: 24 * 60 * 60 * 1000
@@ -76,6 +76,7 @@ export function getCacheTime() {
 const API_BASE_URLS = {
   dev: 'http://localhost:41532',
   qa: 'https://mts-backend-qa.vercel.app',
+  preprod: 'https://mytabsearch.us.kg',
   prod: 'https://mytabsearch.us.kg'
 };
 

@@ -479,6 +479,13 @@ body::after {
   border: 1px solid rgba(234, 179, 8, 0.3);
 }
 
+/* PRE_PROD 环境样式 - 橙色 */
+.env-badge.env-preprod {
+  background-color: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
 .icon-btn {
   background: none;
   border: none;

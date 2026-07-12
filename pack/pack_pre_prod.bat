@@ -28,8 +28,8 @@ echo Current directory: %CD%
 echo.
 
 REM Set environment variable for target environment
-set EXTENSION_ENV=prod
-echo [OK] Target environment: %EXTENSION_ENV% (production backend)
+set EXTENSION_ENV=preprod
+echo [OK] Target environment: %EXTENSION_ENV% (production backend, stable extension ID)
 echo [OK] Manifest key: KEPT (stable extension ID)
 echo.
 
@@ -46,7 +46,7 @@ echo.
 
 REM Build (with --keep-key to preserve extension ID) and package
 echo [2/2] Building and packaging extension...
-call node build.config.js --env=prod --keep-key && npm run package
+call node build.config.js --env=preprod --keep-key && npm run package
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed
     pause
