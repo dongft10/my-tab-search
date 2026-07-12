@@ -566,6 +566,19 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     sendResponse({ success: true });
     return true;
   }
+
+  // 处理 pinned-list 的 tab 操作委托
+  // pinned-list 窗口会立即关闭，由 background 执行实际的 tab 操作
+  if (message.action === 'pinnedListTabAction') {
+    try {
+      await handlePinnedListTabAction(message.data);
+      sendResponse({ success: true });
+    } catch (error) {
+      console.error('[background] pinnedListTabAction error:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true;
+  }
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
@@ -578,6 +591,205 @@ async function handleSwitchToTab(targetTabId, windowId) {
   if (targetTabId !== curTabId) {
     curTabId = targetTabId;
     await updateTabHistory(targetTabId);
+  }
+}
+
+/**
+ * 等待 tab 加载完成，返回最终的 URL
+ * @param {number} tabId - tab ID
+ * @param {number} timeout - 超时时间（毫秒），默认 5 秒
+ * @returns {Promise<string>} 最终的 URL
+ */
+function waitForTabLoad(tabId, timeout = 5000) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      // 超时后获取当前 URL
+      chrome.tabs.get(tabId).then(tab => resolve(tab.url)).catch(() => resolve(''));
+    }, timeout);
+
+    const listener = (updatedTabId, changeInfo) => {
+      if (updatedTabId === tabId && changeInfo.status === 'complete') {
+        clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(listener);
+        chrome.tabs.get(tabId).then(tab => resolve(tab.url)).catch(() => resolve(''));
+      }
+    };
+
+    chrome.tabs.onUpdated.addListener(listener);
+  });
+}
+
+/**
+ * 处理 pinned-list 委托的 tab 操作
+ * pinned-list 窗口在发送消息后立即关闭，由 background 执行实际操作
+ * @param {Object} data - 操作数据
+ * @param {string} data.operation - 操作类型：'switchDirect' | 'switchOnly' | 'switchAndUpdate' | 'openNew' | 'extensionsSpecial' | 'noMatch'
+ * @param {number} data.tabId - 目标 tab ID（switchDirect/switchOnly/switchAndUpdate 时使用）
+ * @param {number} data.windowId - 目标窗口 ID（可选）
+ * @param {string} data.targetUrl - 原始目标 URL（用于 storage 更新查找）
+ * @param {string} data.matchedUrl - 匹配到的 URL（switchAndUpdate 时更新到 storage）
+ * @param {string} data.matchedTitle - 匹配到的标题（switchAndUpdate 时更新到 storage）
+ * @param {number} data.existingTabId - 已存在的 tab ID（extensionsSpecial 时使用）
+ */
+async function handlePinnedListTabAction(data) {
+  if (!data || !data.operation) {
+    console.error('[background] pinnedListTabAction: missing operation');
+    return;
+  }
+
+  const { operation, tabId, windowId, targetUrl, matchedUrl, matchedTitle, existingTabId } = data;
+
+  switch (operation) {
+    case 'switchDirect':
+    case 'switchOnly':
+    case 'switchAndUpdate':
+      if (!tabId) {
+        console.error(`[background] ${operation}: missing tabId`);
+        return;
+      }
+      await activateTab(tabId, windowId);
+      if (operation === 'switchAndUpdate') {
+        await updatePinnedTabUrlAndId(targetUrl, matchedUrl, tabId, matchedTitle);
+      } else if (operation === 'switchDirect' && targetUrl) {
+        await updatePinnedTabId(targetUrl, tabId);
+      }
+      break;
+
+    case 'openNew': {
+      if (!targetUrl) {
+        console.error('[background] openNew: missing targetUrl');
+        return;
+      }
+      const newTab = await chrome.tabs.create({ url: targetUrl, active: true });
+      const finalUrl = await waitForTabLoad(newTab.id) || targetUrl;
+      await updatePinnedTabUrlAndId(targetUrl, finalUrl, newTab.id);
+      break;
+    }
+
+    case 'extensionsSpecial': {
+      if (!existingTabId || !targetUrl) {
+        console.error('[background] extensionsSpecial: missing existingTabId or targetUrl');
+        return;
+      }
+      await chrome.tabs.update(existingTabId, { url: targetUrl, active: true });
+      const tabInfo = await chrome.tabs.get(existingTabId);
+      if (tabInfo.windowId) {
+        await chrome.windows.update(tabInfo.windowId, { focused: true });
+      }
+      await updatePinnedTabId(targetUrl, existingTabId);
+      break;
+    }
+
+    case 'noMatch': {
+      if (!targetUrl) {
+        console.error('[background] noMatch: missing targetUrl');
+        return;
+      }
+      const newTab = await chrome.tabs.create({ url: targetUrl });
+      const finalUrl = await waitForTabLoad(newTab.id) || targetUrl;
+      await updatePinnedTabUrlAndId(targetUrl, finalUrl, newTab.id);
+      break;
+    }
+
+    default:
+      console.warn('[background] Unknown pinnedListTabAction operation:', operation);
+  }
+}
+
+/**
+ * 激活 tab 并聚焦窗口
+ * @param {number} tabId - tab ID
+ * @param {number} [windowId] - 窗口 ID（可选）
+ */
+async function activateTab(tabId, windowId) {
+  await chrome.tabs.update(tabId, { active: true });
+  if (windowId) {
+    await chrome.windows.update(windowId, { focused: true });
+  }
+}
+
+/**
+ * 更新 pinned-list 中 tab 的 URL、tabId 和 title
+ * @param {string} oldUrl - 旧的 URL（用于查找 tab）
+ * @param {string} newUrl - 新的 URL
+ * @param {number} newTabId - 新的 tabId
+ * @param {string} [newTitle] - 新的标题（可选）
+ */
+async function updatePinnedTabUrlAndId(oldUrl, newUrl, newTabId, newTitle) {
+  if (!oldUrl || !newUrl || newTabId === undefined || newTabId === null) {
+    console.error('[background] updatePinnedTabUrlAndId: invalid params', { oldUrl, newUrl, newTabId });
+    return;
+  }
+
+  // 如果 URL 没变，只更新 tabId 和 title
+  if (oldUrl === newUrl) {
+    await updatePinnedTabId(oldUrl, newTabId);
+    return;
+  }
+
+  const result = await chrome.storage.local.get('pinnedTabs');
+  const pinnedTabs = result.pinnedTabs || [];
+
+  let updated = false;
+  let updatedTab = null;
+  const updatedTabs = pinnedTabs.map(t => {
+    if (!updated && t.url === oldUrl) {
+      updated = true;
+      updatedTab = { ...t, url: newUrl, tabId: newTabId };
+      if (newTitle) {
+        updatedTab.title = newTitle;
+      }
+      return updatedTab;
+    }
+    return t;
+  });
+
+  if (updated) {
+    await chrome.storage.local.set({ pinnedTabs: updatedTabs });
+
+    // 如果是长期固定的 tab，同步 URL/title 变化到服务器
+    if (updatedTab && updatedTab.isLongTermPinned) {
+      const syncData = {
+        tabId: 'url:' + newUrl,
+        url: newUrl,
+        isLongTermPinned: true,
+        longTermPinnedAt: updatedTab.longTermPinnedAt
+      };
+      if (newTitle) {
+        syncData.title = newTitle;
+      }
+      SyncQueueService.addOperation('updateTab', syncData)
+        .catch(err => console.info('[background] Sync updateTab failed:', err));
+    }
+  }
+}
+
+/**
+ * 仅更新 pinned-list 中 tab 的 tabId
+ * @param {string} targetUrl - 目标 URL（用于查找 tab）
+ * @param {number} newTabId - 新的 tabId
+ */
+async function updatePinnedTabId(targetUrl, newTabId) {
+  if (!targetUrl || newTabId === undefined || newTabId === null) {
+    console.error('[background] updatePinnedTabId: invalid params', { targetUrl, newTabId });
+    return;
+  }
+
+  const result = await chrome.storage.local.get('pinnedTabs');
+  const pinnedTabs = result.pinnedTabs || [];
+
+  let updated = false;
+  const updatedTabs = pinnedTabs.map(t => {
+    if (!updated && t.url === targetUrl) {
+      updated = true;
+      return { ...t, tabId: newTabId };
+    }
+    return t;
+  });
+
+  if (updated) {
+    await chrome.storage.local.set({ pinnedTabs: updatedTabs });
   }
 }
 

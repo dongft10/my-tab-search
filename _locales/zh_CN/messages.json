@@ -973,6 +973,18 @@
     "message": "已打开的相似页面：",
     "description": "匹配页面标签"
   },
+  "multipleMatchesTitle": {
+    "message": "找到 {count} 个相似页面",
+    "description": "多候选匹配时弹窗标题，{count} 会被替换为数量"
+  },
+  "selectCandidate": {
+    "message": "相似页面（点击选择）：",
+    "description": "多候选列表标签"
+  },
+  "untitled": {
+    "message": "(无标题)",
+    "description": "tab 没有标题时的占位文本"
+  },
   "matchRule": {
     "message": "匹配规则：",
     "description": "匹配规则标签"

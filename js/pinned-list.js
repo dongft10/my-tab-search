@@ -857,11 +857,96 @@ function generateUrlFallbackRules(targetUrl) {
 }
 
 /**
- * 从多个匹配的 tab 中选择最佳的一个
- * 优先级：active > lastAccessed 最大 > id 最小
+ * 对多个候选 tab 进行智能评分和排序
  * @param {Array} tabs - 匹配的 tab 列表
- * @returns {ChromeTab} 最佳匹配的 tab
+ * @param {Object} storedTab - 存储中的固定 tab（含 url, title）
+ * @returns {Array<{tab: Object, score: number}>} 按评分降序排列的候选列表
  */
+function rankTabs(tabs, storedTab) {
+  if (!tabs || tabs.length === 0) return [];
+
+  return tabs
+    .map(tab => ({
+      tab,
+      score: calculateTabMatchScore(tab, storedTab)
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+/**
+ * 计算单个 tab 的匹配评分（0-100）
+ * 评分维度：URL 相似度(40%) + 标题相似度(30%) + 访问新鲜度(20%) + 激活状态(10%)
+ * @param {Object} tab - 浏览器 tab 对象
+ * @param {Object} storedTab - 存储中的固定 tab
+ * @returns {number} 评分 0-100
+ */
+function calculateTabMatchScore(tab, storedTab) {
+  let score = 0;
+
+  // 1. URL 相似度（40%）
+  score += calculateUrlSimilarity(tab.url, storedTab?.url || '') * 40;
+
+  // 2. 标题相似度（30%）
+  if (storedTab?.title && tab.title) {
+    score += calculateTitleSimilarity(tab.title, storedTab.title) * 30;
+  }
+
+  // 3. 访问新鲜度（20%）- 100 小时内线性衰减
+  if (tab.lastAccessed) {
+    const hoursAgo = (Date.now() - tab.lastAccessed) / (1000 * 60 * 60);
+    score += Math.max(0, 100 - hoursAgo) / 100 * 20;
+  }
+
+  // 4. 激活状态（10%）
+  if (tab.active) {
+    score += 10;
+  }
+
+  return Math.round(score);
+}
+
+/**
+ * URL 相似度：最长公共前缀长度 / 较长 URL 长度
+ * @param {string} urlA
+ * @param {string} urlB
+ * @returns {number} 0-1 之间的相似度
+ */
+function calculateUrlSimilarity(urlA, urlB) {
+  if (!urlA || !urlB) return 0;
+  const maxLen = Math.max(urlA.length, urlB.length);
+  if (maxLen === 0) return 0;
+
+  let commonLen = 0;
+  for (let i = 0; i < maxLen; i++) {
+    if (urlA[i] === urlB[i]) {
+      commonLen++;
+    } else {
+      break;
+    }
+  }
+  return commonLen / maxLen;
+}
+
+/**
+ * 标题相似度：词集合 Jaccard 相似度
+ * @param {string} titleA
+ * @param {string} titleB
+ * @returns {number} 0-1 之间的相似度
+ */
+function calculateTitleSimilarity(titleA, titleB) {
+  const wordsA = new Set(titleA.toLowerCase().split(/\s+/).filter(Boolean));
+  const wordsB = new Set(titleB.toLowerCase().split(/\s+/).filter(Boolean));
+  if (wordsA.size === 0 && wordsB.size === 0) return 0;
+
+  let intersection = 0;
+  for (const w of wordsA) {
+    if (wordsB.has(w)) intersection++;
+  }
+  const union = wordsA.size + wordsB.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+// 保留 selectBestTab 作为向后兼容（取评分最高的）
 function selectBestTab(tabs) {
   if (!tabs || tabs.length === 0) return null;
 
@@ -905,7 +990,7 @@ function isExtensionPage(url) {
  * 按回退规则查找匹配的 tab
  * @param {string} targetUrl - 目标 URL
  * @param {Array} allTabs - 所有已打开的 tab
- * @returns {{matchedTab: Object|null, matchLevel: number, matchDescription: string, matchedUrl: string}}
+ * @returns {{matchedTab: Object|null, matchedTabs: Array, matchLevel: number, matchDescription: string, matchedUrl: string}}
  */
 function findTabWithFallback(targetUrl, allTabs) {
   const rules = generateUrlFallbackRules(targetUrl);
@@ -931,10 +1016,11 @@ function findTabWithFallback(targetUrl, allTabs) {
     }
 
     if (matchedTabs.length > 0) {
-      // 多个匹配时，选择优先级最高的 tab
+      // 选择优先级最高的 tab 作为默认（向后兼容）
       const bestMatch = selectBestTab(matchedTabs);
       return {
         matchedTab: bestMatch,
+        matchedTabs: matchedTabs,  // 返回所有匹配的 tab
         matchLevel: rule.level,
         matchDescription: rule.description,
         matchedUrl: bestMatch.url
@@ -942,7 +1028,7 @@ function findTabWithFallback(targetUrl, allTabs) {
     }
   }
 
-  return { matchedTab: null, matchLevel: 0, matchDescription: null, matchedUrl: null };
+  return { matchedTab: null, matchedTabs: [], matchLevel: 0, matchDescription: null, matchedUrl: null };
 }
 
 /**
@@ -966,58 +1052,29 @@ function getMatchRuleDescription(matchLevel, matchPattern) {
 }
 
 /**
- * 切换到指定 tab 并等待激活完成
- * @param {number} tabId - 要切换的 tab ID
- * @param {number} windowId - 要聚焦的窗口 ID（可选）
- * @returns {Promise<void>}
- */
-async function switchToTabAndWait(tabId, windowId) {
-  return new Promise((resolve) => {
-    // 设置超时保护，避免无限等待
-    const timeout = setTimeout(() => {
-      chrome.tabs.onUpdated.removeListener(listener);
-      resolve();
-    }, 2000);  // 2秒超时
-
-    // 监听 tab 更新事件
-    const listener = (updatedTabId, changeInfo) => {
-      if (updatedTabId === tabId && changeInfo.status === 'complete') {
-        clearTimeout(timeout);
-        chrome.tabs.onUpdated.removeListener(listener);
-        // 再等待一小段时间确保窗口焦点切换完成
-        setTimeout(resolve, 100);
-      }
-    };
-
-    chrome.tabs.onUpdated.addListener(listener);
-
-    // 执行切换操作
-    chrome.tabs.update(tabId, { active: true }).then(() => {
-      if (windowId) {
-        chrome.windows.update(windowId, { focused: true });
-      }
-    });
-  });
-}
-
-/**
  * 显示 URL 匹配确认弹窗
+ * 支持单候选（原有行为）和多候选列表展示
  * @param {Object} options - 配置选项
  * @param {string} options.targetUrl - 目标 URL（pinned-list 中固定的）
  * @param {string} options.targetTitle - 目标标题（pinned-list 中固定的）
- * @param {string} options.matchedUrl - 匹配到的 URL（浏览器中打开的）
- * @param {string} options.matchedTitle - 匹配到的标题（浏览器中打开的）
+ * @param {string} options.matchedUrl - 匹配到的 URL（单候选时使用）
+ * @param {string} options.matchedTitle - 匹配到的标题（单候选时使用）
  * @param {number} options.matchLevel - 匹配级别
  * @param {string} options.matchPattern - 匹配模式
- * @returns {Promise<string>} 用户选择：'updateAndJump', 'jumpOnly', 'openNew', 'cancel'
+ * @param {Array<{tab: Object, score: number}>} options.candidates - 候选列表（多候选时使用）
+ * @returns {Promise<{action: string, selectedTab: Object|null}>} 用户选择和选中的 tab
  */
-function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matchedTitle, matchLevel, matchPattern }) {
+function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matchedTitle, matchLevel, matchPattern, candidates }) {
   return new Promise((resolve) => {
     const dialog = document.getElementById('url-match-confirm-dialog');
+    const dialogTitleEl = document.getElementById('confirm-dialog-title');
     const targetTitleEl = document.getElementById('confirm-target-title');
     const targetUrlEl = document.getElementById('confirm-target-url');
+    const matchedLabelEl = document.getElementById('confirm-matched-label');
+    const singleMatchEl = document.getElementById('confirm-single-match');
     const matchedTitleEl = document.getElementById('confirm-matched-title');
     const matchedUrlEl = document.getElementById('confirm-matched-url');
+    const candidatesListEl = document.getElementById('confirm-candidates-list');
     const matchInfoEl = document.getElementById('confirm-match-info');
 
     const switchUpdateBtn = document.getElementById('confirm-switch-update-btn');
@@ -1026,16 +1083,101 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
     const cancelBtn = document.getElementById('confirm-cancel-btn');
     const overlay = dialog.querySelector('.confirm-dialog-overlay');
 
+    // 判断是否多候选模式
+    const isMultiCandidate = candidates && candidates.length > 1;
+
     // 按钮数组，方便键盘导航（顺序与 HTML 中一致）
     const buttons = [switchOnlyBtn, switchUpdateBtn, openNewBtn, cancelBtn];
     let currentButtonIndex = 0;
 
-    // 填充内容
-    targetTitleEl.textContent = targetTitle || '(无标题)';
+    // 多候选模式下当前选中的候选索引
+    let selectedCandidateIndex = 0;
+
+    // 获取当前选中的 tab
+    const getSelectedTab = () => {
+      if (isMultiCandidate && candidates[selectedCandidateIndex]) {
+        return candidates[selectedCandidateIndex].tab;
+      }
+      return null;
+    };
+
+    // 填充固定页面信息
+    targetTitleEl.textContent = targetTitle || i18n.getMessage('untitled') || '(无标题)';
     targetUrlEl.textContent = targetUrl;
-    matchedTitleEl.textContent = matchedTitle || '(无标题)';
-    matchedUrlEl.textContent = matchedUrl;
     matchInfoEl.textContent = getMatchRuleDescription(matchLevel, matchPattern);
+
+    if (isMultiCandidate) {
+      // 多候选模式：显示列表
+      dialogTitleEl.textContent = (i18n.getMessage('multipleMatchesTitle') || '找到 {count} 个相似页面')
+        .replace('{count}', candidates.length);
+      matchedLabelEl.textContent = i18n.getMessage('selectCandidate') || '相似页面（点击选择）：';
+      singleMatchEl.style.display = 'none';
+      candidatesListEl.style.display = 'flex';
+
+      // 清空并重建候选列表
+      candidatesListEl.innerHTML = '';
+      candidates.forEach((candidate, index) => {
+        const item = document.createElement('div');
+        item.className = 'confirm-candidate-item' + (index === 0 ? ' selected' : '');
+        item.dataset.index = index;
+        item.setAttribute('role', 'radio');
+        item.setAttribute('aria-checked', index === 0 ? 'true' : 'false');
+        item.setAttribute('tabindex', '0');
+
+        const radio = document.createElement('div');
+        radio.className = 'confirm-candidate-radio';
+
+        const info = document.createElement('div');
+        info.className = 'confirm-candidate-info';
+
+        const title = document.createElement('div');
+        title.className = 'confirm-candidate-title';
+        title.textContent = candidate.tab.title || i18n.getMessage('untitled') || '(无标题)';
+        title.title = candidate.tab.title || '';
+
+        const url = document.createElement('div');
+        url.className = 'confirm-candidate-url';
+        url.textContent = candidate.tab.url;
+        url.title = candidate.tab.url;
+
+        info.appendChild(title);
+        info.appendChild(url);
+
+        const score = document.createElement('div');
+        score.className = 'confirm-candidate-score';
+        score.textContent = candidate.score + '%';
+
+        item.appendChild(radio);
+        item.appendChild(info);
+        item.appendChild(score);
+
+        // 点击选择
+        item.addEventListener('click', () => {
+          selectCandidate(index);
+        });
+
+        candidatesListEl.appendChild(item);
+      });
+
+      // 选中候选项
+      const selectCandidate = (index) => {
+        selectedCandidateIndex = index;
+        const items = candidatesListEl.querySelectorAll('.confirm-candidate-item');
+        items.forEach((item, i) => {
+          const isSelected = i === index;
+          item.classList.toggle('selected', isSelected);
+          item.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        });
+      };
+    } else {
+      // 单候选模式：原有行为
+      dialogTitleEl.textContent = i18n.getMessage('urlMatchTitle') || '找到相似页面';
+      matchedLabelEl.textContent = i18n.getMessage('matchedPage') || '已打开的相似页面：';
+      singleMatchEl.style.display = 'block';
+      candidatesListEl.style.display = 'none';
+      matchedTitleEl.textContent = matchedTitle || i18n.getMessage('untitled') || '(无标题)';
+      matchedUrlEl.textContent = matchedUrl;
+    }
 
     // 清理之前的事件监听器
     const cleanup = () => {
@@ -1046,6 +1188,8 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
       cancelBtn.onclick = null;
       overlay.onclick = null;
       document.removeEventListener('keydown', handleKeydown);
+      // 清空候选列表，避免残留 DOM 和事件监听器
+      candidatesListEl.innerHTML = '';
     };
 
     // 更新按钮焦点
@@ -1066,7 +1210,7 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
         case 'Escape':
           e.preventDefault();
           cleanup();
-          resolve('cancel');
+          resolve({ action: 'cancel', selectedTab: null });
           break;
 
         case 'ArrowUp':
@@ -1093,28 +1237,28 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
     // 绑定按钮事件
     switchUpdateBtn.onclick = () => {
       cleanup();
-      resolve('updateAndJump');
+      resolve({ action: 'updateAndJump', selectedTab: getSelectedTab() });
     };
 
     switchOnlyBtn.onclick = () => {
       cleanup();
-      resolve('jumpOnly');
+      resolve({ action: 'jumpOnly', selectedTab: getSelectedTab() });
     };
 
     openNewBtn.onclick = () => {
       cleanup();
-      resolve('openNew');
+      resolve({ action: 'openNew', selectedTab: null });
     };
 
     cancelBtn.onclick = () => {
       cleanup();
-      resolve('cancel');
+      resolve({ action: 'cancel', selectedTab: null });
     };
 
     // 点击 overlay 关闭弹窗
     overlay.onclick = () => {
       cleanup();
-      resolve('cancel');
+      resolve({ action: 'cancel', selectedTab: null });
     };
 
     // 添加键盘监听
@@ -1126,102 +1270,6 @@ function showUrlMatchConfirmDialog({ targetUrl, targetTitle, matchedUrl, matched
     // 聚焦到第一个按钮
     updateButtonFocus();
   });
-}
-
-/**
- * 更新 pinned-list 中 tab 的 URL、tabId 和 title
- * @param {string} oldUrl - 旧的 URL（用于查找 tab）
- * @param {string} newUrl - 新的 URL
- * @param {number} newTabId - 新的 tabId
- * @param {string} [newTitle] - 新的标题（可选）
- * @returns {Promise<boolean>} 是否更新成功
- */
-async function updatePinnedTabUrlAndId(oldUrl, newUrl, newTabId, newTitle) {
-  // 参数验证
-  if (!oldUrl || !newUrl || newTabId === undefined || newTabId === null) {
-    console.error('[updatePinnedTabUrlAndId] Invalid parameters:', { oldUrl, newUrl, newTabId });
-    return false;
-  }
-
-  const result = await chrome.storage.local.get('pinnedTabs');
-  const pinnedTabs = result.pinnedTabs || [];
-
-  // 只更新第一个匹配项
-  let updated = false;
-  let updatedTab = null;
-  const updatedTabs = pinnedTabs.map(t => {
-    if (!updated && t.url === oldUrl) {
-      updated = true;
-      // 更新 URL、tabId，如果有新 title 也更新
-      updatedTab = { ...t, url: newUrl, tabId: newTabId };
-      if (newTitle) {
-        updatedTab.title = newTitle;
-      }
-      return updatedTab;
-    }
-    return t;
-  });
-
-  if (!updated) {
-    console.warn('[updatePinnedTabUrlAndId] No matching tab found for URL:', oldUrl);
-    return false;
-  }
-
-  await chrome.storage.local.set({ pinnedTabs: updatedTabs });
-
-  // 如果是长期固定的 tab，需要同步 URL 和 title 变化到服务器
-  if (updatedTab.isLongTermPinned) {
-    console.log('[updatePinnedTabUrlAndId] Syncing URL/title change for long-term pinned tab to server');
-    const syncData = {
-      tabId: 'url:' + newUrl,  // 使用新 URL 作为标识
-      url: newUrl,
-      isLongTermPinned: true,
-      longTermPinnedAt: updatedTab.longTermPinnedAt
-    };
-    // 如果有新 title，也同步 title
-    if (newTitle) {
-      syncData.title = newTitle;
-    }
-    syncQueueService.addOperation('updateTab', syncData)
-      .catch(err => console.info('[updatePinnedTabUrlAndId] Sync updateTab failed:', err));
-  }
-
-  return true;
-}
-
-/**
- * 仅更新 pinned-list 中 tab 的 tabId
- * @param {string} targetUrl - 目标 URL（用于查找 tab）
- * @param {number} newTabId - 新的 tabId
- * @returns {Promise<boolean>} 是否更新成功
- */
-async function updatePinnedTabId(targetUrl, newTabId) {
-  // 参数验证
-  if (!targetUrl || newTabId === undefined || newTabId === null) {
-    console.error('[updatePinnedTabId] Invalid parameters:', { targetUrl, newTabId });
-    return false;
-  }
-
-  const result = await chrome.storage.local.get('pinnedTabs');
-  const pinnedTabs = result.pinnedTabs || [];
-
-  // 只更新第一个匹配项
-  let updated = false;
-  const updatedTabs = pinnedTabs.map(t => {
-    if (!updated && t.url === targetUrl) {
-      updated = true;
-      return { ...t, tabId: newTabId };
-    }
-    return t;
-  });
-
-  if (!updated) {
-    console.warn('[updatePinnedTabId] No matching tab found for URL:', targetUrl);
-    return false;
-  }
-
-  await chrome.storage.local.set({ pinnedTabs: updatedTabs });
-  return true;
 }
 
 // 切换到标签页
@@ -1261,16 +1309,18 @@ async function switchToTab(tabOrId, event) {
         const result = await chrome.storage.local.get('pinnedTabs');
         const pinnedTabs = result.pinnedTabs || [];
         const storedTab = pinnedTabs.find(t => t.tabId === tabId);
-        
+
         if (storedTab && storedTab.url && storedTab.url !== tab.url) {
           // URL 不匹配，用存储中的 URL 作为目标
           targetUrl = storedTab.url;
+          targetTab = storedTab;  // 也要设置 targetTab，确保标题能正确显示
         } else {
-          // URL 完全匹配，切换到该 tab
-          await chrome.tabs.update(tabId, { active: true });
-          if (tab.windowId) {
-            await chrome.windows.update(tab.windowId, { focused: true });
-          }
+          // URL 完全匹配，委托 background 执行切换并关闭窗口
+          delegateToBackground({
+            operation: 'switchDirect',
+            tabId: tabId,
+            windowId: tab.windowId
+          });
           return;
         }
       } else {
@@ -1313,78 +1363,100 @@ async function switchToTab(tabOrId, event) {
     if (targetUrl.startsWith('chrome://extensions')) {
       const extensionsTabs = allTabs.filter(t => t.url.startsWith('chrome://extensions'));
       if (extensionsTabs.length > 0) {
-        // 复用已存在的页面，导航到目标 URL
+        // 委托 background 执行操作并关闭窗口
         const existingTab = extensionsTabs[0];
-        await chrome.tabs.update(existingTab.id, { url: targetUrl, active: true });
-        if (existingTab.windowId) {
-          await chrome.windows.update(existingTab.windowId, { focused: true });
-        }
-        // 更新存储中的 tabId
-        await updatePinnedTabId(targetUrl, existingTab.id);
-        window.close();
+        delegateToBackground({
+          operation: 'extensionsSpecial',
+          existingTabId: existingTab.id,
+          targetUrl: targetUrl
+        });
         return;
       }
     }
 
     // 使用回退匹配机制查找 tab
-    const { matchedTab, matchLevel, matchDescription, matchedUrl } =
+    const { matchedTab, matchedTabs, matchLevel, matchDescription, matchedUrl } =
       findTabWithFallback(targetUrl, allTabs);
 
     if (matchedTab) {
       if (matchLevel === 1) {
         // 完全匹配，直接切换（无需确认）
-        await chrome.tabs.update(matchedTab.id, { active: true });
-        if (matchedTab.windowId) {
-          await chrome.windows.update(matchedTab.windowId, { focused: true });
-        }
-        await updatePinnedTabId(targetUrl, matchedTab.id);
+        // 委托 background 执行操作并关闭窗口
+        delegateToBackground({
+          operation: 'switchDirect',
+          tabId: matchedTab.id,
+          windowId: matchedTab.windowId,
+          targetUrl: targetUrl
+        });
+        return;
       } else {
-        // 回退匹配，弹窗确认
+        // 回退匹配，对候选进行智能评分
+        const ranked = rankTabs(matchedTabs, targetTab);
+
+        // 高置信度自动跳转：第一名评分领先第二名 ≥ 20 分时，直接跳转
+        if (ranked.length >= 2 && ranked[0].score - ranked[1].score >= 20) {
+          const bestTab = ranked[0].tab;
+          delegateToBackground({
+            operation: 'switchAndUpdate',
+            tabId: bestTab.id,
+            windowId: bestTab.windowId,
+            targetUrl: targetUrl,
+            matchedUrl: bestTab.url,
+            matchedTitle: bestTab.title || ''
+          });
+          return;
+        }
+
         // 获取匹配规则中的 pattern（用于显示）
         const rules = generateUrlFallbackRules(targetUrl);
         const matchedRule = rules.find(r => r.level === matchLevel);
         const matchPattern = matchedRule ? matchedRule.pattern : targetUrl;
 
-        const userChoice = await showUrlMatchConfirmDialog({
+        // 弹窗确认（传入候选列表）
+        const { action, selectedTab } = await showUrlMatchConfirmDialog({
           targetUrl,
           targetTitle: targetTab?.title || '',
           matchedUrl,
           matchedTitle: matchedTab.title || '',
           matchLevel,
-          matchPattern
+          matchPattern,
+          candidates: ranked
         });
 
-        switch (userChoice) {
+        // 确定最终操作的 tab：多候选时用用户选中的，单候选时用默认匹配的
+        const actionTab = selectedTab || matchedTab;
+
+        switch (action) {
           case 'updateAndJump':
             // 选项 1：切换并更新
-            // 切换到匹配的 tab，并更新 pinned-list 中的 URL、tabId 和 title
-            await chrome.tabs.update(matchedTab.id, { active: true });
-            if (matchedTab.windowId) {
-              await chrome.windows.update(matchedTab.windowId, { focused: true });
-            }
-            // 传入 matchedTab.title 以更新标题
-            await updatePinnedTabUrlAndId(targetUrl, matchedUrl, matchedTab.id, matchedTab.title);
-            // 使用双重保障确保操作完成：先等待渲染帧，再等待一小段时间
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
-            window.close();
+            // 委托 background 执行 tab 操作、storage 更新和服务器同步，并关闭窗口
+            delegateToBackground({
+              operation: 'switchAndUpdate',
+              tabId: actionTab.id,
+              windowId: actionTab.windowId,
+              targetUrl: targetUrl,
+              matchedUrl: actionTab.url,
+              matchedTitle: actionTab.title || ''
+            });
             return;
 
           case 'jumpOnly':
             // 选项 2：仅切换（不更新）
-            // 切换到匹配的 tab，但不更新 pinned-list
-            // 使用事件监听确保 tab 真正激活后再关闭窗口
-            await switchToTabAndWait(matchedTab.id, matchedTab.windowId);
-            window.close();
+            // 委托 background 执行操作并关闭窗口
+            delegateToBackground({
+              operation: 'switchOnly',
+              tabId: actionTab.id,
+              windowId: actionTab.windowId
+            });
             return;
 
           case 'openNew':
             // 选项 3：新页面打开
-            // 创建新 tab 打开目标 URL，更新 pinned-list 中的 tabId
-            const newTab = await chrome.tabs.create({ url: targetUrl, active: true });
-            await updatePinnedTabId(targetUrl, newTab.id);
-            // 使用双重保障确保操作完成
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
-            window.close();
+            // 委托 background 执行操作并关闭窗口
+            delegateToBackground({
+              operation: 'openNew',
+              targetUrl: targetUrl
+            });
             return;
 
           case 'cancel':
@@ -1396,14 +1468,32 @@ async function switchToTab(tabOrId, event) {
         }
       }
     } else {
-      // 没找到，创建新标签页并更新存储中的 tabId
-      const newTab = await chrome.tabs.create({ url: targetUrl });
-      await updatePinnedTabId(targetUrl, newTab.id);
+      // 没找到，委托 background 创建新标签页并关闭窗口
+      delegateToBackground({
+        operation: 'noMatch',
+        targetUrl: targetUrl
+      });
+      return;
     }
-    window.close();
   } catch (error) {
     console.error('Switch to tab error:', error);
   }
+}
+
+/**
+ * 委托操作给 background.js 执行，然后立即关闭当前窗口
+ * 避免 blur 事件与 tab 操作的竞态条件
+ * @param {Object} data - 操作数据，包含 operation 类型和参数
+ */
+function delegateToBackground(data) {
+  // 立即关闭窗口
+  window.close();
+  // 发送消息给 background 执行实际操作
+  // 使用 fire-and-forget 模式，不等待响应
+  chrome.runtime.sendMessage({
+    action: 'pinnedListTabAction',
+    data: data
+  }).catch(err => console.error('[pinned-list] Failed to send message to background:', err));
 }
 
 // 从固定列表中移除（不关闭标签页）

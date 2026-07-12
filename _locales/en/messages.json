@@ -973,6 +973,18 @@
     "message": "Opened Similar Page:",
     "description": "Matched page label"
   },
+  "multipleMatchesTitle": {
+    "message": "Found {count} Similar Pages",
+    "description": "Dialog title when multiple candidates match, {count} is replaced with the number"
+  },
+  "selectCandidate": {
+    "message": "Similar Pages (click to select):",
+    "description": "Candidate list label"
+  },
+  "untitled": {
+    "message": "(No Title)",
+    "description": "Placeholder text when tab has no title"
+  },
   "matchRule": {
     "message": "Match Rule: ",
     "description": "Match rule label"
