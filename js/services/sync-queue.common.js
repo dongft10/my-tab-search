@@ -1,6 +1,6 @@
 /**
  * 同步队列服务
- * 用于 background.js 的同步功�? */
+ * 用于 background.js 的同步功�? */
 
 import { API_CONFIG, getApiUrl, PINNED_TABS_CONFIG } from '../config.js';
 import authApi from '../api/auth.js';

@@ -8,7 +8,7 @@ import authService from './services/auth.service.js';
 import vipService from './services/vip.service.js';
 import trialService from './services/trial.service.js';
 import deviceService from './services/device.service.js';
-import { getGoogleOAuthClientId } from './config.js';
+import { getGoogleOAuthClientId, getMicrosoftOAuthClientId } from './config.js';
 import featureLimitService from './services/feature-limit.service.js';
 import searchMatchService from './services/search-match.service.js';
 import i18n from './i18n.js';
@@ -1032,11 +1032,6 @@ async function requestIdentityPermission() {
 
 // 登录弹窗 - OAuth 登录
 async function handleLoginOAuth(provider) {
-  if (provider === 'microsoft') {
-    showLoginMessage(i18n.getMessage('microsoftLoginDeveloping'), 'info');
-    return;
-  }
-  
   try {
     const granted = await requestIdentityPermission();
     if (!granted) {
@@ -1044,9 +1039,21 @@ async function handleLoginOAuth(provider) {
       return;
     }
 
-    const clientId = getGoogleOAuthClientId();
-    if (!clientId) {
-      showLoginMessage('Google 登录配置错误，请联系开发者', 'error');
+    let clientId;
+    if (provider === 'google') {
+      clientId = getGoogleOAuthClientId();
+      if (!clientId) {
+        showLoginMessage('Google 登录配置错误，请联系开发者', 'error');
+        return;
+      }
+    } else if (provider === 'microsoft') {
+      clientId = getMicrosoftOAuthClientId();
+      if (!clientId) {
+        showLoginMessage('Microsoft 登录配置错误，请联系开发者', 'error');
+        return;
+      }
+    } else {
+      showLoginMessage('不支持的登录方式', 'error');
       return;
     }
 
@@ -1061,13 +1068,17 @@ async function handleLoginOAuth(provider) {
       authUrl.searchParams.set('scope', 'openid email profile');
       authUrl.searchParams.set('state', 'google');
       authUrl.searchParams.set('access_type', 'online');
-    } else {
+    } else if (provider === 'microsoft') {
       authUrl = new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
       authUrl.searchParams.set('client_id', clientId);
       authUrl.searchParams.set('redirect_uri', redirectUri);
-      authUrl.searchParams.set('response_type', 'token');
-      authUrl.searchParams.set('scope', 'openid email profile User.read');
-      authUrl.searchParams.set('state', 'microsoft');
+      authUrl.searchParams.set('response_type', 'code');
+      authUrl.searchParams.set('scope', 'openid email profile User.Read');
+      // 使用随机 state 参数防止 CSRF 攻击
+      const state = crypto.randomUUID();
+      sessionStorage.setItem('oauth_state', state);
+      authUrl.searchParams.set('state', state);
+      authUrl.searchParams.set('response_mode', 'query');
     }
 
     showLoginMessage('正在跳转...', 'info');
@@ -1079,21 +1090,117 @@ async function handleLoginOAuth(provider) {
 
     if (responseUrl) {
       const url = new URL(responseUrl);
+      const queryParams = url.searchParams;
       const hashParams = new URLSearchParams(url.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const error = url.searchParams.get('error');
 
-      if (accessToken) {
+      // 验证 state 参数防止 CSRF 攻击（仅 Microsoft OAuth 强制验证）
+      if (provider === 'microsoft') {
+        const returnedState = queryParams.get('state');
+        const savedState = sessionStorage.getItem('oauth_state');
+
+        // Microsoft OAuth 强制要求 state 必须存在且匹配
+        // 任一为空或不匹配都应该拒绝
+        if (!returnedState || !savedState || returnedState !== savedState) {
+          sessionStorage.removeItem('oauth_state');
+          showLoginMessage(i18n.getMessage('oauthStateInvalid') || '授权验证失败，请重试', 'error');
+          return;
+        }
+        sessionStorage.removeItem('oauth_state');
+      }
+
+      const code = queryParams.get('code');
+      const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+      const error = queryParams.get('error') || hashParams.get('error');
+
+      if (provider === 'microsoft' && code) {
+        // Microsoft 授权码流程：用 code 换取 token
+        await handleMicrosoftAuthCode(code, redirectUri);
+      } else if (accessToken) {
         await handleLoginOAuthToken(provider, accessToken);
       } else if (error) {
-        showLoginMessage(decodeURIComponent(error), 'error');
+        const errorDesc = queryParams.get('error_description') || error;
+
+        // 根据错误类型提供更友好的提示
+        let userMessage = i18n.getMessage('oauthFailed') || '授权失败';
+        if (error === 'access_denied') {
+          userMessage = i18n.getMessage('oauthAccessDenied') || '您取消了授权';
+        } else if (error === 'invalid_scope') {
+          userMessage = i18n.getMessage('oauthInvalidScope') || '权限请求无效';
+        }
+
+        showLoginMessage(userMessage, 'error');
+        console.error('[OAuth] Error:', error, errorDesc);
       } else {
-        showLoginMessage('未收到授权令牌', 'error');
+        console.error('OAuth response URL:', responseUrl);
+        showLoginMessage(i18n.getMessage('oauthNoToken') || '未收到授权令牌', 'error');
       }
     }
   } catch (error) {
     console.error('OAuth error:', error);
-    showLoginMessage('授权失败，请重试', 'error');
+    showLoginMessage(i18n.getMessage('oauthFailedRetry') || '授权失败，请重试', 'error');
+  }
+}
+
+// Microsoft 授权码流程：用 code 换取 access_token，再获取用户信息
+async function handleMicrosoftAuthCode(code, redirectUri) {
+  try {
+    // 基本验证：确保授权码存在且为字符串
+    if (!code || typeof code !== 'string') {
+      showLoginMessage(i18n.getMessage('oauthInvalidCode') || '无效的授权码', 'error');
+      return;
+    }
+
+    // 防止 DoS 攻击：限制最大长度（预留足够余量，Microsoft 授权码可能超过 4000 字符）
+    if (code.length > 8192) {
+      showLoginMessage(i18n.getMessage('oauthCodeTooLong') || '授权码过长', 'error');
+      return;
+    }
+
+    if (!redirectUri || typeof redirectUri !== 'string') {
+      showLoginMessage(i18n.getMessage('oauthInvalidRedirect') || '无效的重定向地址', 'error');
+      return;
+    }
+
+    showLoginMessage(i18n.getMessage('oauthVerifying') || '正在验证授权...', 'info');
+
+    const { default: authApi } = await import('./api/auth.js');
+
+    // 将 code 发送到后端验证
+    const response = await authApi.verifyOAuthCode('microsoft', code, redirectUri);
+    // 移除生产环境调试日志，仅保留开发环境日志
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
+      console.log('[Microsoft OAuth] verifyOAuthCode success');
+    }
+
+    if (response.code === 0 && response.data?.success) {
+      const authService = (await import('./services/auth.service.js')).default;
+
+      // 保存用户信息
+      await authService.saveUserInfo({
+        userId: response.data.userId,
+        deviceId: response.data.deviceId,
+        accessToken: response.data.accessToken,
+        registeredAt: new Date().toISOString()
+      });
+
+      showLoginMessage(i18n.getMessage('loginSuccess') || '登录成功', 'success');
+
+      // 通知扩展刷新状态（修复竞态条件）
+      setTimeout(async () => {
+        try {
+          await chrome.runtime.sendMessage({ action: 'AUTH_SUCCESS', data: response.data });
+        } catch (err) {
+          console.warn('[Microsoft OAuth] AUTH_SUCCESS send failed:', err);
+        }
+        // 刷新设置页面
+        window.location.reload();
+      }, 1000);
+    } else {
+      showLoginMessage(response.msg || i18n.getMessage('microsoftLoginFailed') || 'Microsoft 登录验证失败', 'error');
+    }
+  } catch (error) {
+    console.error('[Microsoft OAuth] handleMicrosoftAuthCode error:', error);
+    showLoginMessage(i18n.getMessage('microsoftLoginRetry') || 'Microsoft 登录验证失败，请重试', 'error');
   }
 }
 
@@ -1111,6 +1218,17 @@ async function handleLoginOAuthToken(provider, accessToken) {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       userInfo = await resp.json();
+    } else if (provider === 'microsoft') {
+      const resp = await fetch('https://graph.microsoft.com/v1.0/me', {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      const msUser = await resp.json();
+      // Microsoft Graph API 返回的邮箱字段可能在 mail 或 userPrincipalName
+      userInfo = {
+        email: msUser.mail || msUser.userPrincipalName,
+        name: msUser.displayName,
+        picture: null // Microsoft Graph 需要额外请求头像
+      };
     }
 
     if (userInfo && userInfo.email) {

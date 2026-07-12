@@ -912,5 +912,113 @@
   "oauthPermissionDenied": {
     "message": "OAuth login requires additional permission. You can use email verification code to login instead, which is equally secure and convenient.",
     "description": "Message when OAuth permission is denied"
+  },
+  "oauthStateInvalid": {
+    "message": "Authorization verification failed, please retry",
+    "description": "OAuth state parameter validation failed"
+  },
+  "oauthInvalidCode": {
+    "message": "Invalid authorization code",
+    "description": "Authorization code is empty or has wrong type"
+  },
+  "oauthCodeTooLong": {
+    "message": "Authorization code too long",
+    "description": "Authorization code exceeds maximum length limit"
+  },
+  "oauthInvalidRedirect": {
+    "message": "Invalid redirect URI",
+    "description": "Redirect URI is empty or has wrong type"
+  },
+  "oauthVerifying": {
+    "message": "Verifying authorization...",
+    "description": "Verifying OAuth authorization code"
+  },
+  "microsoftLoginFailed": {
+    "message": "Microsoft login verification failed",
+    "description": "Microsoft OAuth login verification failed"
+  },
+  "microsoftLoginRetry": {
+    "message": "Microsoft login verification failed, please retry",
+    "description": "Microsoft OAuth login verification failed, prompt user to retry"
+  },
+  "oauthFailed": {
+    "message": "Authorization failed",
+    "description": "OAuth authorization failed"
+  },
+  "oauthAccessDenied": {
+    "message": "You cancelled authorization",
+    "description": "User cancelled OAuth authorization"
+  },
+  "oauthInvalidScope": {
+    "message": "Invalid permission request",
+    "description": "OAuth scope parameter is invalid"
+  },
+  "oauthNoToken": {
+    "message": "No authorization token received",
+    "description": "No token received in OAuth response"
+  },
+  "oauthFailedRetry": {
+    "message": "Authorization failed, please retry",
+    "description": "OAuth authorization failed, prompt user to retry"
+  },
+  "urlMatchTitle": {
+    "message": "Similar Page Found",
+    "description": "URL match confirm dialog title"
+  },
+  "pinnedPage": {
+    "message": "Pinned Page:",
+    "description": "Pinned page label"
+  },
+  "matchedPage": {
+    "message": "Opened Similar Page:",
+    "description": "Matched page label"
+  },
+  "multipleMatchesTitle": {
+    "message": "Found {count} Similar Pages",
+    "description": "Dialog title when multiple candidates match, {count} is replaced with the number"
+  },
+  "selectCandidate": {
+    "message": "Similar Pages (click to select):",
+    "description": "Candidate list label"
+  },
+  "untitled": {
+    "message": "(No Title)",
+    "description": "Placeholder text when tab has no title"
+  },
+  "matchRule": {
+    "message": "Match Rule: ",
+    "description": "Match rule label"
+  },
+  "matchLevelExact": {
+    "message": "Exact Match",
+    "description": "Match level: exact match"
+  },
+  "matchLevelPath": {
+    "message": "Path Match",
+    "description": "Match level: path match"
+  },
+  "matchLevelParentPath": {
+    "message": "Parent Path Match",
+    "description": "Match level: parent path match"
+  },
+  "matchLevelDomain": {
+    "message": "Domain Match",
+    "description": "Match level: domain match"
+  },
+  "updateAndJump": {
+    "message": "Update & Jump",
+    "description": "Update and jump button text"
+  },
+  "jumpOnly": {
+    "message": "Jump Only (No Update)",
+    "description": "Jump only button text"
+  },
+  "openNew": {
+    "message": "Open in New Tab",
+    "description": "Open in new tab button text"
+  },
+  "cancel": {
+    "message": "Cancel",
+    "description": "Cancel button text"
   }
 }
