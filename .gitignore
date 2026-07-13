@@ -6,3 +6,17 @@
 /website/tmp/
 
 nul
+
+# === 环境变量文件（敏感信息）===
+.env
+.env.local
+.env.*.local
+
+# === OAuth 密钥文件（禁止提交）===
+oauth-secrets.json
+oauth-*.json
+!oauth-config.example.js
+
+# === 临时文件 ===
+*.tmp
+*.temp
