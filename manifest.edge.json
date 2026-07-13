@@ -34,8 +34,7 @@
         "manifest.json",
         "html/about.html",
         "html/settings.html",
-        "html/help-tour.html",
-        "html/auth.html"
+        "html/help-tour.html"
       ],
       "matches": [
         "<all_urls>"
