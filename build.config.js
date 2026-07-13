@@ -27,15 +27,62 @@ console.log(`Building for environment: ${env}`);
 const API_BASE_URLS = {
   dev: 'http://localhost:41532',
   qa: 'https://mts-backend-qa.vercel.app',
+  preprod: 'https://mytabsearch.us.kg',
   prod: 'https://mytabsearch.us.kg'
+};
+
+// === OAuth Client ID 配置 ===
+// 从环境变量读取，按市场命名（同一市场的所有包 ID 使用相同的 Client ID）
+const OAUTH_CONFIG = {
+  // Chrome Web Store（开发和生产共用）
+  CHROME_GOOGLE_CLIENT_ID: process.env.CHROME_GOOGLE_CLIENT_ID || null,
+  CHROME_MICROSOFT_CLIENT_ID: process.env.CHROME_MICROSOFT_CLIENT_ID || null,
+
+  // Edge Add-ons
+  EDGE_GOOGLE_CLIENT_ID: process.env.EDGE_GOOGLE_CLIENT_ID || null,
+  EDGE_MICROSOFT_CLIENT_ID: process.env.EDGE_MICROSOFT_CLIENT_ID || null,
+
+  // Firefox Add-ons
+  FIREFOX_GOOGLE_CLIENT_ID: process.env.FIREFOX_GOOGLE_CLIENT_ID || null,
+  FIREFOX_MICROSOFT_CLIENT_ID: process.env.FIREFOX_MICROSOFT_CLIENT_ID || null
 };
 
 // 定义环境变量替换
 const define = {
   'process.env.ENV_TYPE': JSON.stringify(env),
   'process.env.API_BASE_URL': JSON.stringify(API_BASE_URLS[env]),
-  'globalThis.ENV_TYPE': JSON.stringify(env)
+  'globalThis.ENV_TYPE': JSON.stringify(env),
+
+  // OAuth Client ID 注入（按市场命名）
+  'globalThis.CHROME_GOOGLE_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.CHROME_GOOGLE_CLIENT_ID),
+  'globalThis.CHROME_MICROSOFT_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.CHROME_MICROSOFT_CLIENT_ID),
+  'globalThis.EDGE_GOOGLE_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.EDGE_GOOGLE_CLIENT_ID),
+  'globalThis.EDGE_MICROSOFT_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.EDGE_MICROSOFT_CLIENT_ID),
+  'globalThis.FIREFOX_GOOGLE_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.FIREFOX_GOOGLE_CLIENT_ID),
+  'globalThis.FIREFOX_MICROSOFT_CLIENT_ID': JSON.stringify(OAUTH_CONFIG.FIREFOX_MICROSOFT_CLIENT_ID)
 };
+
+// === 构建验证 ===
+// 生产环境检查 Client ID 配置（仅警告，不阻止构建）
+if (env === 'prod') {
+  const missing = [];
+
+  if (!OAUTH_CONFIG.CHROME_GOOGLE_CLIENT_ID) {
+    missing.push('CHROME_GOOGLE_CLIENT_ID');
+  }
+  if (!OAUTH_CONFIG.CHROME_MICROSOFT_CLIENT_ID) {
+    missing.push('CHROME_MICROSOFT_CLIENT_ID');
+  }
+
+  if (missing.length > 0) {
+    console.warn('\n⚠️  Warning: Production build missing environment variables:');
+    missing.forEach(name => console.warn(`   - ${name}`));
+    console.warn('\nBuild will continue, but OAuth may not work correctly.');
+    console.warn('For production deployment, please configure these variables.\n');
+  } else {
+    console.log('✅ OAuth Client ID configuration validated for production');
+  }
+}
 
 // 输出目录
 const outDir = 'pack/out/build';
@@ -79,8 +126,8 @@ async function build() {
       platform: 'browser',
       target: ['chrome120'],
       define,
-      minify: env === 'prod',
-      sourcemap: env !== 'prod' ? 'inline' : false,
+      minify: env === 'prod' || env === 'preprod',
+      sourcemap: (env !== 'prod' && env !== 'preprod') ? 'inline' : false,
       banner: {
         js: '// Built with esbuild - Service Worker Bundle'
       }
@@ -107,8 +154,8 @@ async function build() {
         platform: 'browser',
         target: ['chrome120'],
         define,
-        minify: env === 'prod',
-        sourcemap: env !== 'prod' ? 'inline' : false
+        minify: env === 'prod' || env === 'preprod',
+        sourcemap: (env !== 'prod' && env !== 'preprod') ? 'inline' : false
       });
       console.log(`  ✓ ${entry}.js`);
     }
@@ -133,8 +180,8 @@ async function build() {
         platform: 'browser',
         target: ['chrome120'],
         define,
-        minify: env === 'prod',
-        sourcemap: env !== 'prod' ? 'inline' : false,
+        minify: env === 'prod' || env === 'preprod',
+        sourcemap: (env !== 'prod' && env !== 'preprod') ? 'inline' : false,
         splitting: false
       });
       console.log(`  ✓ ${entry}.js`);
@@ -265,11 +312,11 @@ function processManifest() {
     console.log('  Kept key field (pre-prod mode, extension ID stable)');
   }
   
-  // prod 环境只保留生产环境的 host_permissions
-  if (env === 'prod' && manifest.host_permissions) {
+  // prod/preprod 环境只保留生产环境的 host_permissions
+  if ((env === 'prod' || env === 'preprod') && manifest.host_permissions) {
     const prodHosts = ['https://mytabsearch.us.kg/*'];
     manifest.host_permissions = prodHosts;
-    console.log('  Filtered host_permissions for production');
+    console.log(`  Filtered host_permissions for ${env} environment`);
   }
   
   fs.writeFileSync(destPath, JSON.stringify(manifest, null, 2), 'utf8');
