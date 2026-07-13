@@ -1316,7 +1316,7 @@ async function switchToTab(tabOrId, event) {
           targetTab = storedTab;  // 也要设置 targetTab，确保标题能正确显示
         } else {
           // URL 完全匹配，委托 background 执行切换并关闭窗口
-          delegateToBackground({
+          await delegateToBackground({
             operation: 'switchDirect',
             tabId: tabId,
             windowId: tab.windowId
@@ -1365,7 +1365,7 @@ async function switchToTab(tabOrId, event) {
       if (extensionsTabs.length > 0) {
         // 委托 background 执行操作并关闭窗口
         const existingTab = extensionsTabs[0];
-        delegateToBackground({
+        await delegateToBackground({
           operation: 'extensionsSpecial',
           existingTabId: existingTab.id,
           targetUrl: targetUrl
@@ -1382,7 +1382,7 @@ async function switchToTab(tabOrId, event) {
       if (matchLevel === 1) {
         // 完全匹配，直接切换（无需确认）
         // 委托 background 执行操作并关闭窗口
-        delegateToBackground({
+        await delegateToBackground({
           operation: 'switchDirect',
           tabId: matchedTab.id,
           windowId: matchedTab.windowId,
@@ -1396,7 +1396,7 @@ async function switchToTab(tabOrId, event) {
         // 高置信度自动跳转：第一名评分领先第二名 ≥ 20 分时，直接跳转
         if (ranked.length >= 2 && ranked[0].score - ranked[1].score >= 20) {
           const bestTab = ranked[0].tab;
-          delegateToBackground({
+          await delegateToBackground({
             operation: 'switchAndUpdate',
             tabId: bestTab.id,
             windowId: bestTab.windowId,
@@ -1430,7 +1430,7 @@ async function switchToTab(tabOrId, event) {
           case 'updateAndJump':
             // 选项 1：切换并更新
             // 委托 background 执行 tab 操作、storage 更新和服务器同步，并关闭窗口
-            delegateToBackground({
+            await delegateToBackground({
               operation: 'switchAndUpdate',
               tabId: actionTab.id,
               windowId: actionTab.windowId,
@@ -1443,7 +1443,7 @@ async function switchToTab(tabOrId, event) {
           case 'jumpOnly':
             // 选项 2：仅切换（不更新）
             // 委托 background 执行操作并关闭窗口
-            delegateToBackground({
+            await delegateToBackground({
               operation: 'switchOnly',
               tabId: actionTab.id,
               windowId: actionTab.windowId
@@ -1453,7 +1453,7 @@ async function switchToTab(tabOrId, event) {
           case 'openNew':
             // 选项 3：新页面打开
             // 委托 background 执行操作并关闭窗口
-            delegateToBackground({
+            await delegateToBackground({
               operation: 'openNew',
               targetUrl: targetUrl
             });
@@ -1469,7 +1469,7 @@ async function switchToTab(tabOrId, event) {
       }
     } else {
       // 没找到，委托 background 创建新标签页并关闭窗口
-      delegateToBackground({
+      await delegateToBackground({
         operation: 'noMatch',
         targetUrl: targetUrl
       });
@@ -1481,19 +1481,41 @@ async function switchToTab(tabOrId, event) {
 }
 
 /**
- * 委托操作给 background.js 执行，然后立即关闭当前窗口
+ * 委托操作给 background.js 执行，然后关闭当前窗口
  * 避免 blur 事件与 tab 操作的竞态条件
+ *
+ * 修复方案：先发送消息，确认成功后再关闭窗口
+ * - 确保消息成功送达 background.js
+ * - 失败时不关闭窗口，让用户能看到错误提示
+ * - 检查 background 返回的响应，利用错误信息
+ *
  * @param {Object} data - 操作数据，包含 operation 类型和参数
+ * @returns {Promise<void>}
  */
-function delegateToBackground(data) {
-  // 立即关闭窗口
+async function delegateToBackground(data) {
+  console.log('[pinned-list] Delegating to background:', data.operation);
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'pinnedListTabAction',
+      data: data
+    });
+
+    if (response && response.success) {
+      console.log('[pinned-list] Background operation completed successfully');
+    } else {
+      console.error('[pinned-list] Background operation failed:', response?.error);
+      showToast('操作失败，请重试');
+      return;  // 失败时不关闭窗口，让用户看到错误提示
+    }
+  } catch (err) {
+    console.error('[pinned-list] Failed to send message to background:', err);
+    showToast('操作失败，请重试');
+    return;  // 失败时不关闭窗口
+  }
+
+  // 成功后再关闭窗口
   window.close();
-  // 发送消息给 background 执行实际操作
-  // 使用 fire-and-forget 模式，不等待响应
-  chrome.runtime.sendMessage({
-    action: 'pinnedListTabAction',
-    data: data
-  }).catch(err => console.error('[pinned-list] Failed to send message to background:', err));
 }
 
 // 从固定列表中移除（不关闭标签页）
