@@ -15,6 +15,7 @@ import searchMatchService from './services/search-match.service.js';
 // Import pinyin utility for Chinese character conversion
 import { isPureEnglish, toPinyin, toPinyinPerChar } from './pinyin-util.js';
 import { applyFaviconFallback, getFaviconURL as buildFaviconURL } from './utils/favicon.mjs';
+import { refreshTabIfOpen } from './utils/tab-refresh.mjs';
 
 // DOM elements
 let pinnedTabList;
@@ -630,8 +631,21 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       const expandActions = document.createElement('div');
       expandActions.classList.add('expand-actions');
       
-      // 展开区域布局：从左到右 [长期固定] [取消固定] [关闭]
-      
+      // 展开区域布局：从左到右 [刷新] [长期固定] [取消固定] [关闭]
+
+      // 创建刷新按钮（新增 - 最左边）
+      const refreshBtn = document.createElement('button');
+      refreshBtn.classList.add('action-btn', 'refresh-btn');
+      refreshBtn.innerHTML = '🗘';
+      refreshBtn.title = i18n.getMessage('refreshTab') || '刷新此标签页';
+      refreshBtn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        const result = await refreshTabIfOpen(tab.tabId, chrome.tabs);
+        if (!result.success && !result.skipped) {
+          showToast(i18n.getMessage('refreshTabFailed') || '刷新失败');
+        }
+      });
+
       // 创建关闭按钮（展开时显示）
       const closeBtn = document.createElement('button');
       closeBtn.classList.add('action-btn', 'close-btn');
@@ -680,7 +694,8 @@ closeBtn.addEventListener('click', function (e) {
         await handleLongTermPinnedClick(tab.tabId, tab.isLongTermPinned, tab);
       });
       
-      // 组装展开区域（从左到右：长期固定 → 取消固定 → 关闭）
+      // 组装展开区域（从左到右：刷新 → 长期固定 → 取消固定 → 关闭）
+      expandActions.appendChild(refreshBtn);
       expandActions.appendChild(longTermBtn);
       expandActions.appendChild(unpinBtn);
       expandActions.appendChild(closeBtn);

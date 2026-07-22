@@ -17,6 +17,7 @@ import searchMatchService from './services/search-match.service.js';
 // Import pinyin utility for Chinese character conversion
 import { isPureEnglish, toPinyin, toPinyinPerChar } from './pinyin-util.js';
 import { applyFaviconFallback, getFaviconURL } from './utils/favicon.mjs';
+import { refreshTab } from './utils/tab-refresh.mjs';
 
 // 检查并上报设备活跃状态
 async function checkAndReportActive() {
@@ -489,6 +490,19 @@ document.addEventListener("DOMContentLoaded", async () => {
           li.classList.add("pinned-tab");
         }
 
+        // 创建刷新按钮（新增 - 最左边）
+        const refreshBtn = document.createElement("button");
+        refreshBtn.classList.add("action-btn", "refresh-btn");
+        refreshBtn.innerHTML = "🗘";
+        refreshBtn.title = i18n.getMessage('refreshTab') || '刷新此标签页';
+        refreshBtn.addEventListener("click", async function (e) {
+          e.stopPropagation();
+          const result = await refreshTab(tab.id, chrome.tabs);
+          if (!result.success) {
+            showToast(i18n.getMessage('refreshTabFailed') || '刷新失败');
+          }
+        });
+
         // 创建固定/取消固定按钮
         const pinBtn = document.createElement("button");
         pinBtn.classList.add("action-btn", "pin-btn");
@@ -521,7 +535,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         menuBtn.innerHTML = "≡";
         menuBtn.title = i18n.getMessage('menuLabel') || '菜单';
 
-        // 组装按钮容器
+        // 组装按钮容器（从左到右：刷新 → 固定 → 关闭 → 菜单）
+        actionContainer.appendChild(refreshBtn);
         actionContainer.appendChild(pinBtn);
         actionContainer.appendChild(closeBtn);
         actionContainer.appendChild(menuBtn);

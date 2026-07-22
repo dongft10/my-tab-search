@@ -1020,5 +1020,13 @@
   "cancel": {
     "message": "Cancel",
     "description": "Cancel button text"
+  },
+  "refreshTab": {
+    "message": "Refresh this tab",
+    "description": "Tooltip for the refresh tab button"
+  },
+  "refreshTabFailed": {
+    "message": "Failed to refresh tab",
+    "description": "Toast message when refresh failed"
   }
 }
