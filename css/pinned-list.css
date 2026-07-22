@@ -385,6 +385,15 @@ body::after {
   color: var(--btn-success);
 }
 
+/* 刷新按钮样式 */
+#pinned-tab-list .action-btn.refresh-btn {
+  color: var(--text-secondary);
+}
+
+#pinned-tab-list .action-btn.refresh-btn:hover {
+  color: var(--btn-info, #1a73e8);
+}
+
 /* 三横菜单按钮 - 默认显示 */
 #pinned-tab-list .action-btn.menu-btn {
   right: 0;

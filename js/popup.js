@@ -17,6 +17,7 @@ import searchMatchService from './services/search-match.service.js';
 // Import pinyin utility for Chinese character conversion
 import { isPureEnglish, toPinyin, toPinyinPerChar } from './pinyin-util.js';
 import { applyFaviconFallback, getFaviconURL } from './utils/favicon.mjs';
+import { refreshTab } from './utils/tab-refresh.mjs';
 
 // 检查并上报设备活跃状态
 async function checkAndReportActive() {
@@ -489,6 +490,19 @@ document.addEventListener("DOMContentLoaded", async () => {
           li.classList.add("pinned-tab");
         }
 
+        // 创建刷新按钮（新增 - 最左边）
+        const refreshBtn = document.createElement("button");
+        refreshBtn.classList.add("action-btn", "refresh-btn");
+        refreshBtn.innerHTML = '<svg viewBox="0 0 1024 1024" width="14" height="14" fill="currentColor"><path d="M962.074 490.554L647.271 355.638l125.831-89.881c-65.56-69.108-157.968-112.493-260.747-112.493-174.244 0-319.503 123.884-352.634 288.369l-83.949-34.777C123.56 209.825 300.628 63.32 512.355 63.32c132.973 0 252.063 58.09 334.393 149.833l115.326-82.375v359.776z m-710.47 269.773c65.556 69.108 157.973 112.488 260.752 112.488 174.918 0 320.546-124.873 352.931-290.307l83.868 35.874c-47.481 197.458-224.77 344.377-436.799 344.377-132.973 0-252.068-58.086-334.398-149.828l-115.322 82.37V535.525L377.44 670.441l-125.836 89.886z"></path></svg>';
+        refreshBtn.title = i18n.getMessage('refreshTab') || '刷新此标签页';
+        refreshBtn.addEventListener("click", async function (e) {
+          e.stopPropagation();
+          const result = await refreshTab(tab.id, chrome.tabs);
+          if (!result.success) {
+            showToast(i18n.getMessage('refreshTabFailed') || '刷新失败');
+          }
+        });
+
         // 创建固定/取消固定按钮
         const pinBtn = document.createElement("button");
         pinBtn.classList.add("action-btn", "pin-btn");
@@ -521,7 +535,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         menuBtn.innerHTML = "≡";
         menuBtn.title = i18n.getMessage('menuLabel') || '菜单';
 
-        // 组装按钮容器
+        // 组装按钮容器（从左到右：刷新 → 固定 → 关闭 → 菜单）
+        actionContainer.appendChild(refreshBtn);
         actionContainer.appendChild(pinBtn);
         actionContainer.appendChild(closeBtn);
         actionContainer.appendChild(menuBtn);
