@@ -1020,5 +1020,13 @@
   "cancel": {
     "message": "取消",
     "description": "取消按钮文本"
+  },
+  "refreshTab": {
+    "message": "刷新此标签页",
+    "description": "刷新标签页按钮的提示文本"
+  },
+  "refreshTabFailed": {
+    "message": "刷新标签页失败",
+    "description": "刷新标签页失败时的提示"
   }
 }
