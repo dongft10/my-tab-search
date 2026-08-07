@@ -470,8 +470,8 @@ body::after {
 .li-icon {
   margin-left: 0;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 
