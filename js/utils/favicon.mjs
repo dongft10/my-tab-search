@@ -1,4 +1,5 @@
 const FALLBACK_ICON_PATH = '/images/icon-32.png';
+const GOOGLE_FAVICON_SERVICE = 'https://www.google.com/s2/favicons';
 
 function getRuntime(runtime = globalThis.chrome?.runtime) {
   if (!runtime?.getURL) {
@@ -7,8 +8,43 @@ function getRuntime(runtime = globalThis.chrome?.runtime) {
   return runtime;
 }
 
-// 使用 Chrome 内置 favicon 接口获取网站图标。
-export function getFaviconURL(pageUrl, runtime) {
+/**
+ * 从 pageUrl 中提取域名
+ * @param {string} pageUrl - 页面 URL
+ * @returns {string|null} 域名，无法解析时返回 null
+ */
+function getDomainFromUrl(pageUrl) {
+  try {
+    return new URL(pageUrl).hostname;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 使用 Google favicon 服务获取网站图标 URL
+ * 作为 _favicon 端点在不支持该 API 的浏览器（如 Edge）上的回退方案
+ * @param {string} pageUrl - 页面 URL
+ * @param {number} [size=32] - 图标尺寸
+ * @returns {string|null} Google favicon 服务 URL，无法提取域名时返回 null
+ */
+export function getGoogleFaviconURL(pageUrl, size = 32) {
+  const domain = getDomainFromUrl(pageUrl);
+  if (!domain) return null;
+  const url = new URL(GOOGLE_FAVICON_SERVICE);
+  url.searchParams.set('domain', domain);
+  url.searchParams.set('sz', String(size));
+  return url.toString();
+}
+
+// 获取网站图标 URL
+// 优先级：favIconUrl（如果传入且为 http/https URL）> Chrome _favicon 端点
+// favIconUrl 来自 chrome.tabs API 的 tab.favIconUrl 属性，在 Chrome 和 Edge 上均可用
+export function getFaviconURL(pageUrl, runtime, favIconUrl) {
+  // 如果有直接可用的 http/https favIconUrl，优先使用（兼容所有浏览器）
+  if (favIconUrl && /^https?:\/\//.test(favIconUrl)) {
+    return favIconUrl;
+  }
   const chromeRuntime = getRuntime(runtime);
   const faviconUrl = new URL(chromeRuntime.getURL('/_favicon/'));
   faviconUrl.searchParams.set('pageUrl', pageUrl);
@@ -20,8 +56,33 @@ export function getExtensionIconURL(runtime) {
   return getRuntime(runtime).getURL(FALLBACK_ICON_PATH);
 }
 
-export function applyFaviconFallback(imageElement, runtime) {
+/**
+ * 为 img 元素注册多级回退链
+ * 加载失败时依次尝试：Google favicon 服务 → 扩展自带图标
+ *
+ * 回退链设计原因：
+ *   Chrome 上 _favicon 端点正常工作，不会触发回退
+ *   Edge 上 _favicon 端点返回 ERR_FAILED，触发回退到 Google favicon 服务
+ *   若 Google 服务也不可用（如网络受限），最终回退到扩展自带图标
+ *
+ * @param {HTMLImageElement} imageElement - img 元素
+ * @param {string} [pageUrl] - 页面 URL（用于生成 Google favicon 回退 URL）
+ * @param {object} [runtime] - chrome.runtime 对象（测试注入用）
+ */
+export function applyFaviconFallback(imageElement, pageUrl, runtime) {
   imageElement.onerror = () => {
+    // 第一次失败：尝试 Google favicon 服务
+    const googleUrl = pageUrl ? getGoogleFaviconURL(pageUrl, 32) : null;
+    if (googleUrl) {
+      imageElement.onerror = () => {
+        // 第二次失败：使用扩展自带图标
+        imageElement.onerror = null;
+        imageElement.src = getExtensionIconURL(runtime);
+      };
+      imageElement.src = googleUrl;
+      return;
+    }
+    // 没有 pageUrl，直接使用扩展自带图标
     imageElement.onerror = null;
     imageElement.src = getExtensionIconURL(runtime);
   };
