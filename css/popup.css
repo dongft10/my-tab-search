@@ -404,6 +404,10 @@ body::after {
 
 .li-icon {
   margin-left: 0;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .tab-title {

@@ -601,7 +601,7 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       const icon = document.createElement('img');
       icon.classList.add('li-icon');
       icon.src = getFaviconURL(tab.url);
-      applyFaviconFallback(icon);
+      applyFaviconFallback(icon, tab.url);
       
       const listItemDiv = document.createElement('div');
       listItemDiv.classList.add('li-item');

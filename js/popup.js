@@ -443,8 +443,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         // tab icon
         const icon = document.createElement('img');
         icon.classList.add("li-icon");
-        icon.src = faviconURL(tab.url);
-        applyFaviconFallback(icon);
+        icon.src = faviconURL(tab.url, tab.favIconUrl);
+        applyFaviconFallback(icon, tab.url);
 
         const listItemDiv = document.createElement("div");
         listItemDiv.classList.add("li-item");
@@ -637,8 +637,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function faviconURL(u) {
-    return getFaviconURL(u);
+  function faviconURL(u, favIconUrl) {
+    return getFaviconURL(u, undefined, favIconUrl);
   }
 
   // 检查标签页是否已固定（同步版本，使用预构建的 pinnedMap）
@@ -766,7 +766,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         tabId: tab.id,
         title: tab.title,
         url: tab.url,
-        icon: faviconURL(tab.url),
+        icon: faviconURL(tab.url, tab.favIconUrl),
         pinnedAt: new Date().toISOString(),
         synced: false // 标记为未同步
       });
