@@ -1,10 +1,10 @@
 {
   "extName": {
-    "message": "MyTabSearch Extension",
+    "message": "MyTabSearch - 搜索并在多个打开的浏览器标签页之间快捷切换",
     "description": "The display name for the extension"
   },
   "extDescription": {
-    "message": "搜索已打开的标签页",
+    "message": "搜索并在多个打开的浏览器标签页之间快捷切换，无需使用鼠标即可完成。",
     "description": "The description for the extension"
   },
   "prevTabDesc": {
