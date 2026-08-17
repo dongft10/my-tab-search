@@ -1,6 +1,6 @@
 /**
  * 版本同步脚本
- * 从 manifest.json 读取版本号，同步到 package.json 和 package-lock.json
+ * 从 manifest.json 读取版本号，同步到 package.json、package-lock.json 和 manifest.edge.json
  */
 
 const fs = require('fs');
@@ -25,6 +25,21 @@ function syncVersion() {
     }
     
     console.log(`Manifest version: ${manifestVersion}`);
+    
+    // 更新 manifest.edge.json
+    const manifestEdgePath = path.join(rootDir, 'manifest.edge.json');
+    if (fs.existsSync(manifestEdgePath)) {
+      const manifestEdge = JSON.parse(fs.readFileSync(manifestEdgePath, 'utf8'));
+      const oldEdgeVersion = manifestEdge.version;
+      
+      if (oldEdgeVersion !== manifestVersion) {
+        manifestEdge.version = manifestVersion;
+        fs.writeFileSync(manifestEdgePath, JSON.stringify(manifestEdge, null, 2) + '\n');
+        console.log(`✅ Updated manifest.edge.json: ${oldEdgeVersion} -> ${manifestVersion}`);
+      } else {
+        console.log(`ℹ️  manifest.edge.json version is already up to date (${manifestVersion})`);
+      }
+    }
     
     // 更新 package.json
     const packagePath = path.join(rootDir, 'package.json');

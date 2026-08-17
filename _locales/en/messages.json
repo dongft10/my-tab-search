@@ -1,10 +1,10 @@
 {
   "extName": {
-    "message": "MyTabSearch Extension",
+    "message": "MyTabSearch - Search & Switch Tabs with Keyboard Shortcuts",
     "description": "The display name for the extension"
   },
   "extDescription": {
-    "message": "Search through opened tabs",
+    "message": "Search and switch between dozens of open browser tabs with keyboard shortcuts. Free, no ads, works offline.",
     "description": "The description for the extension"
   },
   "prevTabDesc": {
