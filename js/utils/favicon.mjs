@@ -22,6 +22,16 @@ function getDomainFromUrl(pageUrl) {
 }
 
 /**
+ * 判断是否为扩展内部页面（chrome-extension:// URL）
+ * 例如 settings.html、about.html 等扩展自带页面
+ * @param {string} [pageUrl] - 页面 URL
+ * @returns {boolean}
+ */
+export function isExtensionPage(pageUrl) {
+  return typeof pageUrl === 'string' && /^chrome-extension:\/\//i.test(pageUrl);
+}
+
+/**
  * 使用 Google favicon 服务获取网站图标 URL
  * 作为 _favicon 端点在不支持该 API 的浏览器（如 Edge）上的回退方案
  * @param {string} pageUrl - 页面 URL
@@ -29,6 +39,10 @@ function getDomainFromUrl(pageUrl) {
  * @returns {string|null} Google favicon 服务 URL，无法提取域名时返回 null
  */
 export function getGoogleFaviconURL(pageUrl, size = 32) {
+  // 扩展内部页面（chrome-extension://）的 hostname 是扩展 ID，
+  // Google 服务无法为该域名取图（会返回 200 空/默认图标且不触发 onerror），
+  // 因此直接返回 null 让调用方跳过这一层
+  if (isExtensionPage(pageUrl)) return null;
   const domain = getDomainFromUrl(pageUrl);
   if (!domain) return null;
   const url = new URL(GOOGLE_FAVICON_SERVICE);
@@ -41,6 +55,12 @@ export function getGoogleFaviconURL(pageUrl, size = 32) {
 // 优先级：favIconUrl（如果传入且为 http/https URL）> Chrome _favicon 端点
 // favIconUrl 来自 chrome.tabs API 的 tab.favIconUrl 属性，在 Chrome 和 Edge 上均可用
 export function getFaviconURL(pageUrl, runtime, favIconUrl) {
+  // 扩展内部页面（settings/about 等）：统一直接使用扩展自带图标。
+  // Chrome 上 _favicon 虽能取到扩展图标，但 Edge 上 _favicon 不可用，
+  // 且 favIconUrl 对扩展页面通常为空字符串，直接返回扩展图标最稳妥。
+  if (isExtensionPage(pageUrl)) {
+    return getExtensionIconURL(runtime);
+  }
   // 如果有直接可用的 http/https favIconUrl，优先使用（兼容所有浏览器）
   if (favIconUrl && /^https?:\/\//.test(favIconUrl)) {
     return favIconUrl;

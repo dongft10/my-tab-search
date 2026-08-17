@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { applyFaviconFallback, getExtensionIconURL, getFaviconURL, getGoogleFaviconURL } from '../js/utils/favicon.mjs';
+import { applyFaviconFallback, getExtensionIconURL, getFaviconURL, getGoogleFaviconURL, isExtensionPage } from '../js/utils/favicon.mjs';
 
 function createRuntime() {
   return {
@@ -81,5 +81,33 @@ image9.onerror();
 assert.equal(image9.onerror, null);
 assert.equal(image9.src, 'chrome-extension://test-id/images/icon-32.png');
 console.log('✅ 测试 9 通过: 无效 pageUrl 时直接回退到扩展图标');
+
+// ── 测试 10: isExtensionPage 判断 ──
+assert.equal(isExtensionPage('chrome-extension://goemcphhpfajifddhebagehkkaeblcpf/html/settings.html'), true);
+assert.equal(isExtensionPage('chrome-extension://abc123/html/about.html'), true);
+assert.equal(isExtensionPage('https://www.example.com'), false);
+assert.equal(isExtensionPage(undefined), false);
+assert.equal(isExtensionPage(''), false);
+console.log('✅ 测试 10 通过: isExtensionPage 正确识别扩展内部页面');
+
+// ── 测试 11: getFaviconURL 对扩展内部页面直接返回扩展图标 ──
+const extPage = 'chrome-extension://goemcphhpfajifddhebagehkkaeblcpf/html/settings.html';
+const result11 = getFaviconURL(extPage, runtime, '');
+assert.equal(result11, 'chrome-extension://test-id/images/icon-32.png');
+console.log('✅ 测试 11 通过: 扩展内部页面直接使用扩展自带图标');
+
+// ── 测试 12: getGoogleFaviconURL 对扩展内部页面返回 null ──
+assert.equal(getGoogleFaviconURL(extPage, 32), null);
+console.log('✅ 测试 12 通过: 扩展内部页面不生成 Google favicon URL');
+
+// ── 测试 13: applyFaviconFallback 对扩展内部页面直接回退到扩展图标 ──
+const image13 = { src: faviconUrl, onerror: null };
+applyFaviconFallback(image13, extPage, runtime);
+assert.equal(typeof image13.onerror, 'function');
+
+image13.onerror();
+assert.equal(image13.onerror, null);
+assert.equal(image13.src, 'chrome-extension://test-id/images/icon-32.png');
+console.log('✅ 测试 13 通过: 扩展内部页面 onerror 直接回退到扩展图标');
 
 console.log('\n全部 favicon utils 测试通过 ✅');

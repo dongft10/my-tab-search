@@ -31,7 +31,7 @@ echo [OK] Target environment: %EXTENSION_ENV%
 echo.
 
 REM Install dependencies
-echo [1/3] Installing dependencies...
+echo [1/4] Installing dependencies...
 call npm install
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Failed to install dependencies
@@ -41,8 +41,16 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Dependencies installed
 echo.
 
+REM Sync version from manifest.json to all files (including manifest.edge.json)
+echo [2/4] Syncing version across all files...
+call npm run sync-version
+if %ERRORLEVEL% NEQ 0 (
+    echo [WARNING] Failed to sync version, continuing anyway...
+)
+echo.
+
 REM Build the extension
-echo [2/3] Building extension...
+echo [3/4] Building extension...
 call npm run build
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed
@@ -53,7 +61,7 @@ echo [OK] Build completed
 echo.
 
 REM Replace manifest.json with Edge-specific version
-echo [3/3] Preparing Edge-specific manifest...
+echo [4/4] Preparing Edge-specific manifest...
 copy /Y manifest.edge.json pack\out\build\manifest.json
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Failed to copy Edge manifest
