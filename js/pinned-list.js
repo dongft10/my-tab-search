@@ -600,7 +600,7 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       // 标签图标
       const icon = document.createElement('img');
       icon.classList.add('li-icon');
-      icon.src = getFaviconURL(tab.url);
+      icon.src = getFaviconURL(tab.url, tab.icon);
       applyFaviconFallback(icon, tab.url);
       
       const listItemDiv = document.createElement('div');
@@ -1643,9 +1643,11 @@ async function closeTabAndRemoveFromPinnedList(tabId, tabUrl = null) {
 }
 
 // 获取网站图标
-function getFaviconURL(url) {
+// 优先使用固定时保存的图标 URL（tab.icon），该字段来自固定时 tab.favIconUrl 的真实地址，
+// 在 Edge 上 _favicon 端点不可用时可避免整链回退到扩展自带图标
+function getFaviconURL(url, favIconUrl) {
   try {
-    return buildFaviconURL(url);
+    return buildFaviconURL(url, undefined, favIconUrl);
   } catch (error) {
     return '';
   }
