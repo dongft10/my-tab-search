@@ -228,7 +228,7 @@ function applyI18n() {
   const recommendDesc = document.getElementById('recommend-description');
   if (recommendDesc) {
     recommendDesc.textContent = i18n.getMessage('recommendMyBetterHistoryDesc') ||
-      'MyBetterHistory 帮助你自动记录和快速回溯浏览历史，再也不怕找不到之前看过的网页。😊🎉';
+      'MyBetterHistory 帮助你自动记录和快速回溯浏览历史，再也不怕找不到之前看过的网页。😄🎉';
   }
 
   const recommendInstallText = document.getElementById('recommend-install-text');
