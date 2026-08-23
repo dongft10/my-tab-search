@@ -12,7 +12,7 @@ import { getGoogleOAuthClientId, getMicrosoftOAuthClientId } from './config.js';
 import featureLimitService from './services/feature-limit.service.js';
 import searchMatchService from './services/search-match.service.js';
 import i18n from './i18n.js';
-import { getStoreLink, getStoreNameKey } from './utils/browser-detect.js';
+import { getStoreLink, getStoreNameKey, getBrowserNameKey, detectBrowser } from './utils/browser-detect.js';
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -156,8 +156,13 @@ async function applyI18n() {
   if (shortcutTip) {
     const i18nKey = shortcutTip.getAttribute('data-i18n');
     if (i18nKey) {
-      const message = i18n.getMessage(i18nKey);
+      let message = i18n.getMessage(i18nKey);
       if (message) {
+        // Replace "Chrome" with actual browser name
+        const browser = detectBrowser();
+        const browserNameKey = getBrowserNameKey();
+        const browserName = i18n.getMessage(browserNameKey) || (browser === 'edge' ? 'Edge' : 'Chrome');
+        message = message.replace('Chrome', browserName);
         shortcutTip.textContent = message;
       }
     }

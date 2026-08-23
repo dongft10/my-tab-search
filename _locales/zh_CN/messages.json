@@ -1052,5 +1052,13 @@
   "edgeStoreName": {
     "message": "Microsoft Edge 加载项",
     "description": "Microsoft Edge Add-ons 名称"
+  },
+  "chromeBrowserName": {
+    "message": "Chrome",
+    "description": "Chrome browser name"
+  },
+  "edgeBrowserName": {
+    "message": "Edge",
+    "description": "Edge browser name"
   }
 }

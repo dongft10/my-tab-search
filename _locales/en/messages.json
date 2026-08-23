@@ -1052,5 +1052,13 @@
   "edgeStoreName": {
     "message": "Microsoft Edge Add-ons",
     "description": "Microsoft Edge Add-ons name"
+  },
+  "chromeBrowserName": {
+    "message": "Chrome",
+    "description": "Chrome browser name"
+  },
+  "edgeBrowserName": {
+    "message": "Edge",
+    "description": "Edge browser name"
   }
 }

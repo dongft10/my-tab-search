@@ -50,3 +50,12 @@ export function getStoreNameKey() {
   const browser = detectBrowser();
   return browser === 'edge' ? 'edgeStoreName' : 'chromeStoreName';
 }
+
+/**
+ * 获取浏览器名称 i18n key（用于国际化）
+ * @returns {string} i18n key，如 'chromeBrowserName' 或 'edgeBrowserName'
+ */
+export function getBrowserNameKey() {
+  const browser = detectBrowser();
+  return browser === 'edge' ? 'edgeBrowserName' : 'chromeBrowserName';
+}
