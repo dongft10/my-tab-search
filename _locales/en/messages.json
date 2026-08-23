@@ -1028,5 +1028,29 @@
   "refreshTabFailed": {
     "message": "Failed to refresh tab",
     "description": "Toast message when refresh failed"
+  },
+  "recommendTitle": {
+    "message": "Recommended",
+    "description": "Friendly recommendation section title"
+  },
+  "recommendMyBetterHistoryName": {
+    "message": "MyBetterHistory",
+    "description": "Recommended extension name"
+  },
+  "recommendMyBetterHistoryDesc": {
+    "message": "MyBetterHistory helps you automatically record and quickly revisit your browsing history, so you never lose track of previously viewed pages. 😊🎉",
+    "description": "Description of MyBetterHistory in the recommendation module"
+  },
+  "recommendGoInstall": {
+    "message": "Go Install",
+    "description": "Install button text in recommendation module"
+  },
+  "chromeStoreName": {
+    "message": "Chrome Web Store",
+    "description": "Chrome Web Store name"
+  },
+  "edgeStoreName": {
+    "message": "Microsoft Edge Add-ons",
+    "description": "Microsoft Edge Add-ons name"
   }
 }

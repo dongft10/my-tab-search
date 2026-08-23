@@ -12,6 +12,7 @@ import { getGoogleOAuthClientId, getMicrosoftOAuthClientId } from './config.js';
 import featureLimitService from './services/feature-limit.service.js';
 import searchMatchService from './services/search-match.service.js';
 import i18n from './i18n.js';
+import { getStoreLink, getStoreNameKey } from './utils/browser-detect.js';
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -232,6 +233,18 @@ async function applyI18n() {
         settingDesc.textContent = message;
       }
     }
+  }
+
+  // 友情推荐模块
+  const settingsStoreLink = document.getElementById('settings-store-link');
+  if (settingsStoreLink) {
+    settingsStoreLink.href = getStoreLink();
+  }
+
+  const settingsStoreName = document.getElementById('settings-store-name');
+  if (settingsStoreName) {
+    const storeNameKey = getStoreNameKey();
+    settingsStoreName.textContent = i18n.getMessage(storeNameKey) || 'Chrome Web Store';
   }
 
   // Reload trial status to update dynamic content like "X days"

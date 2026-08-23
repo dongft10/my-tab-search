@@ -1,5 +1,6 @@
 // Import i18n manager
 import i18n from './i18n.js';
+import { getStoreLink, getStoreNameKey } from './utils/browser-detect.js';
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -216,5 +217,33 @@ function applyI18n() {
   const copyrightText = document.getElementById('copyright-text');
   if (copyrightText) {
     copyrightText.textContent = i18n.getMessage('copyrightText') || `© 2026 ${i18n.getMessage('extName') || 'MyTabSearch Extension'}. All rights reserved.`;
+  }
+
+  // 友情推荐模块
+  const recommendTitle = document.getElementById('recommend-title');
+  if (recommendTitle) {
+    recommendTitle.textContent = i18n.getMessage('recommendTitle') || '友情推荐';
+  }
+
+  const recommendDesc = document.getElementById('recommend-description');
+  if (recommendDesc) {
+    recommendDesc.textContent = i18n.getMessage('recommendMyBetterHistoryDesc') ||
+      'MyBetterHistory 帮助你自动记录和快速回溯浏览历史，再也不怕找不到之前看过的网页。😊🎉';
+  }
+
+  const recommendInstallText = document.getElementById('recommend-install-text');
+  if (recommendInstallText) {
+    recommendInstallText.textContent = i18n.getMessage('recommendGoInstall') || '前往安装';
+  }
+
+  const aboutStoreLink = document.getElementById('about-store-link');
+  if (aboutStoreLink) {
+    aboutStoreLink.href = getStoreLink();
+  }
+
+  const aboutStoreName = document.getElementById('about-store-name');
+  if (aboutStoreName) {
+    const storeNameKey = getStoreNameKey();
+    aboutStoreName.textContent = i18n.getMessage(storeNameKey) || 'Chrome Web Store';
   }
 }

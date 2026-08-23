@@ -1028,5 +1028,29 @@
   "refreshTabFailed": {
     "message": "刷新标签页失败",
     "description": "刷新标签页失败时的提示"
+  },
+  "recommendTitle": {
+    "message": "友情推荐",
+    "description": "友情推荐模块标题"
+  },
+  "recommendMyBetterHistoryName": {
+    "message": "MyBetterHistory",
+    "description": "推荐的扩展名称"
+  },
+  "recommendMyBetterHistoryDesc": {
+    "message": "MyBetterHistory 帮助你自动记录和快速回溯浏览历史，再也不怕找不到之前看过的网页。😊🎉",
+    "description": "推荐模块中 MyBetterHistory 的描述"
+  },
+  "recommendGoInstall": {
+    "message": "前往安装",
+    "description": "推荐模块安装按钮文本"
+  },
+  "chromeStoreName": {
+    "message": "Chrome 网上应用店",
+    "description": "Chrome Web Store 名称"
+  },
+  "edgeStoreName": {
+    "message": "Microsoft Edge 加载项",
+    "description": "Microsoft Edge Add-ons 名称"
   }
 }
