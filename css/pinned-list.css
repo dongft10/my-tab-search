@@ -30,6 +30,7 @@
   
   --btn-primary: #6366f1;
   --btn-hover: rgba(255, 255, 255, 0.1);
+  --btn-active: rgba(255, 255, 255, 0.22);
   --btn-danger: #ef4444;
   --btn-success: #a78bfa;
   
@@ -85,6 +86,7 @@
   
   --btn-primary: #3b82f6;
   --btn-hover: #f1f5f9;
+  --btn-active: #c3cdd8;
   --btn-danger: #ef4444;
   --btn-success: #22c55e;
   
@@ -438,6 +440,11 @@ body::after {
 /* 操作按钮悬停效果 */
 #pinned-tab-list .action-btn:hover {
   background-color: #f0f0f0;
+}
+
+/* 操作按钮按下效果：底色加深，松开后自动恢复（置于悬停规则之后，确保按下时生效） */
+#pinned-tab-list .action-btn:active {
+  background-color: var(--btn-active);
 }
 
 /* 取消固定按钮特殊样式 */

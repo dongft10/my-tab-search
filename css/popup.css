@@ -30,6 +30,7 @@
   
   --btn-primary: #6366f1;
   --btn-hover: rgba(255, 255, 255, 0.1);
+  --btn-active: rgba(255, 255, 255, 0.22);
   --btn-danger: #ef4444;
   --btn-success: #22c55e;
   
@@ -82,6 +83,7 @@
   
   --btn-primary: #1a73e8;
   --btn-hover: #f1f3f4;
+  --btn-active: #d5d9de;
   --btn-danger: #d93025;
   --btn-success: #188038;
   
@@ -351,6 +353,11 @@ body::after {
 /* 操作按钮悬停效果 */
 .action-btn:hover {
   background-color: var(--btn-hover);
+}
+
+/* 操作按钮按下效果：底色加深，松开后自动恢复 */
+.action-btn:active {
+  background-color: var(--btn-active);
 }
 
 /* 固定按钮特殊样式 */
