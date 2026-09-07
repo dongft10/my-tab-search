@@ -615,10 +615,16 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
         titleDiv.innerHTML = highlightMatches(tab.title, keywords, matchMode);
       }
       
+      const tabUrl = tab.url || '';
       const urlHostNameDiv = document.createElement('div');
       urlHostNameDiv.classList.add('tab-url-hostname');
-      urlHostNameDiv.textContent = getHostName(tab.url);
-      urlHostNameDiv.title = tab.url;
+      urlHostNameDiv.textContent = getHostName(tabUrl);
+      // 与 popup.html 保持一致：hostname 后追加 "/.../最后一段"，帮助区分同域名不同页面
+      const lastElement = tabUrl.substring(tabUrl.lastIndexOf('/') + 1);
+      if (lastElement.length > 0) {
+        urlHostNameDiv.textContent = urlHostNameDiv.textContent + '/.../' + lastElement;
+      }
+      urlHostNameDiv.title = tabUrl;
       
       listItemDiv.appendChild(titleDiv);
       listItemDiv.appendChild(urlHostNameDiv);
