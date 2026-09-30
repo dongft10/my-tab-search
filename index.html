@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
+          data-browser-adapt-content="metaDescription"
           content="MyTabSearch - Efficient Chrome extension for managing browser tabs with quick search and switching">
-    <title>MyTabSearch - Chrome Extension</title>
+    <title data-browser-adapt="pageTitle">MyTabSearch - Chrome Extension</title>
     <link rel="icon" href="images/icon-16.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -1661,8 +1662,8 @@
             <div class="install-step">
                 <div class="step-number">1</div>
                 <div class="step-content">
-                    <h4>From Chrome Web Store (Recommended)</h4>
-                    <p>Visit <a href="https://chromewebstore.google.com/detail/mytabsearch-extension/adfbidbchmbodidfjmimbkfndnenljjp">Chrome Web Store</a>, search for "MyTabSearch", and click "Add to Chrome".</p>
+                    <h4 data-browser-adapt="storeStepTitle">From Chrome Web Store (Recommended)</h4>
+                    <p>Visit <a href="https://chromewebstore.google.com/detail/mytabsearch-extension/adfbidbchmbodidfjmimbkfndnenljjp" data-browser-adapt="storeName" data-browser-adapt-href="storeUrl">Chrome Web Store</a>, search for "MyTabSearch", and click "<span data-browser-adapt="addButtonLabel">Add to Chrome</span>".</p>
                 </div>
             </div>
             <div class="install-step">
@@ -1676,7 +1677,7 @@
                 <div class="step-number">3</div>
                 <div class="step-content">
                     <h4>Developer Mode</h4>
-                    <p>Enable developer mode in chrome://extensions/ and load unpacked extension folder.</p>
+                    <p>Enable developer mode in <code data-browser-adapt="extensionsUrl">chrome://extensions/</code> and load unpacked extension folder.</p>
                 </div>
             </div>
         </div>
@@ -1700,13 +1701,13 @@
                     <strong>Smart History:</strong> The extension remembers your last active tab state, allowing you to seamlessly toggle between two frequently used tabs with a single keystroke. Perfect for comparing information or working across multiple resources.
                 </p>
                 <div class="tip">
-                    <p><i class="fas fa-info-circle"></i> <strong>Warm Reminder:</strong> If you are using Chrome or Edge, the default shortcut key (Alt+Q) should not conflict with your browser's default hotkeys, but if you encounter any issues, please go to your browser's extension shortcut settings and adjust them (copy "chrome://extensions/shortcuts" into your browser's address bar and press Enter; if you are using Edge, it is "edge://extensions/shortcuts"), and then you can enjoy using the extension's features.</p>
+                    <p><i class="fas fa-info-circle"></i> <strong>Warm Reminder:</strong> If you are using <span data-browser-adapt="name">Chrome</span>, the default shortcut key (Alt+Q) should not conflict with your browser's default hotkeys, but if you encounter any issues, please go to your browser's extension shortcut settings and adjust them (copy "<code data-browser-adapt="shortcutsUrl">chrome://extensions/shortcuts</code>" into your browser's address bar and press Enter), and then you can enjoy using the extension's features.</p>
                 </div>
             </div>
             <div class="highlight-box" style="margin-top: 24px;">
                 <h3><i class="fas fa-thumbtack"></i> Long-term Pinned Tabs - Never Lose Your Important Tabs Again</h3>
                 <p>
-                    <strong>Persistent Access:</strong> Unlike Chrome's built-in pinned tabs that disappear when you close the browser, MyTabSearch's long-term pinned tabs persist across sessions. Your favorite work tools, documentation, and frequently visited sites stay exactly where you need them.
+                    <strong>Persistent Access:</strong> Unlike <span data-browser-adapt="nameWithPossessive">Chrome's</span> built-in pinned tabs that disappear when you close the browser, MyTabSearch's long-term pinned tabs persist across sessions. Your favorite work tools, documentation, and frequently visited sites stay exactly where you need them.
                 </p>
                 <p>
                     <strong>Quick Access Anytime:</strong> Simply press <code>Alt+E</code> to instantly open your pinned tabs list. No more hunting through dozens of tabs or restoring closed windows. Your important tabs are always one shortcut away.
@@ -1755,6 +1756,7 @@
         <div class="lightbox-counter">1 / 6</div>
     </div>
 </div>
+<script src="website/js/browser-adapt.js"></script>
 <script src="website/js/index.js"></script>
 </body>
 
