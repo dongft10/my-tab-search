@@ -1,6 +1,6 @@
 // Import i18n manager
 import i18n from './i18n.js';
-import { getStoreLink, getStoreNameKey } from './utils/browser-detect.js';
+import { getStoreLink, getStoreNameKey, getBrowserNameKey, detectBrowser } from './utils/browser-detect.js';
 
 // Toast 提示函数
 function showToast(message, duration = 3000) {
@@ -91,6 +91,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
+/**
+ * 将文案适配到当前浏览器
+ * 统一处理两种差异：浏览器名称（Chrome / Edge）与内部页面协议（chrome:// / edge://）
+ * @param {string} text 原始文案
+ * @returns {string} 适配后的文案
+ */
+function adaptBrowserCopy(text) {
+  if (!text) {
+    return text;
+  }
+
+  const browser = detectBrowser();
+  const browserName = i18n.getMessage(getBrowserNameKey()) || (browser === 'edge' ? 'Edge' : 'Chrome');
+
+  let result = text.replace('Chrome', browserName);
+  if (browser === 'edge') {
+    result = result.replace(/chrome:\/\//gi, 'edge://');
+  }
+  return result;
+}
+
 function applyI18n() {
   // Update page title
   document.title = i18n.getMessage('aboutTitle') || 'About - MyTabSearch';
@@ -110,8 +131,8 @@ function applyI18n() {
   // Update description
   const descElement = document.getElementById('about-description');
   if (descElement) {
-    descElement.textContent = i18n.getMessage('aboutDescription') ||
-      'Tired of the mediocre functionality of the default tab management? Then switch to the powerful and flexible MyTabSearch extension �?you will be amazed! MyTabSearch is a Chrome extension that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.';
+    descElement.textContent = adaptBrowserCopy(i18n.getMessage('aboutDescription') ||
+      'Tired of the mediocre functionality of the default tab management? Then switch to the powerful and flexible MyTabSearch extension �?you will be amazed! MyTabSearch is a browser extension for Chrome that helps you quickly search and switch between your open tabs. With a simple keyboard shortcut, you can access all your open tabs and find the one you need in seconds.');
   }
 
   // Update features section
@@ -185,7 +206,7 @@ function applyI18n() {
 
   const tipShortcutConflict = document.getElementById('tip-shortcut-conflict');
   if (tipShortcutConflict) {
-    tipShortcutConflict.textContent = i18n.getMessage('tipShortcutConflict') || 'If the default shortcut keys fail to work, a key conflict may be the cause. You can adjust them manually in chrome://extensions/shortcuts.';
+    tipShortcutConflict.textContent = adaptBrowserCopy(i18n.getMessage('tipShortcutConflict') || 'If the default shortcut keys fail to work, a key conflict may be the cause. You can adjust them manually in chrome://extensions/shortcuts.');
   }
 
   const shortcutSetupTitle = document.getElementById('shortcut-setup-title');
@@ -195,7 +216,7 @@ function applyI18n() {
 
   const shortcutSetupDesc = document.getElementById('shortcut-setup-desc');
   if (shortcutSetupDesc) {
-    shortcutSetupDesc.textContent = i18n.getMessage('shortcutSetupDesc') || 'Due to Chrome security restrictions, keyboard shortcuts need to be manually confirmed after installation. Click the button below to set up:';
+    shortcutSetupDesc.textContent = adaptBrowserCopy(i18n.getMessage('shortcutSetupDesc') || 'Due to Chrome security restrictions, keyboard shortcuts need to be manually confirmed after installation. Click the button below to set up:');
   }
 
   const btnSetupShortcut = document.getElementById('btn-setup-shortcut');
