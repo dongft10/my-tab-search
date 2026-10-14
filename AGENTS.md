@@ -83,3 +83,43 @@ chrome-extension/
 - No ESLint/Prettier config - follow manual style guidelines
 - During the development and testing phase, after each front-end code adjustment is executed, remember to execute "npm run build:dev && npm run package"
 
+## Git 远程仓库访问（固定走 SSH）
+
+本仓库远程名为 `github`（`git@github.com:dongft10/my-tab-search.git`）。
+
+**规则：所有读写远程仓库的操作（fetch / pull / push）一律使用 SSH，不要用 HTTPS。**
+
+原因：本机 HTTPS 走本地代理 `127.0.0.1:7897`，代理客户端（Clash 等）未启动时所有 HTTPS 操作直接失败：
+
+```
+fatal: unable to access 'https://github.com/dongft10/my-tab-search.git/':
+Failed to connect to 127.0.0.1 port 7897 after 2095 ms: Couldn't connect to server
+```
+
+SSH 不经过该代理，实测稳定可用：`~/.ssh/config` 中 `Host github.com` 已绑定密钥 `~/.ssh/id_ed25519_github_dongft10`（端口 22 直连正常）。
+
+### 命令
+
+```bash
+# 连通性自检（输出 "Hi dongft10! You've successfully authenticated" 即正常）
+ssh -T git@github.com
+
+# 查看远端分支与 SHA
+git ls-remote git@github.com:dongft10/my-tab-search.git
+
+# 拉取全部远程分支到 github/*（不切换分支，仅更新远程跟踪引用）
+git fetch git@github.com:dongft10/my-tab-search.git '+refs/heads/*:refs/remotes/github/*' --tags --prune
+
+# 推送分支
+git push git@github.com:dongft10/my-tab-search.git <branch>
+```
+
+远程 `github` 的 URL 已设为 SSH，因此 `git fetch github` / `git push github <branch>` 可直接使用；
+如需临时切回 HTTPS（代理正常时）：`git remote set-url github https://github.com/dongft10/my-tab-search.git`
+
+### 排查顺序
+
+1. HTTPS 报 `Failed to connect to 127.0.0.1 port 7897` → 代理没启动，**不要去调代理配置，直接改用 SSH**。
+2. `ssh -T git@github.com` 失败 → 检查 `~/.ssh/config` 的 `Host github.com` 段与私钥 `id_ed25519_github_dongft10` 是否存在。
+3. 若网络封锁 22 端口，可走 `ssh.github.com:443`，但需在 `~/.ssh/config` 为 `Host ssh.github.com` 单独指定同一密钥（当前未配置）。
+
