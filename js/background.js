@@ -331,55 +331,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       isSwitchingToPreviousTab = false;
     }
   } else if (command === "open-pinned-tabs") {
-    try {
-      const result = await chrome.storage.local.get('pinnedTabsWindowId');
-      const savedWindowId = result.pinnedTabsWindowId;
-
-      if (savedWindowId) {
-        try {
-          await chrome.windows.get(savedWindowId);
-          await chrome.windows.remove(savedWindowId);
-          await chrome.storage.local.remove('pinnedTabsWindowId');
-          return;
-        } catch (error) {
-          await chrome.storage.local.remove('pinnedTabsWindowId');
-        }
-      }
-
-      const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-      if (windows.length > 0) {
-        await chrome.windows.remove(windows[0].id);
-        await chrome.storage.local.remove('pinnedTabsWindowId');
-        return;
-      }
-
-      const windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 400;
-      const windowHeight = PINNED_TABS_CONFIG?.WINDOW_HEIGHT || 600;
-      let screenWidth = 1920, screenHeight = 1080;
-
-      try {
-        const displays = await chrome.system.display.getInfo();
-        if (displays?.length > 0) {
-          const primaryDisplay = displays.find(d => d.isPrimary) || displays[0];
-          screenWidth = primaryDisplay.workArea.width || 1920;
-          screenHeight = primaryDisplay.workArea.height || 1080;
-        }
-      } catch (error) {}
-
-      const newWindow = await chrome.windows.create({
-        url: chrome.runtime.getURL('html/pinned-list.html'),
-        type: 'popup',
-        width: windowWidth,
-        height: windowHeight,
-        left: Math.round((screenWidth - windowWidth) / 2),
-        top: Math.round((screenHeight - windowHeight) / 2)
-      });
-
-      await chrome.storage.local.set({ pinnedTabsWindowId: newWindow.id });
-    } catch (error) {
-      console.error('[open-pinned-tabs] Error:', error);
-      await chrome.storage.local.remove('pinnedTabsWindowId');
-    }
+    await openPinnedTabsUI();
   } else if (command === "_execute_action") {
     try {
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
@@ -465,47 +417,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
   if (message.action === 'openPinnedTabs') {
     try {
-      const result = await chrome.storage.local.get('pinnedTabsWindowId');
-      if (result.pinnedTabsWindowId) {
-        try {
-          await chrome.windows.update(result.pinnedTabsWindowId, { focused: true });
-          sendResponse({ success: true });
-          return;
-        } catch (error) {
-          await chrome.storage.local.remove('pinnedTabsWindowId');
-        }
-      }
-
-      const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-      if (windows.length > 0) {
-        await chrome.windows.update(windows[0].id, { focused: true });
-        await chrome.storage.local.set({ pinnedTabsWindowId: windows[0].id });
-        sendResponse({ success: true });
-        return;
-      }
-
-      const windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 400;
-      const windowHeight = PINNED_TABS_CONFIG?.WINDOW_HEIGHT || 600;
-      let screenWidth = 1920, screenHeight = 1080;
-
-      try {
-        const displays = await chrome.system.display.getInfo();
-        if (displays?.length > 0) {
-          const primaryDisplay = displays.find(d => d.isPrimary) || displays[0];
-          screenWidth = primaryDisplay.workArea.width || 1920;
-          screenHeight = primaryDisplay.workArea.height || 1080;
-        }
-      } catch (error) {}
-
-      const newWindow = await chrome.windows.create({
-        url: chrome.runtime.getURL('html/pinned-list.html'),
-        type: 'popup',
-        width: windowWidth,
-        height: windowHeight,
-        left: Math.round((screenWidth - windowWidth) / 2),
-        top: Math.round((screenHeight - windowHeight) / 2)
-      });
-      await chrome.storage.local.set({ pinnedTabsWindowId: newWindow.id });
+      await openPinnedTabsUI();
       sendResponse({ success: true });
     } catch (error) {
       sendResponse({ success: false, error: error.message });
@@ -577,6 +489,11 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       console.error('[background] pinnedListTabAction error:', error);
       sendResponse({ success: false, error: error.message });
     }
+    return true;
+  }
+
+  if (message.action === 'mtsPinnedOverlayAction') {
+    await handlePinnedOverlayAction(message, sendResponse);
     return true;
   }
 });
@@ -706,6 +623,168 @@ async function activateTab(tabId, windowId) {
   await chrome.tabs.update(tabId, { active: true });
   if (windowId) {
     await chrome.windows.update(windowId, { focused: true });
+  }
+}
+
+// ============== 注入式固定标签页弹窗（方案 B） ==============
+
+/**
+ * 判断 URL 是否为内容脚本无法注入的受限页面
+ * @param {string} url - 页面 URL
+ * @returns {boolean}
+ */
+function isRestrictedPageForOverlay(url) {
+  if (!url) return true;
+  const restrictedPrefixes = [
+    'chrome://', 'chrome-extension://', 'edge://', 'about:',
+    'view-source:', 'devtools:', 'https://chrome.google.com/webstore',
+    'https://chromewebstore.google.com', 'https://microsoftedge.microsoft.com/addons'
+  ];
+  return restrictedPrefixes.some(prefix => url.startsWith(prefix));
+}
+
+/**
+ * 打开固定标签页 UI（双模式）
+ * 优先向当前活动标签页注入自绘居中弹窗（无系统标题栏、宽度可控）；
+ * 受限页面或注入失败时降级为独立 popup 窗口（原有 pinned-list.html 方案）。
+ */
+async function openPinnedTabsUI() {
+  // 已有 popup 窗口时先关闭（toggle 行为，与原逻辑一致）
+  const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
+  if (windows.length > 0) {
+    for (const w of windows) {
+      await chrome.windows.remove(w.id);
+    }
+    await chrome.storage.local.remove('pinnedTabsWindowId');
+    return;
+  }
+
+  // 尝试注入式弹窗
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab && !isRestrictedPageForOverlay(activeTab.url)) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          files: ['js/pinned-overlay-content.js']
+        });
+        const [resp] = await chrome.tabs.sendMessage(activeTab.id, {
+          action: 'mtsTogglePinnedOverlay'
+        });
+        if (resp && resp.success) {
+          return; // 注入成功
+        }
+      } catch (injectError) {
+        console.info('[open-pinned-tabs] Overlay inject failed, fallback to popup window:', injectError?.message);
+      }
+    }
+  } catch (error) {
+    console.info('[open-pinned-tabs] Overlay path error, fallback:', error?.message);
+  }
+
+  // 降级：独立 popup 窗口（pinned-list.html）
+  await openPinnedTabsWindow();
+}
+
+/**
+ * 打开独立 popup 窗口（原有方案，作为降级路径保留）
+ */
+async function openPinnedTabsWindow() {
+  const windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 400;
+  const windowHeight = PINNED_TABS_CONFIG?.WINDOW_HEIGHT || 600;
+  let screenWidth = 1920, screenHeight = 1080;
+
+  try {
+    const displays = await chrome.system.display.getInfo();
+    if (displays?.length > 0) {
+      const primaryDisplay = displays.find(d => d.isPrimary) || displays[0];
+      screenWidth = primaryDisplay.workArea.width || 1920;
+      screenHeight = primaryDisplay.workArea.height || 1080;
+    }
+  } catch (error) {}
+
+  const newWindow = await chrome.windows.create({
+    url: chrome.runtime.getURL('html/pinned-list.html'),
+    type: 'popup',
+    width: windowWidth,
+    height: windowHeight,
+    left: Math.round((screenWidth - windowWidth) / 2),
+    top: Math.round((screenHeight - windowHeight) / 2)
+  });
+
+  await chrome.storage.local.set({ pinnedTabsWindowId: newWindow.id });
+}
+
+/**
+ * 处理注入式弹窗的 tab 操作（closeTab / refreshTab / syncLongTerm）
+ * @param {Object} message - 消息
+ * @param {Function} sendResponse - 响应回调
+ */
+async function handlePinnedOverlayAction(message, sendResponse) {
+  try {
+    switch (message.op) {
+      case 'closeTab': {
+        const { tabId, tabUrl, isLongTermPinned } = message;
+        let closed = false;
+        if (tabId != null) {
+          try {
+            await chrome.tabs.get(tabId);
+            await chrome.tabs.remove(tabId);
+            closed = true;
+          } catch (e) { /* tabId 无效 */ }
+        }
+        if (!closed && tabUrl) {
+          const allTabs = await chrome.tabs.query({});
+          const matches = allTabs.filter(t => t.url === tabUrl);
+          if (matches.length > 0) {
+            await chrome.tabs.remove(matches[0].id);
+            closed = true;
+          }
+        }
+        // 非长期固定的 tab：从列表中移除
+        if (!isLongTermPinned) {
+          const result = await chrome.storage.local.get('pinnedTabs');
+          const pinnedTabs = (result.pinnedTabs || []).filter(t =>
+            !((tabUrl && t.url === tabUrl) || (tabId != null && t.tabId === tabId))
+          );
+          await chrome.storage.local.set({ pinnedTabs });
+        }
+        sendResponse({ success: closed || isLongTermPinned });
+        break;
+      }
+
+      case 'refreshTab': {
+        try {
+          await chrome.tabs.reload(message.tabId);
+          sendResponse({ success: true });
+        } catch (e) {
+          sendResponse({ success: false, error: e.message });
+        }
+        break;
+      }
+
+      case 'syncLongTerm': {
+        try {
+          const syncQueueService = await import(chrome.runtime.getURL('js/services/sync-queue.service.js'));
+          syncQueueService.default.addOperation('updateTab', {
+            tabId: message.tabId,
+            url: message.url,
+            isLongTermPinned: message.isLongTermPinned,
+            longTermPinnedAt: message.longTermPinnedAt
+          }).catch(() => {});
+          sendResponse({ success: true });
+        } catch (e) {
+          // 同步失败不影响本地操作
+          sendResponse({ success: false, error: e.message });
+        }
+        break;
+      }
+
+      default:
+        sendResponse({ success: false, error: 'unknown op: ' + message.op });
+    }
+  } catch (error) {
+    sendResponse({ success: false, error: error.message });
   }
 }
 
