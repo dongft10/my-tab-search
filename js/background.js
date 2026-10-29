@@ -668,12 +668,28 @@ async function openPinnedTabsUI() {
           target: { tabId: activeTab.id },
           files: ['js/pinned-overlay-content.js']
         });
-        const [resp] = await chrome.tabs.sendMessage(activeTab.id, {
-          action: 'mtsTogglePinnedOverlay'
+        // 必须带 callback：保证 content script 的 sendResponse 端口存活，
+        // 否则响应可能丢失导致误判注入失败而重复打开 popup 窗口
+        const resp = await new Promise((resolve) => {
+          let settled = false;
+          const timer = setTimeout(() => {
+            if (!settled) { settled = true; resolve(null); }
+          }, 1500);
+          try {
+            chrome.tabs.sendMessage(activeTab.id, { action: 'mtsTogglePinnedOverlay' }, (r) => {
+              if (!settled) { settled = true; clearTimeout(timer); resolve(r || null); }
+            });
+          } catch (e) {
+            if (!settled) { settled = true; clearTimeout(timer); resolve(null); }
+          }
         });
-        if (resp && resp.success) {
-          return; // 注入成功
+        if (resp && resp.success && resp.visible) {
+          return; // 注入式弹窗已打开
         }
+        if (resp && resp.success && !resp.visible) {
+          return; // toggle 关闭了已打开的弹窗，同样视为已处理
+        }
+        // resp 存在但 success=false，或超时无响应 → 降级
       } catch (injectError) {
         console.info('[open-pinned-tabs] Overlay inject failed, fallback to popup window:', injectError?.message);
       }
