@@ -509,14 +509,14 @@
       main.appendChild(titleDiv);
       main.appendChild(urlDiv);
 
+      var actions = document.createElement('div');
+      actions.className = 'pl-actions';
+
       // 操作按钮 hover 时抑制整行 title 气泡，避免误弹
       actions.addEventListener('mouseenter', function () { item.removeAttribute('title'); });
       actions.addEventListener('mouseleave', function () {
         item.title = (tab.title || '') + (tab.url ? '\n' + tab.url : '');
       });
-
-      var actions = document.createElement('div');
-      actions.className = 'pl-actions';
 
       var refreshBtn = makeActionBtn(SVG_REFRESH, msg('refreshTab', '刷新此标签页'), '', function (e) {
         e.stopPropagation();
