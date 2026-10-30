@@ -565,7 +565,20 @@ async function handlePinnedListTabAction(data) {
         console.error(`[background] ${operation}: missing tabId`);
         throw new Error(`${operation}: missing tabId`);
       }
-      await activateTab(tabId, windowId);
+      try {
+        await activateTab(tabId, windowId);
+      } catch (tabError) {
+        // tabId 已失效（浏览器重启后 tabId 变化、同步拉下的脏数据等）。
+        // switchDirect 且带 targetUrl 时降级为打开新标签页，保持"点了就能到"的语义
+        if (operation === 'switchDirect' && targetUrl) {
+          console.info(`[background] ${operation}: tabId ${tabId} invalid, fallback to openNew:`, tabError.message);
+          const newTab = await chrome.tabs.create({ url: targetUrl, active: true });
+          const finalUrl = await waitForTabLoad(newTab.id) || targetUrl;
+          await updatePinnedTabUrlAndId(targetUrl, finalUrl, newTab.id);
+          break;
+        }
+        throw tabError;
+      }
       if (operation === 'switchAndUpdate') {
         await updatePinnedTabUrlAndId(targetUrl, matchedUrl, tabId, matchedTitle);
       } else if (operation === 'switchDirect' && targetUrl) {
