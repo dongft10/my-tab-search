@@ -1525,8 +1525,8 @@ async function delegateToBackground(data) {
     if (response && response.success) {
       console.log('[pinned-list] Background operation completed successfully');
     } else {
-      console.error('[pinned-list] Background operation failed:', response?.error);
-      showToast('操作失败，请重试');
+      console.error('[pinned-list] Background operation failed:', response?.error || JSON.stringify(response) || '(no response - message port closed)');
+      showToast(i18n.getMessage('operationFailed') || '操作失败，请重试');
       return;  // 失败时不关闭窗口，让用户看到错误提示
     }
   } catch (err) {

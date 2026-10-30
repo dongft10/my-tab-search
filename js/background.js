@@ -552,7 +552,7 @@ function waitForTabLoad(tabId, timeout = 5000) {
 async function handlePinnedListTabAction(data) {
   if (!data || !data.operation) {
     console.error('[background] pinnedListTabAction: missing operation');
-    return;
+    throw new Error('missing operation');
   }
 
   const { operation, tabId, windowId, targetUrl, matchedUrl, matchedTitle, existingTabId } = data;
@@ -563,7 +563,7 @@ async function handlePinnedListTabAction(data) {
     case 'switchAndUpdate':
       if (!tabId) {
         console.error(`[background] ${operation}: missing tabId`);
-        return;
+        throw new Error(`${operation}: missing tabId`);
       }
       await activateTab(tabId, windowId);
       if (operation === 'switchAndUpdate') {
@@ -611,6 +611,7 @@ async function handlePinnedListTabAction(data) {
 
     default:
       console.warn('[background] Unknown pinnedListTabAction operation:', operation);
+      throw new Error('unknown operation: ' + operation);
   }
 }
 

@@ -1072,5 +1072,9 @@
   "dragDisabledWhileSearch": {
     "message": "搜索状态下不支持拖动排序",
     "description": "Toast when dragging in search mode"
+  },
+  "operationFailed": {
+    "message": "操作失败，请重试",
+    "description": "Generic background operation failure"
   }
 }
