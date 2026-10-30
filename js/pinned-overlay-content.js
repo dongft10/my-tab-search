@@ -565,10 +565,10 @@
         actions.appendChild(closeBtn);
       }
 
+      item.appendChild(makeDragHandle(item, tab));
       item.appendChild(img);
       item.appendChild(main);
       item.appendChild(actions);
-      item.appendChild(makeDragHandle(item, tab));
       frag.appendChild(item);
     });
     els.list.appendChild(frag);
