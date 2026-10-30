@@ -137,11 +137,23 @@
     '.pl-list::-webkit-scrollbar-thumb { background: var(--pl-border); border-radius: 4px; }',
     '.pl-item {',
     '  display: flex; align-items: center; gap: 12px;',
-    '  padding: 10px 16px 10px 20px; border-radius: 0;',
+    '  padding: 10px 16px 10px 8px; border-radius: 0;',
     '  cursor: pointer; position: relative;',
     '  transition: background-color 0.12s ease;',
     '  animation: pl-item-in 0.18s ease backwards;',
     '}',
+    '.pl-item.dragging { opacity: 0.55; background: var(--pl-bg-hover); }',
+    '.pl-item.drag-over-top { box-shadow: inset 0 2px 0 var(--pl-primary); }',
+    '.pl-item.drag-over-bottom { box-shadow: inset 0 -2px 0 var(--pl-primary); }',
+    '.pl-drag-handle {',
+    '  flex-shrink: 0; width: 18px; height: 28px;',
+    '  display: flex; align-items: center; justify-content: center;',
+    '  cursor: grab; color: var(--pl-text-muted); opacity: 0;',
+    '  transition: opacity 0.15s ease, color 0.15s ease;',
+    '  touch-action: none;',
+    '}',
+    '.pl-item:hover .pl-drag-handle, .pl-drag-handle.active { opacity: 1; }',
+    '.pl-drag-handle:hover { color: var(--pl-text-secondary); }',
     '@keyframes pl-item-in {',
     '  from { opacity: 0; transform: translateY(4px); }',
     '  to { opacity: 1; transform: translateY(0); }',
@@ -554,9 +566,130 @@
       item.appendChild(img);
       item.appendChild(main);
       item.appendChild(actions);
+      item.appendChild(makeDragHandle(item, tab));
       frag.appendChild(item);
     });
     els.list.appendChild(frag);
+  }
+
+  // ============== 拖动排序（Pointer Events 实现） ==============
+  var dragState = null; // { item, startY, fromIndex, placeholderInfo }
+
+  function makeDragHandle(item, tab) {
+    var handle = document.createElement('div');
+    handle.className = 'pl-drag-handle';
+    handle.innerHTML = '<svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor">' +
+      '<circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/>' +
+      '<circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/>' +
+      '<circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></svg>';
+    handle.title = msg('dragToReorder', '拖动调整排序');
+
+    handle.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      startDrag(item, handle, e);
+    });
+    return handle;
+  }
+
+  function startDrag(item, handle, e) {
+    if (dragState) return;
+    var items = Array.prototype.slice.call(els.list.querySelectorAll('.pl-item'));
+    var fromIndex = items.indexOf(item);
+    if (fromIndex === -1) return;
+
+    dragState = {
+      item: item,
+      handle: handle,
+      items: items,
+      fromIndex: fromIndex,
+      toIndex: fromIndex,
+      itemHeight: item.getBoundingClientRect().height,
+      listRect: els.list.getBoundingClientRect()
+    };
+    handle.classList.add('active');
+    item.classList.add('dragging');
+    item.removeAttribute('title');
+    try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+
+    handle.addEventListener('pointermove', onDragMove);
+    handle.addEventListener('pointerup', onDragEnd);
+    handle.addEventListener('pointercancel', onDragEnd);
+  }
+
+  function onDragMove(e) {
+    if (!dragState) return;
+    var listRect = dragState.listRect;
+    var y = e.clientY;
+    if (y < listRect.top) { els.list.scrollTop -= 8; }
+    else if (y > listRect.bottom) { els.list.scrollTop += 8; }
+
+    var relative = y - listRect.top + els.list.scrollTop;
+    var idx = Math.floor(relative / dragState.itemHeight);
+    idx = Math.max(0, Math.min(dragState.items.length - 1, idx));
+
+    if (idx !== dragState.toIndex) {
+      dragState.items.forEach(function (it, i) {
+        it.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+      var target = dragState.items[idx];
+      if (target && target !== dragState.item) {
+        target.classList.add(idx < dragState.toIndex ? 'drag-over-top' : 'drag-over-bottom');
+      }
+      dragState.toIndex = idx;
+    }
+    e.preventDefault();
+  }
+
+  function onDragEnd(e) {
+    if (!dragState) return;
+    var st = dragState;
+    dragState = null;
+
+    st.handle.classList.remove('active');
+    st.item.classList.remove('dragging');
+    st.handle.removeEventListener('pointermove', onDragMove);
+    st.handle.removeEventListener('pointerup', onDragEnd);
+    st.handle.removeEventListener('pointercancel', onDragEnd);
+    st.items.forEach(function (it) {
+      it.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    if (st.toIndex !== st.fromIndex) {
+      reorderTabs(st.fromIndex, st.toIndex);
+    } else {
+      // 未移动，恢复整行 title
+      var tab = visibleTabs[st.fromIndex];
+      if (tab) st.item.title = (tab.title || '') + (tab.url ? '\n' + tab.url : '');
+    }
+  }
+
+  function reorderTabs(fromIndex, toIndex) {
+    // visibleTabs 是过滤后的视图；拖动排序仅在无搜索关键字（全量视图）时支持，
+    // 搜索状态下拖动会打乱"全量顺序"与"过滤视图"的映射，直接忽略
+    if (getKeywords().length > 0) {
+      showToast(msg('dragDisabledWhileSearch', '搜索状态下不支持拖动排序'));
+      renderList();
+      return;
+    }
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 ||
+        fromIndex >= allTabs.length || toIndex >= allTabs.length) {
+      renderList();
+      return;
+    }
+    var moved = allTabs.splice(fromIndex, 1)[0];
+    allTabs.splice(toIndex, 0, moved);
+    chrome.storage.local.set({ pinnedTabs: allTabs }, function () {
+      // 异步同步顺序到服务器（按新顺序携带全量 url 列表）
+      chrome.runtime.sendMessage({
+        action: 'mtsPinnedOverlayAction',
+        op: 'syncTabOrder',
+        urls: allTabs.map(function (t) { return t.url; })
+      });
+      selectedIndex = toIndex;
+      renderList();
+      showToast(msg('orderUpdated', '排序已更新'));
+    });
   }
 
   function makeActionBtn(svg, title, extraClass, onClick) {

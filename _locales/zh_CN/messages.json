@@ -1060,5 +1060,17 @@
   "edgeBrowserName": {
     "message": "Edge",
     "description": "Edge browser name"
+  },
+  "dragToReorder": {
+    "message": "拖动调整排序",
+    "description": "Tooltip for drag handle"
+  },
+  "orderUpdated": {
+    "message": "排序已更新",
+    "description": "Toast after reorder"
+  },
+  "dragDisabledWhileSearch": {
+    "message": "搜索状态下不支持拖动排序",
+    "description": "Toast when dragging in search mode"
   }
 }

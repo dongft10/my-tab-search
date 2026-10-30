@@ -796,6 +796,33 @@ async function handlePinnedOverlayAction(message, sendResponse) {
         break;
       }
 
+      case 'syncTabOrder': {
+        try {
+          // 按新顺序重排服务器侧固定列表（全量 url 顺序）
+          const result = await chrome.storage.local.get('pinnedTabs');
+          const pinnedTabs = result.pinnedTabs || [];
+          const urlSet = new Set(message.urls || []);
+          const ordered = [];
+          for (const url of message.urls || []) {
+            const tab = pinnedTabs.find(t => t.url === url);
+            if (tab) ordered.push(tab);
+          }
+          // 兜底：不在 urls 里的（新增未同步的）追加到末尾，避免丢数据
+          for (const t of pinnedTabs) {
+            if (!urlSet.has(t.url)) ordered.push(t);
+          }
+          if (ordered.length === pinnedTabs.length) {
+            await chrome.storage.local.set({ pinnedTabs: ordered });
+          }
+          // 服务器同步：逐条 updateTab 队列成本高，v1 仅本地重排；
+          // 服务器侧顺序以 addTab 时间为准，后续版本再补 order 字段
+          sendResponse({ success: true, reordered: ordered.length === pinnedTabs.length });
+        } catch (e) {
+          sendResponse({ success: false, error: e.message });
+        }
+        break;
+      }
+
       default:
         sendResponse({ success: false, error: 'unknown op: ' + message.op });
     }
