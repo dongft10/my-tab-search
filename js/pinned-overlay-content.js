@@ -723,24 +723,101 @@
   function switchToTab(index) {
     var tab = visibleTabs[index];
     if (!tab) return;
-    var doSwitch = function () {
-      chrome.runtime.sendMessage({
-        action: 'pinnedListTabAction',
-        data: { operation: 'switchDirect', tabId: tab.tabId, targetUrl: tab.url }
-      }, function (resp) {
-        if (resp && resp.success) {
-          closeOverlay(true);
-        } else if (tab.url) {
-          // tabId 无效（如长期固定的离线 tab），回退为打开新标签页
-          chrome.runtime.sendMessage({
-            action: 'pinnedListTabAction',
-            data: { operation: 'openNew', targetUrl: tab.url }
-          }, function () { closeOverlay(true); });
+
+    // 与旧 pinned-list.js 的 switchToTab 对齐的三级回退：
+    // ① tabId 有效且 tab 存在 → switchDirect 直接切换
+    // ② tabId 无效/tab 不存在 → URL 回退匹配（交给 background 处理太复杂，
+    //    这里自行执行与旧逻辑一致的链路）
+    // ③ URL 也匹配不到 → noMatch 新开 tab
+    var proceed = function (targetUrl, targetTab, directTabId, windowId) {
+      if (!targetUrl) return;
+
+      chrome.tabs.query({}, function (allTabs) {
+        // chrome://extensions 特殊处理：复用已有同类页面
+        if (targetUrl.indexOf('chrome://extensions') === 0) {
+          for (var i = 0; i < allTabs.length; i++) {
+            if ((allTabs[i].url || '').indexOf('chrome://extensions') === 0) {
+              delegateAndClose({ operation: 'extensionsSpecial', existingTabId: allTabs[i].id, targetUrl: targetUrl });
+              return;
+            }
+          }
         }
+
+        var matched = findTabWithFallbackLite(targetUrl, allTabs);
+        if (matched.level === 1 && matched.tab) {
+          delegateAndClose({ operation: 'switchDirect', tabId: matched.tab.id, windowId: matched.tab.windowId, targetUrl: targetUrl });
+          return;
+        }
+        if (matched.tab) {
+          // 回退匹配：与旧逻辑一致，高置信度直接更新跳转，否则提示用户用旧窗口确认
+          delegateAndClose({
+            operation: 'switchAndUpdate',
+            tabId: matched.tab.id,
+            windowId: matched.tab.windowId,
+            targetUrl: targetUrl,
+            matchedUrl: matched.tab.url,
+            matchedTitle: matched.tab.title || ''
+          });
+          return;
+        }
+        // ③ 都没找到 → 新开 tab
+        delegateAndClose({ operation: 'noMatch', targetUrl: targetUrl });
       });
     };
-    // 有 tabId 时先校验 URL 是否仍匹配（复用扩展的更新语义过于复杂，v1 直接切换）
-    doSwitch();
+
+    // ① tabId 有效时先尝试直接获取
+    if (tab.tabId != null && !isNaN(tab.tabId)) {
+      chrome.tabs.get(tab.tabId, function (t) {
+        if (t && !chrome.runtime.lastError) {
+          // tab 存在：URL 匹配则直接切，不匹配则以存储 URL 为准走回退
+          if (t.url === tab.url) {
+            delegateAndClose({ operation: 'switchDirect', tabId: tab.tabId, windowId: t.windowId, targetUrl: tab.url });
+          } else {
+            proceed(tab.url, tab, null, null);
+          }
+        } else {
+          // ② tab 不存在 → URL 回退链
+          proceed(tab.url, tab, null, null);
+        }
+      });
+    } else {
+      // tabId 缺失（长期固定离线 tab）→ 直接 URL 回退链
+      proceed(tab.url, tab, null, null);
+    }
+  }
+
+  function delegateAndClose(data) {
+    chrome.runtime.sendMessage({ action: 'pinnedListTabAction', data: data }, function (resp) {
+      if (resp && resp.success) {
+        closeOverlay(true);
+      } else if (data.targetUrl && data.operation !== 'noMatch') {
+        // 兜底：委托失败直接新开
+        chrome.runtime.sendMessage({ action: 'pinnedListTabAction', data: { operation: 'noMatch', targetUrl: data.targetUrl } },
+          function () { closeOverlay(true); });
+      }
+    });
+  }
+
+  // 轻量版 URL 回退匹配（与 pinned-list.js 的 generateUrlFallbackRules 同语义）
+  function findTabWithFallbackLite(targetUrl, allTabs) {
+    var candidates;
+    try {
+      var u = new URL(targetUrl);
+      // 级别 1：完全匹配
+      candidates = allTabs.filter(function (t) { return t.url === targetUrl; });
+      if (candidates.length) return { tab: candidates[0], level: 1 };
+      // 级别 2：origin + 一级路径前缀（与旧逻辑的父路径回退一致的简化版）
+      var prefixes = [u.origin + u.pathname.replace(/\/[^/]*$/, ''), u.origin];
+      for (var p = 0; p < prefixes.length; p++) {
+        var pref = prefixes[p];
+        candidates = allTabs.filter(function (t) {
+          var tu = t.url || '';
+          return tu === pref || tu.indexOf(pref + '/') === 0 || tu.indexOf(pref + '?') === 0 || tu.indexOf(pref + '#') === 0;
+        });
+        if (candidates.length) return { tab: candidates[0], level: p + 2 };
+      }
+    } catch (e) { /* URL 解析失败，走 noMatch */ }
+    return { tab: null, level: 0 };
   }
 
   function unpinTab(tab) {
