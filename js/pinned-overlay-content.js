@@ -938,6 +938,12 @@
     }
   }
 
+  // 窗口/页面失焦时自动关闭（与旧 pinned-list 窗口 blur 关闭语义一致）：
+  // 例如按 Ctrl+Q 弹出 popup.html 主弹窗时，overlay 不应残留
+  window.addEventListener('blur', function () {
+    if (isOpen) closeOverlay(true);
+  });
+
   // ============== 打开 / 关闭 ==============
   function openOverlay() {
     buildDOM();
