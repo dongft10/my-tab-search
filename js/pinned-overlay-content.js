@@ -434,6 +434,8 @@
     });
     els.input.addEventListener('input', renderList);
     els.list.addEventListener('click', function (e) {
+      // 拖动结束后紧随的 click 不应触发跳转
+      if (suppressNextClick) { suppressNextClick = false; return; }
       var item = e.target.closest('.pl-item');
       if (item && item.dataset.index !== undefined) {
         switchToTab(parseInt(item.dataset.index, 10));
@@ -574,6 +576,7 @@
 
   // ============== 拖动排序（Pointer Events 实现） ==============
   var dragState = null; // { item, startY, fromIndex, placeholderInfo }
+  var suppressNextClick = false; // 拖动结束后的合成 click 不触发跳转
 
   function makeDragHandle(item, tab) {
     var handle = document.createElement('div');
@@ -645,6 +648,11 @@
     if (!dragState) return;
     var st = dragState;
     dragState = null;
+
+    // pointerup 之后浏览器会对同元素派发合成 click，
+    // 这里标记抑制，避免拖完顺手"跳转"到光标下的条目
+    suppressNextClick = true;
+    setTimeout(function () { suppressNextClick = false; }, 350);
 
     st.handle.classList.remove('active');
     st.item.classList.remove('dragging');
