@@ -235,7 +235,70 @@
     '  border: 1px solid var(--pl-border);',
     '  padding: 9px 18px; border-radius: 8px; font-size: 13px;',
     '  animation: pl-fade-in 0.2s ease; white-space: nowrap;',
-    '}'
+    '}',
+    '.pl-confirm-modal { width: 560px; max-height: min(560px, calc(100vh - 96px)); }',
+    '.pl-confirm-body { flex: 1; overflow-y: auto; padding: 4px 20px 14px; min-height: 0; }',
+    '.pl-confirm-label {',
+    '  font-size: 12.5px; color: var(--pl-text-secondary); font-weight: 500;',
+    '  margin-bottom: 6px;',
+    '}',
+    '.pl-confirm-box {',
+    '  font-size: 13px; color: var(--pl-text-primary); font-weight: 500;',
+    '  background: var(--pl-bg-hover); border-radius: 6px; padding: 7px 10px;',
+    '  line-height: 1.4; margin-bottom: 6px; word-break: break-word;',
+    '  max-height: 56px; overflow-y: auto;',
+    '}',
+    '.pl-confirm-box.pl-confirm-url {',
+    '  font-size: 12px; font-weight: 400; color: var(--pl-text-secondary);',
+    '  background: var(--pl-bg-secondary); border: 1px solid var(--pl-border);',
+    '  font-family: ui-monospace, "Courier New", monospace; word-break: break-all;',
+    '}',
+    '.pl-confirm-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }',
+    '.pl-confirm-item {',
+    '  display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px;',
+    '  border: 1px solid var(--pl-border); border-radius: 8px; cursor: pointer;',
+    '  background: var(--pl-bg-primary); transition: all 0.12s ease;',
+    '}',
+    '.pl-confirm-item:hover { background: var(--pl-bg-hover); border-color: var(--pl-primary); }',
+    '.pl-confirm-item.selected {',
+    '  background: var(--pl-bg-selected); border-color: var(--pl-primary);',
+    '  box-shadow: 0 0 0 1px var(--pl-primary);',
+    '}',
+    '.pl-confirm-item:focus-visible { outline: 2px solid var(--pl-primary); outline-offset: 1px; }',
+    '.pl-confirm-radio {',
+    '  flex-shrink: 0; width: 14px; height: 14px; border: 2px solid var(--pl-text-muted);',
+    '  border-radius: 50%; margin-top: 2px; position: relative;',
+    '}',
+    '.pl-confirm-item.selected .pl-confirm-radio { border-color: var(--pl-primary); }',
+    '.pl-confirm-item.selected .pl-confirm-radio::after {',
+    '  content: ""; position: absolute; top: 2px; left: 2px; width: 6px; height: 6px;',
+    '  border-radius: 50%; background: var(--pl-primary);',
+    '}',
+    '.pl-confirm-info { flex: 1; min-width: 0; }',
+    '.pl-confirm-title {',
+    '  font-size: 13px; font-weight: 500; color: var(--pl-text-primary);',
+    '  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4;',
+    '}',
+    '.pl-confirm-sub {',
+    '  font-size: 11px; color: var(--pl-text-muted); white-space: nowrap;',
+    '  overflow: hidden; text-overflow: ellipsis; margin-top: 2px; line-height: 1.3;',
+    '}',
+    '.pl-confirm-score {',
+    '  flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--pl-primary);',
+    '  background: var(--pl-badge-bg); padding: 2px 6px; border-radius: 10px; margin-top: 2px;',
+    '}',
+    '.pl-confirm-actions { display: flex; flex-direction: column; gap: 8px; padding: 0 20px 18px; flex-shrink: 0; }',
+    '.pl-btn {',
+    '  padding: 10px 16px; border: 1px solid var(--pl-border); border-radius: 8px;',
+    '  font-size: 13px; font-weight: 500; cursor: pointer; text-align: center;',
+    '  background: var(--pl-bg-secondary); color: var(--pl-text-primary);',
+    '  font-family: inherit; transition: all 0.15s ease;',
+    '}',
+    '.pl-btn:hover { background: var(--pl-bg-hover); border-color: var(--pl-primary); }',
+    '.pl-btn-primary { background: var(--pl-primary); border-color: var(--pl-primary); color: #ffffff; }',
+    '.pl-btn-primary:hover { background: var(--pl-primary-light); }',
+    '.pl-btn-cancel { background: transparent; color: var(--pl-text-secondary); }',
+    '.pl-btn:focus-visible { outline: 2px solid var(--pl-primary); outline-offset: 1px; }'
   ].join('\n');
 
   // ============== 状态 ==============
@@ -748,16 +811,24 @@
           delegateAndClose({ operation: 'switchDirect', tabId: matched.tab.id, windowId: matched.tab.windowId, targetUrl: targetUrl });
           return;
         }
-        if (matched.tab) {
-          // 回退匹配：与旧逻辑一致，高置信度直接更新跳转，否则提示用户用旧窗口确认
-          delegateAndClose({
-            operation: 'switchAndUpdate',
-            tabId: matched.tab.id,
-            windowId: matched.tab.windowId,
-            targetUrl: targetUrl,
-            matchedUrl: matched.tab.url,
-            matchedTitle: matched.tab.title || ''
-          });
+        if (matched.tab && matched.candidates) {
+          // 回退匹配：四维评分排序（与 2.3.7 线上逻辑一致）
+          var ranked = rankTabs(matched.candidates, targetTab);
+          // 高置信度自动跳转：第一名领先第二名 ≥20 分
+          if (ranked.length >= 2 && ranked[0].score - ranked[1].score >= 20) {
+            var best = ranked[0].tab;
+            delegateAndClose({
+              operation: 'switchAndUpdate',
+              tabId: best.id,
+              windowId: best.windowId,
+              targetUrl: targetUrl,
+              matchedUrl: best.url,
+              matchedTitle: best.title || ''
+            });
+            return;
+          }
+          // 弹候选确认框让用户选择
+          showCandidateDialog(targetUrl, targetTab, matched, ranked);
           return;
         }
         // ③ 都没找到 → 新开 tab
@@ -814,10 +885,220 @@
           var tu = t.url || '';
           return tu === pref || tu.indexOf(pref + '/') === 0 || tu.indexOf(pref + '?') === 0 || tu.indexOf(pref + '#') === 0;
         });
-        if (candidates.length) return { tab: candidates[0], level: p + 2 };
+        if (candidates.length) {
+          var best = selectBestTabLite(candidates);
+          return { tab: best, candidates: candidates, level: p + 2 };
+        }
       }
     } catch (e) { /* URL 解析失败，走 noMatch */ }
-    return { tab: null, level: 0 };
+    return { tab: null, candidates: [], level: 0 };
+  }
+
+  // ============== 评分与候选确认框（从 pinned-list.js 2.3.7 移植） ==============
+
+  // 四维加权评分：URL 相似度40% + 标题相似度30% + 新鲜度20% + 激活状态10%
+  function rankTabs(tabs, storedTab) {
+    if (!tabs || tabs.length === 0) return [];
+    return tabs.map(function (tab) {
+      return { tab: tab, score: calculateTabMatchScore(tab, storedTab) };
+    }).sort(function (a, b) { return b.score - a.score; });
+  }
+
+  function calculateTabMatchScore(tab, storedTab) {
+    var score = 0;
+    // 1. URL 相似度（40%）
+    score += calculateUrlSimilarity(tab.url, storedTab && storedTab.url || '') * 40;
+    // 2. 标题相似度（30%）
+    if (storedTab && storedTab.title && tab.title) {
+      score += calculateTitleSimilarity(tab.title, storedTab.title) * 30;
+    }
+    // 3. 访问新鲜度（20%）- 100 小时内线性衰减
+    if (tab.lastAccessed) {
+      var hoursAgo = (Date.now() - tab.lastAccessed) / (1000 * 60 * 60);
+      score += Math.max(0, 100 - hoursAgo) / 100 * 20;
+    }
+    // 4. 激活状态（10%）
+    if (tab.active) score += 10;
+    return Math.round(score);
+  }
+
+  function calculateUrlSimilarity(urlA, urlB) {
+    if (!urlA || !urlB) return 0;
+    var maxLen = Math.max(urlA.length, urlB.length);
+    if (maxLen === 0) return 0;
+    var commonLen = 0;
+    for (var i = 0; i < maxLen; i++) {
+      if (urlA[i] === urlB[i]) commonLen++;
+      else break;
+    }
+    return commonLen / maxLen;
+  }
+
+  function calculateTitleSimilarity(titleA, titleB) {
+    var wordsA = (titleA || '').toLowerCase().split(/\s+/).filter(Boolean);
+    var wordsB = (titleB || '').toLowerCase().split(/\s+/).filter(Boolean);
+    var setA = {}, setB = {};
+    wordsA.forEach(function (w) { setA[w] = true; });
+    wordsB.forEach(function (w) { setB[w] = true; });
+    var sizeA = Object.keys(setA).length, sizeB = Object.keys(setB).length;
+    if (sizeA === 0 && sizeB === 0) return 0;
+    var intersection = 0;
+    for (var w in setA) { if (setB[w]) intersection++; }
+    var union = sizeA + sizeB - intersection;
+    return union === 0 ? 0 : intersection / union;
+  }
+
+  function selectBestTabLite(tabs) {
+    if (!tabs || tabs.length === 0) return null;
+    for (var i = 0; i < tabs.length; i++) { if (tabs[i].active) return tabs[i]; }
+    var sorted = tabs.slice().sort(function (a, b) {
+      if (a.lastAccessed && b.lastAccessed) return b.lastAccessed - a.lastAccessed;
+      return a.id - b.id;
+    });
+    return sorted[0];
+  }
+
+  // 候选确认框：单候选显示目标信息，多候选显示评分列表（radio 选择）
+  // 键盘：↑↓ 切换焦点/候选，Enter 确认，Escape 取消
+  function showCandidateDialog(targetUrl, targetTab, matched, ranked) {
+    var dialog = document.createElement('div');
+    dialog.className = 'pl-overlay';
+    dialog.style.zIndex = '2147483647';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+
+    var isMulti = ranked.length > 1;
+    var box = document.createElement('div');
+    box.className = 'pl-modal pl-confirm-modal';
+
+    var html = '<div class="pl-header" style="padding-bottom:8px;">' +
+      '<div class="pl-title">' + escapeHtml(isMulti
+        ? (msg('multipleMatchesTitle', 'Found {count} similar pages')).replace('{count}', ranked.length)
+        : msg('urlMatchTitle', '找到相似页面')) + '</div>' +
+      '</div>' +
+      '<div class="pl-confirm-body">' +
+      '<div class="pl-confirm-label">' + escapeHtml(msg('pinnedPage', '固定的页面：')) + '</div>' +
+      '<div class="pl-confirm-box">' + escapeHtml((targetTab && targetTab.title) || msg('untitled', '(无标题)')) + '</div>' +
+      '<div class="pl-confirm-box pl-confirm-url">' + escapeHtml(targetUrl) + '</div>' +
+      '<div class="pl-confirm-label" style="margin-top:10px;">' + escapeHtml(isMulti
+        ? (msg('selectCandidate', '相似页面（点击选择）：'))
+        : (msg('matchedPage', '已打开的相似页面：'))) + '</div>';
+
+    if (isMulti) {
+      html += '<div class="pl-confirm-list" role="radiogroup">';
+      ranked.forEach(function (cand, idx) {
+        html += '<div class="pl-confirm-item' + (idx === 0 ? ' selected' : '') + '" data-idx="' + idx + '" role="radio" aria-checked="' + (idx === 0) + '">' +
+          '<div class="pl-confirm-radio"></div>' +
+          '<div class="pl-confirm-info">' +
+          '<div class="pl-confirm-title">' + escapeHtml(cand.tab.title || msg('untitled', '(无标题)')) + '</div>' +
+          '<div class="pl-confirm-sub">' + escapeHtml(cand.tab.url || '') + '</div>' +
+          '</div>' +
+          '<div class="pl-confirm-score">' + cand.score + '%</div>' +
+          '</div>';
+      });
+      html += '</div>';
+    } else {
+      var t = ranked[0].tab;
+      html += '<div class="pl-confirm-box">' + escapeHtml(t.title || msg('untitled', '(无标题)')) + '</div>' +
+        '<div class="pl-confirm-box pl-confirm-url">' + escapeHtml(t.url || '') + '</div>';
+    }
+
+    html += '</div>' +
+      '<div class="pl-confirm-actions">' +
+      '<button class="pl-btn pl-btn-primary" data-act="jumpOnly">' + escapeHtml(msg('jumpOnly', '仅跳转（不更新）')) + '</button>' +
+      '<button class="pl-btn" data-act="switchAndUpdate">' + escapeHtml(msg('updateAndJump', '更新并跳转')) + '</button>' +
+      '<button class="pl-btn" data-act="openNew">' + escapeHtml(msg('openNew', '新页面打开')) + '</button>' +
+      '<button class="pl-btn pl-btn-cancel" data-act="cancel">' + escapeHtml(msg('cancel', '取消')) + '</button>' +
+      '</div>';
+
+    box.innerHTML = html;
+    dialog.appendChild(box);
+    root.appendChild(dialog);
+
+    var focusables = [];
+    if (isMulti) {
+      focusables = Array.prototype.slice.call(box.querySelectorAll('.pl-confirm-item'));
+    }
+    var buttons = Array.prototype.slice.call(box.querySelectorAll('.pl-btn'));
+    var btnIndex = 0;
+
+    function selectedIdx() {
+      var sel = box.querySelector('.pl-confirm-item.selected');
+      return sel ? parseInt(sel.dataset.idx, 10) : 0;
+    }
+    function getSelectedTab() {
+      if (isMulti) {
+        var c = ranked[selectedIdx()];
+        return c ? c.tab : null;
+      }
+      return ranked[0] ? ranked[0].tab : null;
+    }
+    function cleanup() {
+      document.removeEventListener('keydown', onKey, true);
+      if (dialog.parentNode) dialog.remove();
+    }
+    function act(action) {
+      var t = getSelectedTab();
+      cleanup();
+      if (action === 'cancel') return; // 只关确认框，overlay 保留
+      var data;
+      if (action === 'openNew') {
+        data = { operation: 'openNew', targetUrl: targetUrl };
+      } else if (!t) {
+        return;
+      } else if (action === 'jumpOnly') {
+        data = { operation: 'jumpOnly', tabId: t.id, windowId: t.windowId };
+      } else {
+        data = { operation: 'switchAndUpdate', tabId: t.id, windowId: t.windowId, targetUrl: targetUrl, matchedUrl: t.url, matchedTitle: t.title || '' };
+      }
+      delegateAndClose(data);
+    }
+    function highlightBtn() {
+      buttons.forEach(function (b, i) { b.style.outline = i === btnIndex ? '2px solid var(--pl-primary)' : 'none'; });
+      if (buttons[btnIndex]) buttons[btnIndex].focus();
+    }
+    function selectCandidate(idx) {
+      focusables.forEach(function (f, i) {
+        f.classList.toggle('selected', i === idx);
+        f.setAttribute('aria-checked', i === idx ? 'true' : 'false');
+      });
+    }
+    function onKey(e) {
+      e.stopPropagation();
+      if (e.key === 'Escape') { e.preventDefault(); cleanup(); return; }
+      if (isMulti && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && document.activeElement && document.activeElement.classList.contains('pl-confirm-item')) {
+        e.preventDefault();
+        var idx = selectedIdx();
+        idx = e.key === 'ArrowDown' ? (idx + 1) % focusables.length : (idx - 1 + focusables.length) % focusables.length;
+        selectCandidate(idx);
+        return;
+      }
+      if (e.key === 'ArrowDown') { e.preventDefault(); btnIndex = (btnIndex + 1) % buttons.length; highlightBtn(); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); btnIndex = (btnIndex - 1 + buttons.length) % buttons.length; highlightBtn(); return; }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        var active = root.activeElement;
+        if (active && active.classList && active.classList.contains('pl-confirm-item')) {
+          // Enter 在候选上：默认主按钮（仅跳转）
+          act('jumpOnly');
+        } else if (buttons[btnIndex]) {
+          act(buttons[btnIndex].dataset.act);
+        }
+      }
+    }
+
+    // 事件
+    box.addEventListener('click', function (e) {
+      var item = e.target.closest('.pl-confirm-item');
+      if (item && isMulti) { selectCandidate(parseInt(item.dataset.idx, 10)); return; }
+      var btn = e.target.closest('.pl-btn');
+      if (btn) act(btn.dataset.act);
+    });
+    dialog.addEventListener('mousedown', function (e) {
+      if (e.target === dialog) { cleanup(); }
+    });
+    document.addEventListener('keydown', onKey, true);
+    highlightBtn();
   }
 
   function unpinTab(tab) {
