@@ -872,28 +872,48 @@
     });
   }
 
-  // 轻量版 URL 回退匹配（与 pinned-list.js 的 generateUrlFallbackRules 同语义）
+  // 轻量版 URL 回退匹配（与 pinned-list.js 的 generateUrlFallbackRules 同语义的逐级回退）
   function findTabWithFallbackLite(targetUrl, allTabs) {
-    var candidates;
+    var rules = [];
     try {
       var u = new URL(targetUrl);
       // 级别 1：完全匹配
-      candidates = allTabs.filter(function (t) { return t.url === targetUrl; });
-      if (candidates.length) return { tab: candidates[0], level: 1 };
-      // 级别 2：origin + 一级路径前缀（与旧逻辑的父路径回退一致的简化版）
-      var prefixes = [u.origin + u.pathname.replace(/\/[^/]*$/, ''), u.origin];
-      for (var p = 0; p < prefixes.length; p++) {
-        var pref = prefixes[p];
+      rules.push({ pattern: targetUrl, level: 1 });
+      // 级别 2+：去 query/hash 的完整路径 → 逐级父路径 → 域名（与旧逻辑一致的顺序）
+      var pathOnly = u.origin + u.pathname;
+      var prefixes = [];
+      if (pathOnly !== targetUrl) prefixes.push(pathOnly);
+      var parts = u.pathname.split('/').filter(function (p) { return p.length > 0; });
+      for (var i = parts.length - 1; i >= 1; i--) {
+        prefixes.push(u.origin + '/' + parts.slice(0, i).join('/'));
+      }
+      prefixes.push(u.origin);
+      prefixes.forEach(function (pref, pi) {
+        rules.push({ pattern: pref, level: pi + 2 });
+      });
+    } catch (e) {
+      rules.push({ pattern: targetUrl, level: 1 });
+    }
+
+    for (var r = 0; r < rules.length; r++) {
+      var rule = rules[r];
+      var candidates;
+      if (rule.level === 1) {
+        candidates = allTabs.filter(function (t) { return t.url === rule.pattern; });
+      } else {
         candidates = allTabs.filter(function (t) {
           var tu = t.url || '';
-          return tu === pref || tu.indexOf(pref + '/') === 0 || tu.indexOf(pref + '?') === 0 || tu.indexOf(pref + '#') === 0;
+          return tu === rule.pattern ||
+            tu.indexOf(rule.pattern + '/') === 0 ||
+            tu.indexOf(rule.pattern + '?') === 0 ||
+            tu.indexOf(rule.pattern + '#') === 0;
         });
-        if (candidates.length) {
-          var best = selectBestTabLite(candidates);
-          return { tab: best, candidates: candidates, level: p + 2 };
-        }
       }
-    } catch (e) { /* URL 解析失败，走 noMatch */ }
+      if (candidates.length) {
+        var best = selectBestTabLite(candidates);
+        return { tab: best, candidates: candidates, level: rule.level };
+      }
+    }
     return { tab: null, candidates: [], level: 0 };
   }
 

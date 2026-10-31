@@ -634,6 +634,7 @@ async function handlePinnedListTabAction(data) {
         console.error('[background] noMatch: missing targetUrl');
         return;
       }
+      console.info('[background] noMatch: opening new tab for', targetUrl);
       const newTab = await chrome.tabs.create({ url: targetUrl });
       const finalUrl = await waitForTabLoad(newTab.id) || targetUrl;
       await updatePinnedTabUrlAndId(targetUrl, finalUrl, newTab.id);
