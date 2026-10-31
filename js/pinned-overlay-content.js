@@ -1427,6 +1427,11 @@
     if (message && message.action === MSG_TOGGLE) {
       var visible = toggleOverlay();
       sendResponse({ success: true, visible: visible });
+    } else if (message && message.action === 'mtsCloseOverlay') {
+      // 主 popup（Ctrl+Q）弹出前由 background 广播：关闭本页 overlay
+      if (isOpen) closeOverlay(true);
+      sendResponse({ success: true });
+      return true;
     } else if (message && message.action === 'languageChanged') {
       // M5：语言切换时刷新列表与搜索框占位符
       if (isOpen) {

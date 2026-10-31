@@ -337,6 +337,8 @@ chrome.commands.onCommand.addListener(async (command) => {
     await openPinnedTabsUI();
   } else if (command === "_execute_action") {
     try {
+      // 弹出主 popup 前，先关闭所有已注入的 overlay（页面失焦不会自动触发）
+      await broadcastCloseOverlay();
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
       for (const window of windows) {
         await chrome.windows.remove(window.id);
@@ -413,6 +415,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (action === 'openMainPopup') {
     (async () => {
       try {
+        await broadcastCloseOverlay();
         const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
         for (const window of windows) {
           await chrome.windows.remove(window.id);
@@ -723,6 +726,22 @@ function isRestrictedPageForOverlay(url) {
     'https://chromewebstore.google.com', 'https://microsoftedge.microsoft.com/addons'
   ];
   return restrictedPrefixes.some(prefix => url.startsWith(prefix));
+}
+
+// 广播关闭所有已注入的 overlay（方案 B 自绘弹窗）
+// 触发时机：主 popup（Ctrl+Q/action）弹出前。overlay 是注入在网页 DOM 里的，
+// 网页窗口不会 blur，无法靠失焦自动关闭，必须由 background 显式通知各 tab 的 overlay 关闭。
+async function broadcastCloseOverlay() {
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      try {
+        await chrome.tabs.sendMessage(tab.id, { action: 'mtsCloseOverlay' });
+      } catch (e) { /* 该 tab 无 overlay/无 listener，忽略 */ }
+    }
+  } catch (e) {
+    console.info('[broadcastCloseOverlay] error:', e && e.message);
+  }
 }
 
 /**
