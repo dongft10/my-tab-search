@@ -378,178 +378,191 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 });
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  if (message.action === "switchToTab") {
-    try {
-      await handleSwitchToTab(message.data.tabId, message.data.windowId);
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+// MV3 建议的稳健写法：listener 必须是非 async 函数，同步瞬间返回布尔值
+// （true = 保持通道，供稍后 sendResponse；false = 不响应，交给其他 listener）
+// 异步逻辑放 .then/.catch 里执行，否则 async 函数返回 Promise<boolean>，
+// Chrome 无法可靠地据此保持消息通道，会导致 sendResponse 丢失 → "port closed"
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const action = message && message.action;
+  console.info('[background][msg]', action);
+
+  if (action === "switchToTab") {
+    handleSwitchToTab(message.data.tabId, message.data.windowId)
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 
-  if (message.action === 'languageChanged') {
-    await i18n.setLanguage(message.language);
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'languageChanged',
-          language: message.language
-        }).catch(() => {});
-      });
-    });
-    sendResponse({ success: true });
+  if (action === 'languageChanged') {
+    i18n.setLanguage(message.language)
+      .then(() => {
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach(tab => {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'languageChanged',
+              language: message.language
+            }).catch(() => {});
+          });
+        });
+        sendResponse({ success: true });
+      })
+      .catch(() => sendResponse({ success: false }));
     return true;
   }
 
-  if (message.action === 'openMainPopup') {
-    try {
-      const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-      for (const window of windows) {
-        await chrome.windows.remove(window.id);
+  if (action === 'openMainPopup') {
+    (async () => {
+      try {
+        const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
+        for (const window of windows) {
+          await chrome.windows.remove(window.id);
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        chrome.action.openPopup();
+        sendResponse({ success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
       }
-      await new Promise(resolve => setTimeout(resolve, 100));
-      chrome.action.openPopup();
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+    })();
     return true;
   }
 
-  if (message.action === 'openPinnedTabs') {
-    try {
-      await openPinnedTabsUI();
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+  if (action === 'openPinnedTabs') {
+    openPinnedTabsUI()
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 
-  if (message.action === 'openSettings') {
-    try {
-      const settingsUrl = chrome.runtime.getURL('html/settings.html');
-      const tabs = await chrome.tabs.query({ url: settingsUrl });
-      if (tabs.length > 0) {
-        await chrome.tabs.update(tabs[0].id, { active: true });
-        if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
-      } else {
-        chrome.tabs.create({ url: settingsUrl });
+  if (action === 'openSettings') {
+    (async () => {
+      try {
+        const settingsUrl = chrome.runtime.getURL('html/settings.html');
+        const tabs = await chrome.tabs.query({ url: settingsUrl });
+        if (tabs.length > 0) {
+          await chrome.tabs.update(tabs[0].id, { active: true });
+          if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: settingsUrl });
+        }
+        sendResponse({ success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
       }
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+    })();
     return true;
   }
 
-  if (message.action === 'openAbout') {
-    try {
-      const aboutUrl = chrome.runtime.getURL('html/about.html');
-      const tabs = await chrome.tabs.query({ url: aboutUrl });
-      if (tabs.length > 0) {
-        await chrome.tabs.update(tabs[0].id, { active: true });
-        if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
-      } else {
-        chrome.tabs.create({ url: aboutUrl });
+  if (action === 'openAbout') {
+    (async () => {
+      try {
+        const aboutUrl = chrome.runtime.getURL('html/about.html');
+        const tabs = await chrome.tabs.query({ url: aboutUrl });
+        if (tabs.length > 0) {
+          await chrome.tabs.update(tabs[0].id, { active: true });
+          if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: aboutUrl });
+        }
+        sendResponse({ success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
       }
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+    })();
     return true;
   }
 
-  if (message.action === 'syncQueueAddOperation') {
+  if (action === 'syncQueueAddOperation') {
     SyncQueueService.scheduleSync?.(2000);
     return false;
   }
 
-  if (message.action === 'AUTH_SUCCESS') {
-    try {
-      console.log('[background] AUTH_SUCCESS received');
-      const syncResult = await SyncQueueService.performSync();
-      if (syncResult?.success && syncResult.isFirstSync && syncResult.pulledData) {
-        const toastMessage = i18n.getMessage('firstSyncCompleted');
-        await chrome.storage.local.set({ pendingFirstSyncToast: toastMessage });
+  if (action === 'AUTH_SUCCESS') {
+    (async () => {
+      try {
+        console.log('[background] AUTH_SUCCESS received');
+        const syncResult = await SyncQueueService.performSync();
+        if (syncResult?.success && syncResult.isFirstSync && syncResult.pulledData) {
+          const toastMessage = i18n.getMessage('firstSyncCompleted');
+          await chrome.storage.local.set({ pendingFirstSyncToast: toastMessage });
+        }
+      } catch (error) {
+        console.error('[background] Sync trigger error:', error);
       }
-    } catch (error) {
-      console.error('[background] Sync trigger error:', error);
-    }
-    sendResponse({ success: true });
+      sendResponse({ success: true });
+    })();
     return true;
   }
 
   // 处理 pinned-list 的 tab 操作委托
   // pinned-list 窗口会立即关闭，由 background 执行实际的 tab 操作
-  if (message.action === 'pinnedListTabAction') {
-    try {
-      await handlePinnedListTabAction(message.data);
-      sendResponse({ success: true });
-    } catch (error) {
-      console.error('[background] pinnedListTabAction error:', error);
-      sendResponse({ success: false, error: error.message });
-    }
+  if (action === 'pinnedListTabAction') {
+    handlePinnedListTabAction(message.data)
+      .then(() => sendResponse({ success: true }))
+      .catch(error => {
+        console.error('[background] pinnedListTabAction error:', error);
+        sendResponse({ success: false, error: error.message });
+      });
     return true;
   }
 
-  if (message.action === 'mtsPinnedOverlayAction') {
-    await handlePinnedOverlayAction(message, sendResponse);
+  if (action === 'mtsPinnedOverlayAction') {
+    handlePinnedOverlayAction(message, sendResponse)
+      .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 
   // content script 没有 chrome.tabs API，tab 查询由 background 代理
-  if (message.action === 'mtsQueryTabs') {
-    try {
-      // 关键：必须 await 包装的 Promise，否则 async listener 的 return true
-      // 会立刻 resolve 关闭消息通道，导致 query 回调里的 sendResponse 丢失，
-      // content script 收到 undefined → 匹配失败 → 每次点击都 noMatch 新开 tab
-      const tabs = await new Promise((resolve) => {
-        chrome.tabs.query(message.query || {}, (result) => {
-          resolve(result || []);
+  if (action === 'mtsQueryTabs') {
+    (async () => {
+      try {
+        const tabs = await new Promise((resolve) => {
+          chrome.tabs.query(message.query || {}, (result) => {
+            resolve(result || []);
+          });
         });
-      });
-      sendResponse({ success: true, tabs: tabs });
-    } catch (e) {
-      sendResponse({ success: false, error: e.message });
-    }
+        sendResponse({ success: true, tabs: tabs });
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
     return true;
   }
 
-  if (message.action === 'mtsGetTab') {
-    try {
-      const tab = await chrome.tabs.get(message.tabId);
-      sendResponse({ success: true, tab: tab });
-    } catch (e) {
-      sendResponse({ success: false, error: e.message });
-    }
+  if (action === 'mtsGetTab') {
+    chrome.tabs.get(message.tabId)
+      .then(tab => sendResponse({ success: true, tab: tab }))
+      .catch(e => sendResponse({ success: false, error: e.message }));
     return true;
   }
 
   // 拼音回退搜索：content script 不带 pinyin 字典，由 background 用现有 pinyin-util 代理
-  if (message.action === 'mtsPinyinMatch') {
-    try {
-      const { pinyinUtil } = await import(chrome.runtime.getURL('js/pinyin-util.js'));
-      const lowerTitles = message.titles || []; // [{url, title}]
-      const keywords = message.keywords || [];
-      // 对每个 tab：标题转拼音后，按「完整包含」匹配所有关键字
-      const hits = [];
-      lowerTitles.forEach(function (item) {
-        const py = pinyinUtil.toPinyinForSearch ? pinyinUtil.toPinyinForSearch(item.title) : pinyinUtil.toPinyin(item.title || '');
-        const lowerPy = py.toLowerCase();
-        const ok = keywords.every(function (kw) {
-          return lowerPy.includes(kw.toLowerCase());
+  if (action === 'mtsPinyinMatch') {
+    (async () => {
+      try {
+        const { pinyinUtil } = await import(chrome.runtime.getURL('js/pinyin-util.js'));
+        const lowerTitles = message.titles || []; // [{url, title}]
+        const keywords = message.keywords || [];
+        // 对每个 tab：标题转拼音后，按「完整包含」匹配所有关键字
+        const hits = [];
+        lowerTitles.forEach(function (item) {
+          const py = pinyinUtil.toPinyinForSearch ? pinyinUtil.toPinyinForSearch(item.title) : pinyinUtil.toPinyin(item.title || '');
+          const lowerPy = py.toLowerCase();
+          const ok = keywords.every(function (kw) {
+            return lowerPy.includes(kw.toLowerCase());
+          });
+          if (ok) hits.push({ url: item.url, title: item.title });
         });
-        if (ok) hits.push({ url: item.url, title: item.title });
-      });
-      sendResponse({ success: true, hits: hits });
-    } catch (e) {
-      sendResponse({ success: false, error: e.message });
-    }
+        sendResponse({ success: true, hits: hits });
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
     return true;
   }
+
+  // 未匹配任何分支：不保活通道，返回 false
+  return false;
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
