@@ -900,6 +900,10 @@
       // content script 没有 chrome.tabs API，经 background 代理查询
       chrome.runtime.sendMessage({ action: 'mtsQueryTabs', query: {} }, function (resp) {
         var allTabs = (resp && resp.tabs) || [];
+        console.info('[overlay] queryTabs: got', allTabs.length, 'tabs; targetUrl =', targetUrl);
+        if (allTabs.length) {
+          console.info('[overlay] sample tab urls:', allTabs.slice(0, 5).map(function (t) { return t.url; }));
+        }
         // chrome://extensions 特殊处理：复用已有同类页面
         if (targetUrl.indexOf('chrome://extensions') === 0) {
           for (var i = 0; i < allTabs.length; i++) {
@@ -911,6 +915,7 @@
         }
 
         var matched = findTabWithFallbackLite(targetUrl, allTabs);
+        console.info('[overlay] fallback match result:', { level: matched.level, hasTab: !!matched.tab, candidates: (matched.candidates || []).length });
         if (matched.level === 1 && matched.tab) {
           delegateAndClose({ operation: 'switchDirect', tabId: matched.tab.id, windowId: matched.tab.windowId, targetUrl: targetUrl });
           return;
@@ -936,6 +941,7 @@
           return;
         }
         // ③ 都没找到 → 新开 tab
+        console.info('[overlay] NO MATCH -> noMatch, targetUrl =', targetUrl);
         delegateAndClose({ operation: 'noMatch', targetUrl: targetUrl });
       });
     };
@@ -963,7 +969,9 @@
   }
 
   function delegateAndClose(data) {
+    console.info('[overlay] delegate ->', data.operation, 'tabId=', data.tabId, 'targetUrl=', data.targetUrl);
     chrome.runtime.sendMessage({ action: 'pinnedListTabAction', data: data }, function (resp) {
+      console.info('[overlay] delegate response:', data.operation, resp);
       if (resp && resp.success) {
         closeOverlay(true);
       } else {

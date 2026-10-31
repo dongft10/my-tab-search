@@ -502,9 +502,19 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 
   // content script 没有 chrome.tabs API，tab 查询由 background 代理
   if (message.action === 'mtsQueryTabs') {
-    chrome.tabs.query(message.query || {}, (tabs) => {
-      sendResponse({ success: true, tabs: tabs || [] });
-    });
+    try {
+      // 关键：必须 await 包装的 Promise，否则 async listener 的 return true
+      // 会立刻 resolve 关闭消息通道，导致 query 回调里的 sendResponse 丢失，
+      // content script 收到 undefined → 匹配失败 → 每次点击都 noMatch 新开 tab
+      const tabs = await new Promise((resolve) => {
+        chrome.tabs.query(message.query || {}, (result) => {
+          resolve(result || []);
+        });
+      });
+      sendResponse({ success: true, tabs: tabs });
+    } catch (e) {
+      sendResponse({ success: false, error: e.message });
+    }
     return true;
   }
 
