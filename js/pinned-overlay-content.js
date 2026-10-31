@@ -1195,7 +1195,9 @@
       } else if (!t) {
         return;
       } else if (action === 'jumpOnly') {
-        data = { operation: 'jumpOnly', tabId: t.id, windowId: t.windowId };
+        // background 的 operation 名是 switchOnly（与旧 pinned-list 一致），
+        // 这里必须用同一个名字，否则会落到 default 分支报 unknown operation
+        data = { operation: 'switchOnly', tabId: t.id, windowId: t.windowId, targetUrl: targetUrl };
       } else {
         data = { operation: 'switchAndUpdate', tabId: t.id, windowId: t.windowId, targetUrl: targetUrl, matchedUrl: t.url, matchedTitle: t.title || '' };
       }
