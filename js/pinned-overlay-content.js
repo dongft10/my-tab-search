@@ -795,7 +795,9 @@
     var proceed = function (targetUrl, targetTab, directTabId, windowId) {
       if (!targetUrl) return;
 
-      chrome.tabs.query({}, function (allTabs) {
+      // content script 没有 chrome.tabs API，经 background 代理查询
+      chrome.runtime.sendMessage({ action: 'mtsQueryTabs', query: {} }, function (resp) {
+        var allTabs = (resp && resp.tabs) || [];
         // chrome://extensions 特殊处理：复用已有同类页面
         if (targetUrl.indexOf('chrome://extensions') === 0) {
           for (var i = 0; i < allTabs.length; i++) {
@@ -836,10 +838,11 @@
       });
     };
 
-    // ① tabId 有效时先尝试直接获取
+    // ① tabId 有效时先尝试直接获取（经 background 代理）
     if (tab.tabId != null && !isNaN(tab.tabId)) {
-      chrome.tabs.get(tab.tabId, function (t) {
-        if (t && !chrome.runtime.lastError) {
+      chrome.runtime.sendMessage({ action: 'mtsGetTab', tabId: tab.tabId }, function (resp) {
+        var t = resp && resp.success ? resp.tab : null;
+        if (t) {
           // tab 存在：URL 匹配则直接切，不匹配则以存储 URL 为准走回退
           if (t.url === tab.url) {
             delegateAndClose({ operation: 'switchDirect', tabId: tab.tabId, windowId: t.windowId, targetUrl: tab.url });

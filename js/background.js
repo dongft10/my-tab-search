@@ -496,6 +496,24 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     await handlePinnedOverlayAction(message, sendResponse);
     return true;
   }
+
+  // content script 没有 chrome.tabs API，tab 查询由 background 代理
+  if (message.action === 'mtsQueryTabs') {
+    chrome.tabs.query(message.query || {}, (tabs) => {
+      sendResponse({ success: true, tabs: tabs || [] });
+    });
+    return true;
+  }
+
+  if (message.action === 'mtsGetTab') {
+    try {
+      const tab = await chrome.tabs.get(message.tabId);
+      sendResponse({ success: true, tab: tab });
+    } catch (e) {
+      sendResponse({ success: false, error: e.message });
+    }
+    return true;
+  }
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
