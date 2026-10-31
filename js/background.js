@@ -7,6 +7,9 @@ import { API_CONFIG, PINNED_TABS_CONFIG } from './config.js';
 import authService from './services/auth.service.js';
 import authApi from './api/auth.js';
 import { SyncQueueService } from './services/sync-queue.common.js';
+import trialService from './services/trial.service.js';
+import vipService from './services/vip.service.js';
+import featureLimitService from './services/feature-limit.service.js';
 
 const STORAGE_KEYS_LOCAL = {
   userId: 'userId',
@@ -514,6 +517,29 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
     return true;
   }
+
+  // 拼音回退搜索：content script 不带 pinyin 字典，由 background 用现有 pinyin-util 代理
+  if (message.action === 'mtsPinyinMatch') {
+    try {
+      const { pinyinUtil } = await import(chrome.runtime.getURL('js/pinyin-util.js'));
+      const lowerTitles = message.titles || []; // [{url, title}]
+      const keywords = message.keywords || [];
+      // 对每个 tab：标题转拼音后，按「完整包含」匹配所有关键字
+      const hits = [];
+      lowerTitles.forEach(function (item) {
+        const py = pinyinUtil.toPinyinForSearch ? pinyinUtil.toPinyinForSearch(item.title) : pinyinUtil.toPinyin(item.title || '');
+        const lowerPy = py.toLowerCase();
+        const ok = keywords.every(function (kw) {
+          return lowerPy.includes(kw.toLowerCase());
+        });
+        if (ok) hits.push({ url: item.url, title: item.title });
+      });
+      sendResponse({ success: true, hits: hits });
+    } catch (e) {
+      sendResponse({ success: false, error: e.message });
+    }
+    return true;
+  }
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
@@ -765,6 +791,120 @@ async function openPinnedTabsWindow() {
 }
 
 /**
+ * 校验并执行「长期固定」/「取消长期固定」
+ * 完整复刻 pinned-list.js handleLongTermPinnedClick 的业务规则。
+ * @param {string} url - 固定 tab 的 URL
+ * @param {number} [tabId] - 固定 tab 的 tabId（可能为 undefined）
+ * @param {boolean} isCurrentlyLongTermPinned - 当前是否已长期固定
+ * @returns {Promise<{allowed:boolean, stop?:{toast:string}, applyToggle?:Function}>}
+ */
+async function resolveLongTermToggle(url, tabId, isCurrentlyLongTermPinned) {
+  // 邮箱验证
+  const isEmailVerified = await authService.isEmailVerified();
+  if (!isEmailVerified) {
+    return {
+      allowed: false,
+      stop: { toast: i18n.getMessage('longTermPinnedRequireVerification') || '长期固定功能需要完成邮箱验证后才能使用哦！' }
+    };
+  }
+
+  // 读取当前固定列表，找到目标条目
+  const result = await chrome.storage.local.get('pinnedTabs');
+  const pinnedTabs = result.pinnedTabs || [];
+  const currentTab = pinnedTabs.find(t =>
+    (url && t.url === url) || (tabId !== undefined && t.tabId === tabId)
+  );
+
+  // 体验期状态（乐观模式，本地缓存优先）
+  let localTrialStatus = null;
+  let trialStatusError = null;
+  try {
+    localTrialStatus = await trialService.getTrialStatus();
+  } catch (e) {
+    trialStatusError = e;
+  }
+
+  // 额度检查与切换动作（在满足条件时执行）
+  const makeApplier = (next) => async () => {
+    const now = new Date().toISOString();
+    // 写库前重新读取最新 pinnedTabs，缩小并发竞态窗口（防覆盖他端/后台变更）
+    const freshResult = await chrome.storage.local.get('pinnedTabs');
+    const freshTabs = freshResult.pinnedTabs || [];
+    const updated = freshTabs.map(t => {
+      if ((url && t.url === url) || (tabId !== undefined && t.tabId === tabId)) {
+        return { ...t, isLongTermPinned: next, longTermPinnedAt: next ? now : null };
+      }
+      return t;
+    });
+    await chrome.storage.local.set({ pinnedTabs: updated });
+    // 服务器同步
+    try {
+      const syncModule = await import(chrome.runtime.getURL('js/services/sync-queue.service.js'));
+      syncModule.default.addOperation('updateTab', {
+        tabId: tabId !== undefined && tabId !== null ? tabId : ('url:' + url),
+        url,
+        isLongTermPinned: next,
+        longTermPinnedAt: next ? now : null
+      }).catch(() => {});
+    } catch (e) { /* 同步失败不影响本地 */ }
+  };
+  const applySet = makeApplier(true);
+  const applyCancel = makeApplier(false);
+
+  const checkLimit = async () => {
+    const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
+    const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
+    if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
+      return { blocked: true, limit };
+    }
+    return { blocked: false };
+  };
+
+  // 体验期内：限量 100（getFeatureLimit 决定）
+  if (localTrialStatus && localTrialStatus.isInTrialPeriod) {
+    const lim = await checkLimit();
+    if (lim.blocked) {
+      return { allowed: false, stop: { toast: i18n.getMessage('pinnedTabsLimit', lim.limit.toString()) || `长期固定标签页数量已达上限（最多${lim.limit}个）` } };
+    }
+    trialService.fetchTrialStatus().catch(err => console.info('[background] fetchTrialStatus failed:', err));
+    return { allowed: true, applyToggle: isCurrentlyLongTermPinned ? applyCancel : applySet };
+  }
+
+  // VIP 或 服务器异常乐观模式：限量
+  let vipStatus = null;
+  let vipStatusError = null;
+  try {
+    vipStatus = await vipService.getVipStatus(false);
+  } catch (e) {
+    vipStatusError = e;
+  }
+
+  if ((vipStatus && vipStatus.isVip) || trialStatusError || vipStatusError) {
+    if (trialStatusError || vipStatusError) {
+      console.info('[background] trial/vip server error, optimistic mode');
+    }
+    const lim = await checkLimit();
+    if (lim.blocked) {
+      return { allowed: false, stop: { toast: i18n.getMessage('pinnedTabsLimit', lim.limit.toString()) || `长期固定标签页数量已达上限（最多${lim.limit}个）` } };
+    }
+    return { allowed: true, applyToggle: isCurrentlyLongTermPinned ? applyCancel : applySet };
+  }
+
+  // 体验期结束 + 非 VIP 普通用户：限量并引导升级（用体验期映射的专用提示）
+  const lim = await checkLimit();
+  if (lim.blocked) {
+    const trialEnabled = localTrialStatus && localTrialStatus.trialEnabled;
+    const messageKey = trialEnabled ? 'longTermPinnedLimitExpired' : 'longTermPinnedLimitNoTrial';
+    const fallback = trialEnabled
+      ? `长期固定标签页数量已达上限（最多${lim.limit}个），体验期已结束，升级VIP会员即可继续使用更多功能哦！`
+      : `长期固定标签页数量已达上限（最多${lim.limit}个），升级VIP会员即可继续使用更多功能！`;
+    return { allowed: false, stop: { toast: i18n.getMessage(messageKey) || fallback } };
+  }
+
+  return { allowed: true, applyToggle: isCurrentlyLongTermPinned ? applyCancel : applySet };
+}
+
+/**
  * 处理注入式弹窗的 tab 操作（closeTab / refreshTab / syncLongTerm）
  * @param {Object} message - 消息
  * @param {Function} sendResponse - 响应回调
@@ -824,6 +964,25 @@ async function handlePinnedOverlayAction(message, sendResponse) {
           sendResponse({ success: true });
         } catch (e) {
           // 同步失败不影响本地操作
+          sendResponse({ success: false, error: e.message });
+        }
+        break;
+      }
+
+      case 'toggleLongTerm': {
+        // 完整复刻 pinned-list.js handleLongTermPinnedClick 的校验链后再执行切换。
+        // 校验在 background 进行，因为 content script 无法访问这些服务层。
+        const { tabId, url, isCurrentlyLongTermPinned } = message;
+        try {
+          const { allowed, stop, applyToggle } = await resolveLongTermToggle(url, tabId, isCurrentlyLongTermPinned);
+          if (!allowed) {
+            sendResponse({ success: false, blocked: true, toast: stop.toast });
+            break;
+          }
+          await applyToggle();
+          sendResponse({ success: true, toggleApplied: true });
+        } catch (e) {
+          console.error('[background] toggleLongTerm error:', e);
           sendResponse({ success: false, error: e.message });
         }
         break;

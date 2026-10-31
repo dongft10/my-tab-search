@@ -307,6 +307,10 @@
   var els = {};
   var allTabs = [];
   var visibleTabs = [];
+  var searchMode = '1'; // 搜索匹配模式：1=完整包含(默认) 2=子序列 3/4 等同 1/2
+  var usedPinyin = false; // 是否使用了拼音回退搜索
+  var pendingScrollIndex = -1; // 删除/关闭后需要滚动定位的索引（B4）
+  var renderSeq = 0; // 渲染代次令牌，防止异步 searchAndFilter 的旧回调覆盖新结果（竞态保护）
   var selectedIndex = 0;
   var isOpen = false;
   var previouslyFocused = null;
@@ -522,119 +526,198 @@
     return q ? q.split(/\s+/).filter(Boolean) : [];
   }
 
-  function filterTabs(tabs, keywords) {
-    if (!keywords.length) return tabs.slice();
-    return tabs.filter(function (tab) {
+  // 与 searchMatchService 一致的模式匹配（mode 1=完整包含，2=子序列，3/4 等同 1/2）
+  function matchSyncLite(keyword, text, mode) {
+    var kw = (keyword || '').toLowerCase();
+    var t = (text || '').toLowerCase();
+    if (!kw) return true;
+    if (!t) return false;
+    if (mode === '2' || mode === '4') {
+      var ki = 0;
+      for (var i = 0; i < t.length && ki < kw.length; i++) {
+        if (t[i] === kw[ki]) ki++;
+      }
+      return ki === kw.length;
+    }
+    // 默认（mode 1/3）：完整包含
+    return t.indexOf(kw) !== -1;
+  }
+
+  function isPureEnglishLite(str) {
+    return !!str && /^[a-zA-Z\s]+$/.test(str);
+  }
+
+  // 与 pinned-list.js calculateMatchScore 一致的匹配度评分排序
+  function calculateMatchScoreLite(title, keywords) {
+    if (!title || !keywords || keywords.length === 0) return 0;
+    var lowerTitle = title.toLowerCase();
+    var score = 0;
+    keywords.forEach(function (keyword, kwIndex) {
+      var kw = keyword.toLowerCase();
+      if (lowerTitle.indexOf(kw) !== -1) {
+        score += 100;
+        if (lowerTitle.indexOf(kw) === 0) score += 50;
+      }
+      if (subsequenceMatch(kw, lowerTitle)) {
+        score += 50;
+        var mIdx = lowerTitle.indexOf(kw);
+        if (mIdx !== -1) score += Math.max(0, 20 - mIdx / 10);
+      }
+      score -= kwIndex * 5;
+    });
+    return score;
+  }
+
+  // 异步搜索：按模式过滤 + 评分排序；空结果且为纯英文时尝试拼音回退
+  function searchAndFilter(tabs, keywords, mode, cb) {
+    if (!keywords.length) { cb({ list: tabs.slice(), usedPinyin: false }); return; }
+    var filtered = tabs.filter(function (tab) {
       var lower = (tab.title || '').toLowerCase();
       return keywords.every(function (kw) {
-        return lower.includes(kw) || subsequenceMatch(kw, lower);
+        return matchSyncLite(kw, lower, mode);
       });
     }).sort(function (a, b) {
-      // 包含关键字者靠前，再按出现位置排序
-      var la = (a.title || '').toLowerCase(), lb = (b.title || '').toLowerCase();
-      var pa = Infinity, pb = Infinity;
-      keywords.forEach(function (kw) {
-        var ia = la.indexOf(kw); if (ia !== -1 && ia < pa) pa = ia;
-        var ib = lb.indexOf(kw); if (ib !== -1 && ib < pb) pb = ib;
-      });
-      return pa - pb;
+      return calculateMatchScoreLite(b.title, keywords) - calculateMatchScoreLite(a.title, keywords);
+    });
+
+    if (filtered.length > 0 || !isPureEnglishLite(getKeywords().join(''))) {
+      cb({ list: filtered, usedPinyin: false });
+      return;
+    }
+
+    // 拼音回退（空结果 + 纯英文输入）
+    chrome.runtime.sendMessage({
+      action: 'mtsPinyinMatch',
+      titles: tabs.map(function (t) { return { url: t.url, title: t.title }; }),
+      keywords: keywords
+    }, function (resp) {
+      if (resp && resp.success && resp.hits && resp.hits.length) {
+        var hitUrls = {};
+        resp.hits.forEach(function (h) { hitUrls[h.url] = true; });
+        var pyList = tabs.filter(function (t) { return hitUrls[t.url]; })
+          .sort(function (a, b) {
+            var sa = calculateMatchScoreLite(a.title, keywords);
+            var sb = calculateMatchScoreLite(b.title, keywords);
+            return sb - sa;
+          });
+        cb({ list: pyList, usedPinyin: true });
+      } else {
+        cb({ list: filtered, usedPinyin: false });
+      }
     });
   }
 
   function renderList() {
     if (!els.list) return;
+    var seq = ++renderSeq; // 本次渲染的代次令牌
     var keywords = getKeywords();
-    visibleTabs = filterTabs(allTabs, keywords);
-    selectedIndex = visibleTabs.length ? Math.min(selectedIndex, visibleTabs.length - 1) : 0;
-    els.count.textContent = String(visibleTabs.length);
-    els.list.innerHTML = '';
+    searchAndFilter(allTabs, keywords, searchMode, function (res) {
+      // 竞态保护：仅当本次回调仍是最新代次时才允许更新 DOM
+      if (seq !== renderSeq) return;
+      visibleTabs = res.list;
+      usedPinyin = res.usedPinyin;
+      selectedIndex = visibleTabs.length ? Math.min(selectedIndex, visibleTabs.length - 1) : 0;
+      els.count.textContent = String(visibleTabs.length);
+      els.list.innerHTML = '';
 
-    if (!visibleTabs.length) {
-      var empty = document.createElement('div');
-      empty.className = 'pl-empty';
-      empty.innerHTML =
-        '<div class="pl-empty-icon">\uD83D\uDCCC</div>' +
-        '<div class="pl-empty-text">' + escapeHtml(msg('noPinnedTabs', 'No pinned tabs')) + '</div>' +
-        '<div class="pl-empty-hint">' + escapeHtml(msg('pinTabsHint', 'Use Alt+Q to open search and pin tabs')) + '</div>';
-      els.list.appendChild(empty);
-      return;
-    }
-
-    var frag = document.createDocumentFragment();
-    visibleTabs.forEach(function (tab, index) {
-      var item = document.createElement('div');
-      item.className = 'pl-item' + (tab.isLongTermPinned ? ' long-term' : '') + (index === selectedIndex ? ' selected' : '');
-      item.dataset.index = String(index);
-      item.setAttribute('role', 'option');
-      item.setAttribute('aria-selected', index === selectedIndex ? 'true' : 'false');
-      item.setAttribute('aria-label', (tab.title || '') + ' ' + (tab.url || ''));
-      item.title = (tab.title || '') + (tab.url ? '\n' + tab.url : '');
-      item.style.animationDelay = Math.min(index * 18, 220) + 'ms';
-
-      var img = document.createElement('img');
-      img.className = 'pl-favicon';
-      img.src = faviconURL(tab);
-      img.onerror = function () { onImgError(img, tab); };
-
-      var main = document.createElement('div');
-      main.className = 'pl-item-main';
-      var titleDiv = document.createElement('div');
-      titleDiv.className = 'pl-item-title';
-      titleDiv.innerHTML = highlight(tab.title || msg('untitled', '(untitled)'), keywords);
-      var urlDiv = document.createElement('div');
-      urlDiv.className = 'pl-item-url';
-      var hostName = getHostName(tab.url);
-      var lastSeg = (tab.url || '').substring((tab.url || '').lastIndexOf('/') + 1);
-      urlDiv.textContent = hostName + (lastSeg ? '/.../' + lastSeg : '');
-      urlDiv.title = tab.url || '';
-      main.appendChild(titleDiv);
-      main.appendChild(urlDiv);
-
-      var actions = document.createElement('div');
-      actions.className = 'pl-actions';
-
-      // 操作按钮 hover 时抑制整行 title 气泡，避免误弹
-      actions.addEventListener('mouseenter', function () { item.removeAttribute('title'); });
-      actions.addEventListener('mouseleave', function () {
-        item.title = (tab.title || '') + (tab.url ? '\n' + tab.url : '');
-      });
-
-      var refreshBtn = makeActionBtn(SVG_REFRESH, msg('refreshTab', '刷新此标签页'), '', function (e) {
-        e.stopPropagation();
-        if (tab.tabId != null) {
-          chrome.runtime.sendMessage({ action: 'mtsPinnedOverlayAction', op: 'refreshTab', tabId: tab.tabId });
-        }
-      });
-      var pinBtn = makeActionBtn(
-        tab.isLongTermPinned ? SVG_PIN : SVG_UNPIN,
-        tab.isLongTermPinned ? msg('cancelLongTermPinned', '取消长期固定') : msg('setLongTermPinned', '设为长期固定'),
-        tab.isLongTermPinned ? 'pin-active' : '',
-        function (e) { e.stopPropagation(); toggleLongTerm(tab); }
-      );
-      actions.appendChild(refreshBtn);
-      actions.appendChild(pinBtn);
-
-      if (!tab.isLongTermPinned) {
-        var closeBtn = makeActionBtn(SVG_CLOSE, msg('closeTab', '关闭标签页'), 'danger', function (e) {
-          e.stopPropagation();
-          closeTabItem(tab);
-        });
-        var unpinBtn = makeActionBtn('\u2715', msg('unpinTab', '取消固定标签页'), '', function (e) {
-          e.stopPropagation();
-          unpinTab(tab);
-        });
-        unpinBtn.textContent = '\u2212'; // minus icon for unpin
-        actions.appendChild(unpinBtn);
-        actions.appendChild(closeBtn);
+      if (!visibleTabs.length) {
+        var empty = document.createElement('div');
+        empty.className = 'pl-empty';
+        empty.innerHTML =
+          '<div class="pl-empty-icon">\uD83D\uDCCC</div>' +
+          '<div class="pl-empty-text">' + escapeHtml(msg('noPinnedTabs', 'No pinned tabs')) + '</div>' +
+          '<div class="pl-empty-hint">' + escapeHtml(msg('pinTabsHint', 'Use Alt+Q to open search and pin tabs')) + '</div>';
+        els.list.appendChild(empty);
+        return;
       }
 
-      item.appendChild(makeDragHandle(item, tab));
-      item.appendChild(img);
-      item.appendChild(main);
-      item.appendChild(actions);
-      frag.appendChild(item);
+      var frag = document.createDocumentFragment();
+      visibleTabs.forEach(function (tab, index) {
+        var item = document.createElement('div');
+        item.className = 'pl-item' + (tab.isLongTermPinned ? ' long-term' : '') + (index === selectedIndex ? ' selected' : '');
+        item.dataset.index = String(index);
+        item.setAttribute('role', 'option');
+        item.setAttribute('aria-selected', index === selectedIndex ? 'true' : 'false');
+        item.setAttribute('aria-label', (tab.title || '') + ' ' + (tab.url || ''));
+        item.title = (tab.title || '') + (tab.url ? '\n' + tab.url : '');
+        item.style.animationDelay = Math.min(index * 18, 220) + 'ms';
+
+        var img = document.createElement('img');
+        img.className = 'pl-favicon';
+        img.src = faviconURL(tab);
+        img.onerror = function () { onImgError(img, tab); };
+
+        var main = document.createElement('div');
+        main.className = 'pl-item-main';
+        var titleDiv = document.createElement('div');
+        titleDiv.className = 'pl-item-title';
+        // 拼音回退命中时不做字符级高亮（映射复杂），正常命中才高亮
+        titleDiv.innerHTML = highlight(usedPinyin ? null : (tab.title || msg('untitled', '(untitled)')), keywords);
+        var urlDiv = document.createElement('div');
+        urlDiv.className = 'pl-item-url';
+        var hostName = getHostName(tab.url);
+        var lastSeg = (tab.url || '').substring((tab.url || '').lastIndexOf('/') + 1);
+        urlDiv.textContent = hostName + (lastSeg ? '/.../' + lastSeg : '');
+        urlDiv.title = tab.url || '';
+        main.appendChild(titleDiv);
+        main.appendChild(urlDiv);
+
+        var actions = document.createElement('div');
+        actions.className = 'pl-actions';
+
+        // 操作按钮 hover 时抑制整行 title 气泡，避免误弹
+        actions.addEventListener('mouseenter', function () { item.removeAttribute('title'); });
+        actions.addEventListener('mouseleave', function () {
+          item.title = (tab.title || '') + (tab.url ? '\n' + tab.url : '');
+        });
+
+        var refreshBtn = makeActionBtn(SVG_REFRESH, msg('refreshTab', '刷新此标签页'), '', function (e) {
+          e.stopPropagation();
+          if (tab.tabId != null) {
+            chrome.runtime.sendMessage({ action: 'mtsPinnedOverlayAction', op: 'refreshTab', tabId: tab.tabId });
+          }
+        });
+        var pinBtn = makeActionBtn(
+          tab.isLongTermPinned ? SVG_PIN : SVG_UNPIN,
+          tab.isLongTermPinned ? msg('cancelLongTermPinned', '取消长期固定') : msg('setLongTermPinned', '设为长期固定'),
+          tab.isLongTermPinned ? 'pin-active' : '',
+          function (e) { e.stopPropagation(); toggleLongTerm(tab); }
+        );
+        actions.appendChild(refreshBtn);
+        actions.appendChild(pinBtn);
+
+        if (!tab.isLongTermPinned) {
+          var closeBtn = makeActionBtn(SVG_CLOSE, msg('closeTab', '关闭标签页'), 'danger', function (e) {
+            e.stopPropagation();
+            closeTabItem(tab);
+          });
+          var unpinBtn = makeActionBtn('\u2715', msg('unpinTab', '取消固定标签页'), '', function (e) {
+            e.stopPropagation();
+            unpinTab(tab);
+          });
+          unpinBtn.textContent = '\u2212'; // minus icon for unpin
+          actions.appendChild(unpinBtn);
+          actions.appendChild(closeBtn);
+        }
+
+        item.appendChild(makeDragHandle(item, tab));
+        item.appendChild(img);
+        item.appendChild(main);
+        item.appendChild(actions);
+        frag.appendChild(item);
+      });
+      els.list.appendChild(frag);
+
+      // B4：删除/关闭后滚动定位到相邻项
+      if (pendingScrollIndex >= 0) {
+        var itemsScroll = els.list.querySelectorAll('.pl-item');
+        var targetScroll = itemsScroll[Math.min(pendingScrollIndex, itemsScroll.length - 1)];
+        pendingScrollIndex = -1;
+        if (targetScroll) {
+          setTimeout(function () { targetScroll.scrollIntoView({ block: 'nearest' }); }, 60);
+        }
+      }
     });
-    els.list.appendChild(frag);
   }
 
   // ============== 拖动排序（Pointer Events 实现） ==============
@@ -748,18 +831,37 @@
       renderList();
       return;
     }
-    var moved = allTabs.splice(fromIndex, 1)[0];
-    allTabs.splice(toIndex, 0, moved);
-    chrome.storage.local.set({ pinnedTabs: allTabs }, function () {
-      // 异步同步顺序到服务器（按新顺序携带全量 url 列表）
-      chrome.runtime.sendMessage({
-        action: 'mtsPinnedOverlayAction',
-        op: 'syncTabOrder',
-        urls: allTabs.map(function (t) { return t.url; })
+    // 基于最新 storage 读改写，避免用打开时的旧快照覆盖并发写入
+    // （background / sync 可能在 user 拖动期间更新 URL/tabId，导致数据丢失）
+    chrome.storage.local.get('pinnedTabs', function (r) {
+      var fresh = (r && r.pinnedTabs) || [];
+      // 以 URL 为锚点，把新顺序应用到 fresh 列表上；未匹配的保持尾部
+      var movedTab = null;
+      // 先确定被拖动项的 key（URL 优先）
+      var draggedKey = null;
+      var fromTab = allTabs[fromIndex];
+      if (fromTab && fromTab.url) draggedKey = fromTab.url;
+      if (!draggedKey) { renderList(); return; }
+
+      var rest = fresh.filter(function (t) { return !(t.url && t.url === draggedKey); });
+      movedTab = fresh.find(function (t) { return t.url && t.url === draggedKey; });
+      if (!movedTab) { renderList(); return; }
+
+      var toIdx = Math.max(0, Math.min(toIndex, rest.length));
+      rest.splice(toIdx, 0, movedTab);
+      allTabs = rest;
+
+      chrome.storage.local.set({ pinnedTabs: rest }, function () {
+        // 异步同步顺序到服务器（按新顺序携带全量 url 列表）
+        chrome.runtime.sendMessage({
+          action: 'mtsPinnedOverlayAction',
+          op: 'syncTabOrder',
+          urls: rest.map(function (t) { return t.url; })
+        });
+        selectedIndex = toIdx;
+        renderList();
+        showToast(msg('orderUpdated', '排序已更新'));
       });
-      selectedIndex = toIndex;
-      renderList();
-      showToast(msg('orderUpdated', '排序已更新'));
     });
   }
 
@@ -864,10 +966,11 @@
     chrome.runtime.sendMessage({ action: 'pinnedListTabAction', data: data }, function (resp) {
       if (resp && resp.success) {
         closeOverlay(true);
-      } else if (data.targetUrl && data.operation !== 'noMatch') {
-        // 兜底：委托失败直接新开
-        chrome.runtime.sendMessage({ action: 'pinnedListTabAction', data: { operation: 'noMatch', targetUrl: data.targetUrl } },
-          function () { closeOverlay(true); });
+      } else {
+        // 失败时不擅自新开 tab，提示用户并保留 overlay（与旧实现 delegateToBackground 一致）
+        // switchDirect 的 stale-tabId 场景已在 background 内部降级 openNew，无需这里兜底
+        console.error('[overlay] delegate failed:', data.operation, resp && resp.error);
+        showToast(msg('operationFailed', '操作失败，请重试'));
       }
     });
   }
@@ -899,9 +1002,11 @@
       var rule = rules[r];
       var candidates;
       if (rule.level === 1) {
-        candidates = allTabs.filter(function (t) { return t.url === rule.pattern; });
+        // 排除扩展自身页面（settings/about/pinned-list 等），与旧实现 isExtensionPage 一致
+        candidates = allTabs.filter(function (t) { return !isExtensionPageLite(t.url) && t.url === rule.pattern; });
       } else {
         candidates = allTabs.filter(function (t) {
+          if (isExtensionPageLite(t.url)) return false;
           var tu = t.url || '';
           return tu === rule.pattern ||
             tu.indexOf(rule.pattern + '/') === 0 ||
@@ -915,6 +1020,18 @@
       }
     }
     return { tab: null, candidates: [], level: 0 };
+  }
+
+  // 判断是否为扩展自建页面：chrome-extension:// / chrome:// / edge:// 等内部页
+  // 不应作为固定 tab 回退匹配的候选（旧实现 isExtensionPage 语义；这里放宽到所有浏览器内部协议）
+  function isExtensionPageLite(url) {
+    if (!url) return false;
+    return url.indexOf('chrome-extension://') === 0 ||
+      url.indexOf('chrome://') === 0 ||
+      url.indexOf('edge://') === 0 ||
+      url.indexOf('about:') === 0 ||
+      url.indexOf('devtools:') === 0 ||
+      url.indexOf('view-source:') === 0;
   }
 
   // ============== 评分与候选确认框（从 pinned-list.js 2.3.7 移植） ==============
@@ -1127,11 +1244,20 @@
   function unpinTab(tab) {
     chrome.storage.local.get('pinnedTabs', function (r) {
       var tabs = (r && r.pinnedTabs) || [];
+      // 记录被移除项的位置，用于删除后滚动定位到相邻项（B4）
+      var removedIndex = -1;
+      for (var i = 0; i < tabs.length; i++) {
+        if ((tab.url && tabs[i].url === tab.url) || (tab.tabId != null && tabs[i].tabId === tab.tabId)) {
+          removedIndex = i;
+          break;
+        }
+      }
       var updated = tabs.filter(function (t) {
         return !((tab.url && t.url === tab.url) || (tab.tabId != null && t.tabId === tab.tabId));
       });
       chrome.storage.local.set({ pinnedTabs: updated }, function () {
         allTabs = updated;
+        pendingScrollIndex = Math.min(Math.max(removedIndex, 0), updated.length - 1);
         renderList();
         showToast(msg('tabUnpinned', '已取消固定'));
       });
@@ -1160,41 +1286,38 @@
   }
 
   function toggleLongTerm(tab) {
-    chrome.storage.local.get('pinnedTabs', function (r) {
-      var tabs = (r && r.pinnedTabs) || [];
-      var now = new Date().toISOString();
-      var target = null;
-      var updated = tabs.map(function (t) {
-        if ((tab.url && t.url === tab.url) || (tab.tabId != null && t.tabId === tab.tabId)) {
-          target = t;
-          return Object.assign({}, t, {
-            isLongTermPinned: !t.isLongTermPinned,
-            longTermPinnedAt: t.isLongTermPinned ? null : now
-          });
-        }
-        return t;
-      });
-      if (!target) return;
-      var next = !target.isLongTermPinned;
-      chrome.storage.local.set({ pinnedTabs: updated }, function () {
-        // 同步到服务器
-        try {
-          var syncQueue = chrome.runtime.getURL && null; // sync 由 background 统一处理
-        } catch (e) {}
-        chrome.runtime.sendMessage({
-          action: 'mtsPinnedOverlayAction',
-          op: 'syncLongTerm',
-          tabId: tab.tabId != null ? tab.tabId : ('url:' + tab.url),
-          url: tab.url,
-          isLongTermPinned: next,
-          longTermPinnedAt: next ? now : null
+    // 业务校验（邮箱验证/体验期/VIP/额度限制）统一由 background 执行，
+    // content script 无权限访问服务层。校验通过后 background 写库并同步。
+    chrome.runtime.sendMessage({
+      action: 'mtsPinnedOverlayAction',
+      op: 'toggleLongTerm',
+      tabId: tab.tabId,
+      url: tab.url,
+      isCurrentlyLongTermPinned: !!tab.isLongTermPinned
+    }, function (resp) {
+      if (resp && resp.success) {
+        // 用响应的新状态刷新本地快照并重渲染
+        var newState = !tab.isLongTermPinned;
+        var now = new Date().toISOString();
+        allTabs = allTabs.map(function (t) {
+          if ((tab.url && t.url === tab.url) || (tab.tabId != null && t.tabId === tab.tabId)) {
+            return Object.assign({}, t, {
+              isLongTermPinned: newState,
+              longTermPinnedAt: newState ? now : null
+            });
+          }
+          return t;
         });
-        allTabs = updated;
         renderList();
-        showToast(next
+        showToast(newState
           ? msg('longTermPinnedSuccess', '已设为长期固定')
           : msg('cancelLongTermSuccess', '已取消长期固定'));
-      });
+      } else if (resp && resp.blocked && resp.toast) {
+        // 校验失败（未验证/超限）：提示用户，不改变状态
+        showToast(resp.toast);
+      } else {
+        showToast(msg('longTermPinnedFailed', '操作失败，请重试'));
+      }
     });
   }
 
@@ -1257,10 +1380,22 @@
     els.overlay.style.display = 'flex';
     els.input.value = '';
     loadTabs().then(function (tabs) {
-      allTabs = tabs;
-      selectedIndex = 0;
-      renderList();
-      els.input.focus();
+      // 加载搜索匹配模式（默认 1）
+      chrome.storage.local.get('searchMatchMode', function (r) {
+        searchMode = (r.searchMatchMode) || '1';
+        allTabs = tabs;
+        selectedIndex = 0;
+        renderList();
+        els.input.focus();
+      });
+      // 首次同步 toast（M4）：overlay 作为新入口也要消费该提示
+      chrome.storage.local.get(['pendingFirstSyncToast'], function (pr) {
+        if (pr.pendingFirstSyncToast) {
+          var toastMsg = pr.pendingFirstSyncToast;
+          chrome.storage.local.remove(['pendingFirstSyncToast']);
+          setTimeout(function () { showToast(toastMsg); }, 500);
+        }
+      });
     });
   }
 
@@ -1284,6 +1419,17 @@
     if (message && message.action === MSG_TOGGLE) {
       var visible = toggleOverlay();
       sendResponse({ success: true, visible: visible });
+    } else if (message && message.action === 'languageChanged') {
+      // M5：语言切换时刷新列表与搜索框占位符
+      if (isOpen) {
+        if (els.input) {
+          els.input.placeholder = msg('searchPinnedTabs', 'search pinned tabs...');
+          els.input.setAttribute('aria-label', msg('searchPinnedTabsAria', 'search pinned tabs'));
+        }
+        renderList();
+      }
+      sendResponse({ success: true });
+      return true;
     }
     return false;
   });
