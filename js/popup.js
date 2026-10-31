@@ -86,6 +86,11 @@ async function checkAndShowHelpTour() {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
+  // 主弹窗（popup.html）一打开，立即通知 background 关闭所有已注入的 overlay。
+  // 不依赖命令/焦点事件（action popup 弹出时网页窗口未必失焦，Ctrl+Q 也未必走 commands.onCommand），
+  // popup 页面加载本身就是"主弹窗已打开"最可靠的信号。
+  chrome.runtime.sendMessage({ action: 'mtsCloseAllOverlays' }).catch(() => {});
+
   const showHelpTour = await checkAndShowHelpTour();
   if (showHelpTour) {
     return;

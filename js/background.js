@@ -245,6 +245,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   }
 });
 
+// 直接点击工具栏图标打开 action popup 时（无命令触发），也要关闭已注入的 overlay
+if (chrome.action && chrome.action.onClicked) {
+  chrome.action.onClicked.addListener(() => {
+    broadcastCloseOverlay();
+  });
+}
+
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE || windowId === curWindowId) return;
   try {
@@ -472,6 +479,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message });
       }
     })();
+    return true;
+  }
+
+  if (action === 'mtsCloseAllOverlays') {
+    // popup.html 打开时主动通知关闭所有 overlay（最可靠信号）
+    broadcastCloseOverlay()
+      .then(() => sendResponse({ success: true }))
+      .catch(() => sendResponse({ success: false }));
     return true;
   }
 
