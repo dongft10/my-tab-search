@@ -4,11 +4,11 @@
   --secondary: #ec4899;
   --accent: #14b8a6;
   
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #252540;
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
   --bg-tertiary: #252540;
   --bg-hover: #2a2a45;
-  --bg-selected: rgba(99, 102, 241, 0.25);
+  --bg-selected: rgba(99, 102, 241, 0.3);
   
   --glass-bg: rgba(255, 255, 255, 0.08);
   --glass-border: rgba(255, 255, 255, 0.12);
@@ -16,7 +16,7 @@
   
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-muted: rgba(255, 255, 255, 0.45);
+  --text-muted: rgba(255, 255, 255, 0.5);
   
   --border-color: rgba(255, 255, 255, 0.1);
   --border-light: rgba(255, 255, 255, 0.06);
@@ -24,25 +24,28 @@
   --highlight-bg: #fef08a;
   --highlight-text: #000;
   
-  /* 固定(长期)标签底色：淡紫，对齐 overlay --pl-longterm */
-  --pinned-tab-bg: rgba(167, 139, 250, 0.28);
-  --pinned-tab-hover: rgba(167, 139, 250, 0.32);
-  --pinned-tab-selected: rgba(167, 139, 250, 0.32);
+  --pinned-tab-bg: rgba(255, 165, 0, 0.2);
+  --pinned-tab-hover: rgba(255, 165, 0, 0.3);
+  --pinned-tab-selected: rgba(255, 165, 0, 0.4);
   
   --btn-primary: #6366f1;
   --btn-hover: rgba(255, 255, 255, 0.1);
   --btn-active: rgba(255, 255, 255, 0.22);
   --btn-danger: #ef4444;
-  --btn-success: #a78bfa;
+  --btn-success: #22c55e;
   
   --scrollbar-track: rgba(255, 255, 255, 0.05);
-  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
   
-  --toast-bg: #2a2a45;
+  --toast-bg: #1f1f3a;
   --toast-text: #ffffff;
 
-  /* 保留 aurora 变量定义但不再作为背景（视觉统一纯净底色） */
-  --hero-gradient: linear-gradient(180deg, #1a1a2e 0%, #252540 100%);
+  /* Aurora gradient for dark theme */
+  --hero-gradient: 
+      radial-gradient(120% 80% at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+      radial-gradient(120% 80% at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+      radial-gradient(120% 80% at 50% 100%, rgba(20, 184, 166, 0.1) 0%, transparent 50%),
+      linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #252540 100%);
   --aurora-1: rgba(99, 102, 241, 0.2);
   --aurora-2: rgba(236, 72, 153, 0.15);
   --aurora-3: rgba(20, 184, 166, 0.12);
@@ -54,36 +57,35 @@
   --primary-light: #818cf8;
   --secondary: #ec4899;
   
-  --bg-primary: #ffffff;
-  --bg-secondary: #f1f5f9;
-  --bg-tertiary: #f1f5f9;
-  --bg-hover: #e2e8f0;
+  --bg-primary: #e8e9eb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f4;
+  --bg-hover: #dfe1e5;
   --bg-selected: #e8f0fe;
   
   --glass-bg: rgba(255, 255, 255, 0.95);
   --glass-border: rgba(0, 0, 0, 0.08);
   --glass-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #80868b;
   
-  --border-color: #e2e8f0;
-  --border-light: #f1f5f9;
+  --border-color: #dadce0;
+  --border-light: rgba(0, 0, 0, 0.06);
   
   --highlight-bg: #fef08a;
   --highlight-text: #000;
   
-  /* 固定(长期)标签底色：浅紫，对齐 overlay */
-  --pinned-tab-bg: rgba(167, 139, 250, 0.18);
-  --pinned-tab-hover: rgba(167, 139, 250, 0.24);
-  --pinned-tab-selected: rgba(167, 139, 250, 0.24);
+  --pinned-tab-bg: rgba(251, 188, 4, 0.15);
+  --pinned-tab-hover: rgba(251, 188, 4, 0.25);
+  --pinned-tab-selected: rgba(251, 188, 4, 0.35);
   
-  --btn-primary: #6366f1;
-  --btn-hover: #e2e8f0;
+  --btn-primary: #1a73e8;
+  --btn-hover: #f1f3f4;
   --btn-active: #d5d9de;
-  --btn-danger: #ef4444;
-  --btn-success: #7c3aed;
+  --btn-danger: #d93025;
+  --btn-success: #188038;
   
   --scrollbar-track: rgba(0, 0, 0, 0.05);
   --scrollbar-thumb: rgba(0, 0, 0, 0.2);
@@ -91,7 +93,12 @@
   --toast-bg: #323232;
   --toast-text: #ffffff;
 
-  --hero-gradient: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  /* Aurora gradient for light theme */
+  --hero-gradient: 
+      radial-gradient(120% 80% at 0% 0%, rgba(255, 182, 193, 0.6) 0%, transparent 50%),
+      radial-gradient(120% 80% at 100% 0%, rgba(173, 216, 230, 0.5) 0%, transparent 50%),
+      radial-gradient(120% 80% at 50% 100%, rgba(221, 160, 221, 0.5) 0%, transparent 50%),
+      linear-gradient(180deg, #e0f2fe 0%, #fdf4ff 50%, #fef3c7 100%);
   --aurora-1: rgba(99, 102, 241, 0.2);
   --aurora-2: rgba(236, 72, 153, 0.15);
   --aurora-3: rgba(20, 184, 166, 0.12);
@@ -99,12 +106,12 @@
 }
 
 body {
-  width: 640px;
-  max-width: calc(100vw - 48px); /* 对齐 overlay 弹窗宽度，小屏幕自适应 */
+  width: 400px;
+  /*min-height: 600px;*/
   height: auto; /* 让高度自适应内容，但在限制范围内 */
   padding: 0;
   margin: 0;
-  font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 4px 12px rgba(0, 0, 0, 0.15),
@@ -121,54 +128,93 @@ body {
   box-sizing: border-box; /* 确保padding和border包含在宽高中 */
 }
 
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+      radial-gradient(ellipse 200% 150% at 0% 0%, var(--aurora-1) 0%, transparent 50%),
+      radial-gradient(ellipse 200% 150% at 100% 0%, var(--aurora-2) 0%, transparent 50%),
+      radial-gradient(ellipse 200% 150% at 50% 100%, var(--aurora-3) 0%, transparent 50%),
+      radial-gradient(ellipse 200% 150% at 80% 50%, var(--aurora-4) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+  animation: aurora 8s ease-in-out infinite;
+}
+
+[data-theme="light"] body::after {
+  animation: aurora 8s ease-in-out infinite;
+}
+
+@keyframes aurora {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1) translateX(0) translateY(0);
+  }
+  25% {
+    opacity: 0.9;
+    transform: scale(1.05) translateX(-2%) translateY(-2%);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1) translateX(2%) translateY(2%);
+  }
+  75% {
+    opacity: 0.9;
+    transform: scale(1.05) translateX(-2%) translateY(2%);
+  }
+}
+
 .search-container {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 12px 16px;
-  padding: 9px 14px;
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
+  justify-content: space-between;
+  padding: 10px 0 10px 5px;
+  /*margin: 10px 0 10px 0;*/
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--glass-shadow);
+  border: 1px solid var(--glass-border);
   flex-shrink: 0; /* 固定高度，不随内容变化 */
   z-index: 2; /* 确保搜索框始终在最上层 */
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.search-container:focus-within {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--bg-selected);
+
+.search-container > *:last-child {
+  margin-right: 0;
 }
 
 #magnifying-glass {
-  width: 15px;
-  height: 15px;
-  opacity: 0.5;
-  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  vertical-align: middle;
+  justify-content: center;
+  opacity: 0.7;
 }
 
 #search-input {
-  flex: 1;
+  flex-grow: 1;
+  margin: 0 10px;
+  padding: 5px;
+  vertical-align: middle;
+  justify-content: center;
   border: none;
   outline: none;
   background-color: transparent;
   font-size: 14px;
   color: var(--text-primary);
-  font-family: inherit;
-  min-width: 0;
-}
-#search-input::placeholder {
-  color: var(--text-muted);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #tab-count {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--primary);
-  background-color: var(--bg-selected);
-  padding: 2px 8px;
-  border-radius: 10px;
-  margin-right: 4px;
+  margin-right: 10px;
+  font-weight: bold;
+  color: var(--btn-primary);
+  font-size: 14px;
+  text-align: right;
 }
 
 /* 新增：标签列表容器，用于实现独立滚动 */
@@ -177,19 +223,22 @@ body {
   overflow: hidden; /* 隐藏溢出内容 */
   display: flex;
   flex-direction: column;
-  margin-top: 0;
+  /*border-radius: 12px;*/
+  margin-top: -5px; /* 与上面元素衔接 */
   max-height: calc(710px - 200px); /* 最大高度减去搜索框和其他元素的高度 */
+  /*min-height: 0; !* 允许容器收缩 *!*/
   width: 100%; /* 确保不超出父容器宽度 */
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
 }
 
 #tab-list {
   list-style: none;
-  padding: 8px 0;
+  padding: 0;
   margin: 0;
   overflow-y: auto; /* 垂直滚动 */
   flex: 1; /* 占据容器全部空间 */
-  background-color: var(--bg-primary);
+  /*border-radius: 12px;*/
+  background-color: var(--bg-secondary);
   width: 100%; /* 确保不超出父容器宽度 */
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
 }
@@ -215,55 +264,90 @@ body {
 #tab-list li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   cursor: pointer;
-  padding: 9px 14px 9px 16px;
+  padding: 10px 5px 10px 10px;
   margin: 0;
-  background-color: transparent;
-  transition: background-color 0.12s ease;
+  background-color: var(--bg-secondary);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
   width: 100%; /* 确保不超出父容器宽度 */
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
   max-width: 100%; /* 防止内容溢出 */
   overflow: hidden; /* 防止内容溢出 */
-  position: relative;
 }
 
 /* 操作按钮容器 */
 .action-container {
   display: flex;
   align-items: center;
-  gap: 2px;
   flex-shrink: 0;
-  margin-left: 6px;
+  position: relative;
+  width: 24px; /* 初始只占一个按钮的宽度 */
+  height: 24px;
 }
 
-/* 操作按钮基础样式 - hover item 直接显示（对齐 overlay） */
+/* 操作按钮基础样式 */
 .action-btn {
+  vertical-align: middle;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 50%;
   width: 24px;
   height: 24px;
-  border: none;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  background: none;
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  color: #5f6368;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  flex-shrink: 0; /* 防止按钮缩小 */
+  background: none;
+  position: absolute;
   opacity: 0;
+  visibility: hidden;
 }
 
-/* menu-btn 保留但隐藏（JS 依赖其存在；视觉上直接显示操作按钮） */
+/* 三点按钮位置（默认位置） */
 .action-btn.menu-btn {
-  display: none;
+  right: 0;
 }
 
-/* hover item 时显示操作按钮（不再需要经过三点菜单） */
-#tab-list li:hover .action-btn {
+/* 关闭按钮位置（与三点按钮相同位置） */
+.action-btn.close-btn {
+  right: 0;
+}
+
+/* 固定按钮位置（向左展开，可遮盖标题） */
+.action-btn.pin-btn {
+  right: 28px; /* 关闭按钮位置 + 间距 */
+  z-index: 10; /* 置顶展示 */
+}
+
+/* 刷新按钮位置（最左边） */
+.action-btn.refresh-btn {
+  right: 56px; /* 固定按钮位置 + 间距 */
+  z-index: 10;
+}
+
+/* 悬停标签项时显示三点按钮 */
+#tab-list li:hover .action-btn.menu-btn {
   opacity: 1;
+  visibility: visible;
+}
+
+/* 悬停三点按钮时，显示固定和关闭按钮，隐藏三点按钮 */
+#tab-list li:hover .action-container:hover .action-btn.menu-btn {
+  opacity: 0;
+  visibility: hidden;
+}
+
+#tab-list li:hover .action-container:hover .action-btn.pin-btn,
+#tab-list li:hover .action-container:hover .action-btn.close-btn,
+#tab-list li:hover .action-container:hover .action-btn.refresh-btn {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* 操作按钮悬停效果 */
@@ -287,11 +371,11 @@ body {
 
 /* 已固定状态的固定按钮 */
 .action-btn.pin-btn.pinned {
-  color: var(--btn-success); /* 已固定状态：indigo 竖条配套色 */
+  color: var(--btn-danger); /* 已固定状态：红色 */
 }
 
 .action-btn.pin-btn.pinned:hover {
-  color: var(--btn-danger); /* 悬停时：红色（提示可取消） */
+  color: var(--btn-danger); /* 悬停时保持红色 */
 }
 
 /* 关闭按钮特殊样式 */
@@ -312,46 +396,38 @@ body {
   background-color: var(--bg-selected);
 }
 
-/* 已固定标签条目：左侧 indigo 竖条 + 淡紫底（对齐 overlay .pl-item.long-term） */
+/* 已固定的标签页条目样式 - 淡淡的橙色底色 */
 #tab-list li.pinned-tab {
   background-color: var(--pinned-tab-bg);
 }
-#tab-list li.pinned-tab::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background-color: var(--btn-success);
-  border-radius: 0;
-}
-#tab-list li.pinned-tab:hover,
-#tab-list li.pinned-tab.selected {
+
+#tab-list li.pinned-tab:hover {
   background-color: var(--pinned-tab-hover);
 }
 
+#tab-list li.pinned-tab.selected {
+  background-color: var(--pinned-tab-selected);
+}
+
 .li-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  margin-left: 0;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
-  background-color: var(--bg-tertiary);
   flex-shrink: 0;
 }
 
 .tab-title {
-  font-weight: 500;
+  font-weight: 600;
   max-width: 100%;
   width: auto;
-  white-space: nowrap; /* 单行省略，对齐 overlay */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 13.5px;
+  white-space: normal; /* 允许文本换行 */
+  font-size: 14px;
   color: var(--text-primary);
   flex: 1; /* 占据可用空间，但不超过容器 */
   min-width: 0; /* 允许flex项目收缩到内容的固有大小以下 */
-  line-height: 1.45;
+  word-wrap: break-word; /* 允许长单词换行 */
+  overflow-wrap: break-word; /* 允许长内容换行 */
 }
 
 .tab-title .highlight {
@@ -383,21 +459,21 @@ body {
   overflow: hidden; /* 确保内容不会溢出 */
 }
 
-/* Button bar styles - 干净底 + 圆角图标 */
+/* Button bar styles */
 .button-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
-  background-color: transparent;
+  gap: 15px;
+  padding: 2px 20px;
+  background-color: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .button-bar-right {
   display: flex;
-  gap: 4px;
+  gap: 15px;
   margin-left: auto;
 }
 
@@ -405,53 +481,54 @@ body {
 .env-badge {
   font-size: 11px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 /* DEV 环境样式 - 绿色 */
 .env-badge.env-dev {
-  background-color: rgba(34, 197, 94, 0.18);
+  background-color: rgba(34, 197, 94, 0.15);
   color: #22c55e;
+  /* border: 1px solid rgba(34, 197, 94, 0.3); */
   border: 0;
 }
 
 /* QA 环境样式 - 黄色 */
 .env-badge.env-qa {
-  background-color: rgba(234, 179, 8, 0.18);
+  background-color: rgba(234, 179, 8, 0.15);
   color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
 }
 
 /* PRE_PROD 环境样式 - 橙色 */
 .env-badge.env-preprod {
-  background-color: rgba(249, 115, 22, 0.18);
+  background-color: rgba(249, 115, 22, 0.15);
   color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
 .icon-btn {
   background: none;
   border: none;
   cursor: pointer;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  padding: 5px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.12s, color 0.12s;
+  transition: background-color 0.2s;
   color: var(--text-secondary);
 }
 
 .icon-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
+  background-color: var(--btn-hover);
 }
 
 .icon-btn:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--primary);
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
 }
 
 /* Toast 提示样式 */
