@@ -33,7 +33,10 @@
     '--pl-highlight-text': '#000000',
     '--pl-longterm': 'rgba(167, 139, 250, 0.28)',
     '--pl-overlay': 'rgba(0, 0, 0, 0.55)',
-    '--pl-shadow': '0 24px 64px rgba(0, 0, 0, 0.5)'
+    '--pl-shadow': '0 24px 64px rgba(0, 0, 0, 0.5)',
+    '--pl-glass-bg': 'rgba(255, 255, 255, 0.08)',
+    '--pl-glass-border': 'rgba(255, 255, 255, 0.12)',
+    '--pl-glass-shadow': '0 8px 32px rgba(0, 0, 0, 0.4)'
   };
 
   var TOKENS_LIGHT = {
@@ -55,7 +58,10 @@
     '--pl-highlight-text': '#000000',
     '--pl-longterm': 'rgba(167, 139, 250, 0.18)',
     '--pl-overlay': 'rgba(15, 23, 42, 0.45)',
-    '--pl-shadow': '0 24px 64px rgba(15, 23, 42, 0.25)'
+    '--pl-shadow': '0 24px 64px rgba(15, 23, 42, 0.25)',
+    '--pl-glass-bg': 'rgba(255, 255, 255, 0.95)',
+    '--pl-glass-border': 'rgba(0, 0, 0, 0.08)',
+    '--pl-glass-shadow': '0 2px 8px rgba(0, 0, 0, 0.1)'
   };
 
   var CSS = [
@@ -75,7 +81,7 @@
     '  max-height: min(680px, calc(100vh - 96px));',
     '  background: var(--pl-bg-primary);',
     '  border: 1px solid var(--pl-border);',
-    '  border-radius: 10px;',
+    '  border-radius: 0;',
     '  box-shadow: var(--pl-shadow);',
     '  display: flex; flex-direction: column;',
     '  overflow: hidden;',
@@ -95,11 +101,6 @@
     '  display: flex; align-items: center; gap: 8px;',
     '}',
     '.pl-title svg { color: var(--pl-primary); flex-shrink: 0; }',
-    '.pl-count {',
-    '  font-size: 12px; font-weight: 600; color: var(--pl-primary);',
-    '  background: var(--pl-badge-bg);',
-    '  padding: 2px 8px; border-radius: 10px;',
-    '}',
     '.pl-header-actions { margin-left: auto; display: flex; gap: 4px; }',
     '.pl-icon-btn {',
     '  width: 28px; height: 28px; border: none; border-radius: 6px;',
@@ -109,25 +110,34 @@
     '}',
     '.pl-icon-btn:hover { background: var(--pl-bg-hover); color: var(--pl-text-primary); }',
     '.pl-icon-btn:focus-visible { outline: 2px solid var(--pl-primary); outline-offset: 1px; }',
-    '.pl-search-wrap { padding: 0 20px 12px; flex-shrink: 0; }',
+    '.pl-search-wrap { padding: 0; flex-shrink: 0; }',
     '.pl-search {',
-    '  display: flex; align-items: center; gap: 10px;',
-    '  background: var(--pl-bg-secondary);',
-    '  border: 1px solid var(--pl-border);',
-    '  border-radius: 10px; padding: 9px 14px;',
-    '  transition: border-color 0.15s ease, box-shadow 0.15s ease;',
+    '  display: flex; align-items: center; justify-content: space-between;',
+    '  padding: 10px 0 10px 5px;',
+    '  background: var(--pl-glass-bg);',
+    '  backdrop-filter: blur(10px);',
+    '  box-shadow: var(--pl-glass-shadow);',
+    '  border: 1px solid var(--pl-glass-border);',
+    '  border-radius: 0;',
+    '  flex-shrink: 0; z-index: 2;',
     '}',
-    '.pl-search:focus-within {',
-    '  border-color: var(--pl-primary);',
-    '  box-shadow: 0 0 0 3px var(--pl-focus-ring);',
+    '.pl-search svg {',
+    '  width: 22px; height: 22px; padding: 0 5px;',
+    '  vertical-align: middle; justify-content: center;',
+    '  opacity: 0.7; color: var(--pl-text-muted); flex-shrink: 0;',
     '}',
-    '.pl-search svg { color: var(--pl-text-muted); flex-shrink: 0; }',
     '.pl-search input {',
-    '  flex: 1; border: none; outline: none; background: transparent;',
+    '  flex-grow: 1; margin: 0 10px; padding: 5px;',
+    '  border: none; outline: none; background: transparent;',
     '  font-size: 14px; color: var(--pl-text-primary);',
     '  font-family: inherit;',
+    '  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);',
     '}',
     '.pl-search input::placeholder { color: var(--pl-text-muted); }',
+    '.pl-search-count {',
+    '  margin-right: 10px; font-weight: bold; color: var(--pl-primary);',
+    '  font-size: 14px; text-align: right; flex-shrink: 0;',
+    '}',
     '.pl-list {',
     '  flex: 1; overflow-y: auto; padding: 4px 0 12px;',
     '  min-height: 0;',
@@ -314,6 +324,8 @@
   var selectedIndex = 0;
   var isOpen = false;
   var previouslyFocused = null;
+  var focusTimers = []; // 补焦定时器句柄，关闭时统一清理（Alt 键 keyup 会还原焦点，需多时机补焦）
+  var focusGuardTimer = null; // 焦点守卫定时器：覆盖 popup 关闭后延迟交还焦点导致 input 失焦的场景
 
   // ============== 工具函数 ==============
   function msg(key, fallback) {
@@ -460,7 +472,6 @@
       '<div class="pl-modal">' +
       '  <div class="pl-header">' +
       '    <div class="pl-title">' + SVG_PIN + '<span id="pl-title-text">' + escapeHtml(msg('pinnedTabsTitle', 'Pinned Tab List')) + '</span></div>' +
-      '    <span class="pl-count" id="pl-count">0</span>' +
       '    <div class="pl-header-actions">' +
       '      <button class="pl-icon-btn" id="pl-settings-btn" title="' + escapeHtml(msg('settingsTitle', 'Settings')) + '">' + SVG_SETTINGS + '</button>' +
       '      <button class="pl-icon-btn" id="pl-close-btn" title="Esc">' + SVG_CLOSE + '</button>' +
@@ -469,6 +480,7 @@
       '  <div class="pl-search-wrap">' +
       '    <div class="pl-search">' + SVG_SEARCH +
       '      <input id="pl-search-input" type="text" aria-label="' + escapeHtml(msg('searchPinnedTabsAria', 'search pinned tabs')) + '" placeholder="' + escapeHtml(msg('searchPinnedTabs', 'search pinned tabs...')) + '">' +
+      '      <span class="pl-search-count" id="pl-count">0</span>' +
       '    </div>' +
       '  </div>' +
       '  <div class="pl-list" id="pl-list" role="listbox" aria-label="' + escapeHtml(msg('pinnedTabsTitle', 'Pinned Tab List')) + '"></div>' +
@@ -899,7 +911,15 @@
 
       // content script 没有 chrome.tabs API，经 background 代理查询
       chrome.runtime.sendMessage({ action: 'mtsQueryTabs', query: {} }, function (resp) {
-        var allTabs = (resp && resp.tabs) || [];
+        // 响应必须带真实的 tabs 数组。runtime.sendMessage 会广播给所有扩展上下文，
+        // 若被其它扩展页面的 listener 抢答成 {success:true}（无 tabs），不能当成"没有已打开的 tab"，
+        // 否则会误判 noMatch 反复新开页面。此处直接报错并保留 overlay，交由用户重试。
+        if (!resp || !resp.success || !Array.isArray(resp.tabs)) {
+          console.error('[overlay] mtsQueryTabs invalid response:', resp, '(targetUrl =', targetUrl, ')');
+          showToast(msg('operationFailed', '操作失败，请重试'));
+          return;
+        }
+        var allTabs = resp.tabs;
         console.info('[overlay] queryTabs: got', allTabs.length, 'tabs; targetUrl =', targetUrl);
         if (allTabs.length) {
           console.info('[overlay] sample tab urls:', allTabs.slice(0, 5).map(function (t) { return t.url; }));
@@ -949,7 +969,9 @@
     // ① tabId 有效时先尝试直接获取（经 background 代理）
     if (tab.tabId != null && !isNaN(tab.tabId)) {
       chrome.runtime.sendMessage({ action: 'mtsGetTab', tabId: tab.tabId }, function (resp) {
-        var t = resp && resp.success ? resp.tab : null;
+        // 只接受带有效 tab.id 的响应；被其它页面抢答的空响应一律视为"未找到"，
+        // 继续走 URL 回退链（回退链内部同样有格式校验，不会静默新开页面）。
+        var t = (resp && resp.success && resp.tab && typeof resp.tab.id === 'number') ? resp.tab : null;
         if (t) {
           // tab 存在：URL 匹配则直接切，不匹配则以存储 URL 为准走回退
           if (t.url === tab.url) {
@@ -1331,9 +1353,53 @@
     });
   }
 
+  // 键盘输入转发兜底：Alt 键松开时浏览器可能把焦点还原到页面原本的输入框（如百度搜索框），
+  // 此时 document.activeElement 不是我们的搜索框、键盘事件也进不来。既然 onKeydown 挂在
+  // document 捕获阶段能收到所有按键，就把可打印字符/退格手动拼进搜索框并刷新列表，
+  // 保证"打开 overlay 后打字即搜索"永远有效，不再依赖 input 是否抢到真实焦点。
+  function forwardTypingToInput(e) {
+    if (!els.input) return false;
+    // 确认框打开时完全让位给确认框自己的键盘处理
+    if (root && root.querySelector('.pl-confirm-modal')) return false;
+    // 中文输入法组字期间不干预（否则会破坏 composition）
+    if (e.isComposing || e.keyCode === 229) return false;
+    // 组合键（Ctrl/Alt/Meta）放行
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    // 【关键修复】不能用 root.activeElement 判断焦点是否在搜索框：
+    // 之前反复调用 input.focus() 会把 shadowRoot.activeElement 记成 input（假记账），
+    // 即便真实键盘焦点在别处——于是旧代码第一行就 return false，转发从未生效。
+    // 改用事件本身的 composedPath 判断这次按键是否真的来自搜索框。
+    var fromInput = false;
+    try {
+      var path = typeof e.composedPath === 'function' ? e.composedPath() : null;
+      if (path && path.length) {
+        fromInput = path[0] === els.input;
+      }
+    } catch (err) {}
+    if (fromInput) return false; // 真在搜索框，交给浏览器原生输入
+    // 焦点不在搜索框：手动接管可打印字符/退格，保证打字即搜索
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      e.stopPropagation();
+      els.input.value = els.input.value.slice(0, -1);
+      renderList();
+      return true;
+    }
+    if (e.key && e.key.length === 1) {
+      e.preventDefault();
+      e.stopPropagation();
+      els.input.value += e.key;
+      renderList();
+      return true;
+    }
+    return false;
+  }
+
   // ============== 键盘 ==============
   function onKeydown(e) {
     if (!isOpen) return;
+    // 先尝试把打字转发进搜索框（焦点不在搜索框时生效）
+    if (forwardTypingToInput(e)) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
@@ -1381,6 +1447,78 @@
     if (isOpen) closeOverlay(true);
   });
 
+  // 页面重新获得焦点时补焦（关键兜底）：
+  // 场景 —— Alt+E 弹 overlay → Alt+Q 弹 popup → 再按 Alt+E：popup 关闭时浏览器
+  // 会把焦点交还给页面，这个动作可能晚于 openOverlay 里的定时补焦，把刚设好的
+  // 焦点冲掉，造成"第二次打开搜索框无焦点"。这里在页面重新 focus 时检查：
+  // 若 overlay 仍开着、且焦点已不在弹窗内部任何元素上，就重新补焦。
+  window.addEventListener('focus', function () {
+    if (!isOpen || !root) return;
+    var active = root.activeElement;
+    if (!active || active === host || active === (els && els.overlay)) {
+      focusSearchInput();
+    }
+  });
+
+  // 多时机补焦：Alt 键 keyup 会还原焦点、popup 关闭会交还焦点，
+  // 单次 focus 都可能被冲掉，因此在 0/60/200/400ms 反复设置。
+  // 每次调用先清掉上一批定时器，避免堆积。关闭时由 closeOverlay 统一清理。
+  function focusSearchInput() {
+    if (!isOpen || !els || !els.input) return;
+    focusTimers.forEach(clearTimeout);
+    focusTimers = [];
+    var attempt = function () {
+      if (!isOpen || !els || !els.input) return;
+      // 治本：先把真正持有键盘焦点的元素（如页面上的百度搜索框）失焦。
+      // Alt 键松开时浏览器可能把焦点还原到打开 overlay 前的输入框；此时只 focus()
+      // 我们的 input 往往无效（对方仍持有真实焦点）。先 blur 对方再聚焦，才能真正抢回。
+      try {
+        var da = document.activeElement;
+        if (da && da !== document.body && da !== host && da.blur && da !== els.input) {
+          da.blur();
+        }
+      } catch (e) {}
+      try { els.input.focus(); } catch (e) {}
+    };
+    attempt();
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(attempt);
+    [60, 200, 400].forEach(function (delay) {
+      focusTimers.push(setTimeout(attempt, delay));
+    });
+  }
+
+  // 焦点守卫（关键补充）：window focus 兜底只能捕获「窗口级失焦→聚焦」，
+  // 但 Alt+E 弹 overlay → Alt+Q 弹 popup → 再按 Alt+E 的时序是：
+  //   ③ Chrome 先关 popup（网页 focus，此时 overlay 尚未打开 → 兜底跳过）
+  //   ④ 之后才执行 openOverlay；popup 的「焦点交还」是延迟动作，发生在 ④ 之后，
+  //      把刚设好的 input 焦点冲掉，而此时不再有第二次 window focus → 现有兜底失效。
+  // 因此在打开后的一段时间内持续巡检：只要焦点落在弹窗外部（且非确认框接管），
+  // 就补回搜索框。确认框（.pl-confirm-modal）打开时让位，避免抢走候选按钮的焦点。
+  function startFocusGuard() {
+    stopFocusGuard();
+    var deadline = Date.now() + 3000; // 只守卫开头 3 秒，避免长期干预用户主动的焦点切换
+    var tick = function () {
+      if (!isOpen || !root || !els.input) { stopFocusGuard(); return; }
+      if (Date.now() > deadline) { stopFocusGuard(); return; }
+      // 确认框打开时，焦点应交给候选/按钮，守卫让位
+      if (root.querySelector('.pl-confirm-modal')) { stopFocusGuard(); return; }
+      // 窗口失焦时 focus() 无效：先尝试 window.focus() 把焦点拉回文档
+      if (!document.hasFocus()) {
+        try { window.focus(); } catch (e) {}
+      }
+      var active = root.activeElement;
+      // active 为空 / host / overlay 容器本身，都视为焦点不在弹窗内容里
+      if (!active || active === host || active === els.overlay) {
+        try { els.input.focus(); } catch (e) {}
+      }
+      focusGuardTimer = setTimeout(tick, 100);
+    };
+    tick();
+  }
+  function stopFocusGuard() {
+    if (focusGuardTimer) { clearTimeout(focusGuardTimer); focusGuardTimer = null; }
+  }
+
   // ============== 打开 / 关闭 ==============
   function openOverlay() {
     buildDOM();
@@ -1389,6 +1527,17 @@
     isOpen = true;
     els.overlay.style.display = 'flex';
     els.input.value = '';
+
+    // 搜索框必须一弹出就拿到焦点，不能等 loadTabs/storage 异步链：
+    // ① 用户要能直接打字搜索；
+    // ② 页面持有焦点时，Ctrl+Q 弹主 popup 会触发 window blur 自动关闭 overlay
+    //    （见上方 blur 监听），没焦点就只能靠消息广播，链路一断就残留。
+    //
+    // 补焦交给 focusSearchInput()（0/60/200/400ms 多时机 + window focus 兜底），
+    // 覆盖 Alt keyup 还原焦点、popup 关闭交还焦点等时序。
+    focusSearchInput();
+    startFocusGuard(); // 启动短时焦点守卫，兜住 popup 关闭后延迟交还焦点的情况
+
     loadTabs().then(function (tabs) {
       // 加载搜索匹配模式（默认 1）
       chrome.storage.local.get('searchMatchMode', function (r) {
@@ -1412,6 +1561,10 @@
   function closeOverlay(skipRefocus) {
     if (!isOpen) return;
     isOpen = false;
+    // 清掉未执行的补焦定时器：否则弹窗关闭后 200ms 的补焦会把焦点抢回已隐藏的搜索框
+    focusTimers.forEach(clearTimeout);
+    focusTimers = [];
+    stopFocusGuard(); // 关闭即停守卫，避免隐藏后还抢焦
     els.overlay.style.display = 'none';
     if (!skipRefocus && previouslyFocused && previouslyFocused.focus) {
       try { previouslyFocused.focus(); } catch (e) {}
@@ -1432,6 +1585,14 @@
     } else if (message && message.action === 'mtsCloseOverlay') {
       // 主 popup（Ctrl+Q）弹出前由 background 广播：关闭本页 overlay
       if (isOpen) closeOverlay(true);
+      sendResponse({ success: true });
+      return true;
+    } else if (message && message.action === 'mtsFocusOverlayInput') {
+      // background 在窗口聚焦后补发：确保搜索框拿到真实焦点
+      if (isOpen) {
+        if (!document.hasFocus()) { try { window.focus(); } catch (e) {} }
+        focusSearchInput();
+      }
       sendResponse({ success: true });
       return true;
     } else if (message && message.action === 'languageChanged') {

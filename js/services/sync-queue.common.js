@@ -185,7 +185,9 @@ async function processSyncOperation(item, accessToken) {
             tabId: existingTabId,
             isLongTermPinned: true,
             longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
-            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
+            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
+            // 服务器新项本端无手动顺序：排到已有 sortOrder 项之后
+            sortOrder: Number.MAX_SAFE_INTEGER - 1
           });
           pulledData = true;
         } else {
@@ -194,13 +196,28 @@ async function processSyncOperation(item, accessToken) {
             tabId: localTab.tabId,
             isLongTermPinned: true,
             longTermPinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
-            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
+            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
+            // 继承本地手动排序，避免被服务器字段覆盖导致顺序丢失
+            sortOrder: localTab.sortOrder !== undefined ? localTab.sortOrder : Number.MAX_SAFE_INTEGER - 1
           });
           localLongTermMap.delete(serverTab.url);
         }
       }
 
+      // 回填服务器本次未返回的本地长期固定 tab（与 pinned-tabs-sync.service.js 的 mergeData 兜底一致）。
+      // 刚设为长期固定的 tab，其 updateTab 操作可能尚未被服务器确认，不会出现在 syncData.tabs 里；
+      // 若不回填，mergedTabs 覆盖本地 pinnedTabs 时该 tab 会被直接丢弃，表现为「点击后 item 消失」。
+      for (const localTab of localLongTermMap.values()) {
+        mergedTabs.push(localTab);
+      }
+
       mergedTabs.sort((a, b) => {
+        // 手动拖动顺序优先：有 sortOrder 的按 sortOrder 排；都没有时回退到 pinnedAt
+        const hasA = a.sortOrder !== undefined;
+        const hasB = b.sortOrder !== undefined;
+        if (hasA && hasB) return a.sortOrder - b.sortOrder;
+        if (hasA) return -1;
+        if (hasB) return 1;
         const dateA = a.pinnedAt ? new Date(a.pinnedAt) : new Date(0);
         const dateB = b.pinnedAt ? new Date(b.pinnedAt) : new Date(0);
         return dateA - dateB;

@@ -122,6 +122,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 监听 OAuth 登录成功消息
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // Alt+E 打开 pinned overlay 前，background 通知本 popup 自我关闭，
+    // 把被扣住的键盘焦点交还网页（否则网页 document.hasFocus() 恒 false、打字进不了 overlay 搜索框）。
+    if (message && message.action === 'mtsCloseActionPopup') {
+      sendResponse({ success: true });
+      setTimeout(() => window.close(), 0);
+      return false;
+    }
+    // 只响应本页面关心的广播。runtime.sendMessage 会广播给所有扩展上下文，
+    // 且 Chrome 只采纳第一个 sendResponse；若对任意 action 都抢答，
+    // background 对 mtsQueryTabs / mtsGetTab / pinnedListTabAction 等消息的数据响应会被丢弃。
+    if (!['AUTH_SUCCESS', 'SHOW_TOAST'].includes(message && message.action)) return false;
     if (message.action === 'AUTH_SUCCESS') {
       console.log('[Popup] OAuth login success, refreshing page...');
       // 重新加载页面以更新 Token
@@ -469,6 +480,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
           titleDiv.textContent = tab.title;
         }
+        // 单行省略时悬浮展示完整标题（与 URL 的 title 提示一致）
+        titleDiv.title = tab.title || '';
 
         const urlHostNameDiv = document.createElement("div");
         urlHostNameDiv.classList.add("tab-url-hostname");
@@ -534,17 +547,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           handleCloseBtnClicked(tab.id);
         });
 
-        // 创建三点按钮（默认显示）
-        const menuBtn = document.createElement("button");
-        menuBtn.classList.add("action-btn", "menu-btn");
-        menuBtn.innerHTML = "≡";
-        menuBtn.title = i18n.getMessage('menuLabel') || '菜单';
-
-        // 组装按钮容器（从左到右：刷新 → 固定 → 关闭 → 菜单）
+        // 组装按钮容器（从左到右：刷新 → 固定 → 关闭）
+        // 与 pinned-list overlay 一致：hover 当前 item 时整组平铺展示，不再用三点菜单折叠
         actionContainer.appendChild(refreshBtn);
         actionContainer.appendChild(pinBtn);
         actionContainer.appendChild(closeBtn);
-        actionContainer.appendChild(menuBtn);
 
         li.appendChild(icon);
         li.appendChild(listItemDiv);

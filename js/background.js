@@ -341,10 +341,37 @@ chrome.commands.onCommand.addListener(async (command) => {
       isSwitchingToPreviousTab = false;
     }
   } else if (command === "open-pinned-tabs") {
-    await openPinnedTabsUI();
+    // 与线上 main 分支一致：Alt+E 标准 toggle —— 已存在则关闭，否则新建。
+    // 2.3.8.14 改成"复用+refocus"后反复按 Alt+E 无反应，这里恢复 toggle；
+    // popup.js 内按钮走的 openPinnedTabs 消息入口仍用 openPinnedTabsUI()（复用+refocus）保持不变。
+    try {
+      const result = await chrome.storage.local.get('pinnedTabsWindowId');
+      const savedWindowId = result.pinnedTabsWindowId;
+      if (savedWindowId) {
+        try {
+          await chrome.windows.get(savedWindowId);
+          await chrome.windows.remove(savedWindowId);
+          await chrome.storage.local.remove('pinnedTabsWindowId');
+          return;
+        } catch (error) {
+          await chrome.storage.local.remove('pinnedTabsWindowId');
+        }
+      }
+      const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
+      if (windows.length > 0) {
+        await chrome.windows.remove(windows[0].id);
+        await chrome.storage.local.remove('pinnedTabsWindowId');
+        return;
+      }
+      await openPinnedTabsWindow();
+    } catch (error) {
+      console.error('[open-pinned-tabs] Error:', error);
+      await chrome.storage.local.remove('pinnedTabsWindowId');
+    }
   } else if (command === "_execute_action") {
     try {
-      // 弹出主 popup 前，先关闭所有已注入的 overlay（页面失焦不会自动触发）
+      // 与线上 main 分支保持一致：打开主 popup 前关闭所有 popup 窗口（含 pinned-list 独立窗口）。
+      // 2.3.8.14 曾"保留 pinned 窗口"，结果 pinned 弹窗占着焦点时 Alt+Q 打不开主弹窗（表现为无反应）。
       await broadcastCloseOverlay();
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
       for (const window of windows) {
@@ -423,6 +450,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
       try {
         await broadcastCloseOverlay();
+        // 与线上 main 分支保持一致：pinned-list 弹窗内按 Alt+Q 时也关闭所有 popup 窗口，
+        // 由 onRemoved 监听器清理 pinnedTabsWindowId，再打开主弹窗。
         const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
         for (const window of windows) {
           await chrome.windows.remove(window.id);
@@ -765,56 +794,42 @@ async function broadcastCloseOverlay() {
  * 受限页面或注入失败时降级为独立 popup 窗口（原有 pinned-list.html 方案）。
  */
 async function openPinnedTabsUI() {
-  // 已有 popup 窗口时先关闭（toggle 行为，与原逻辑一致）
-  const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-  if (windows.length > 0) {
-    for (const w of windows) {
-      await chrome.windows.remove(w.id);
-    }
-    await chrome.storage.local.remove('pinnedTabsWindowId');
-    return;
-  }
+  // 【2.3.8.14 改用独立窗口】放弃注入式 overlay：它被 action popup 扣住键盘焦点的问题
+  // 在扩展 API 层面无解（windows.update/tabs.update 只能激活窗口/tab，无法把 document 级焦点
+  // 从浏览器工具栏还给网页）。独立 popup 窗口（pinned-list.html）是真正的浏览器窗口，
+  // 有独立文档焦点，Alt+Q 的 action popup 关掉后不会扣住它，搜索框 focus() 是真实生效的。
 
-  // 尝试注入式弹窗
+  // 若独立窗口已开着（如 Alt+E → Alt+Q → Alt+E 的第二次）：激活它并把焦点设回搜索框，
+  // 而不是关掉窗口——用户反复按 Alt+E 的意图是"打开并聚焦搜索"，不是 toggle 关闭。
   try {
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (activeTab && !isRestrictedPageForOverlay(activeTab.url)) {
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: activeTab.id },
-          files: ['js/pinned-overlay-content.js']
-        });
-        // 必须带 callback：保证 content script 的 sendResponse 端口存活，
-        // 否则响应可能丢失导致误判注入失败而重复打开 popup 窗口
-        const resp = await new Promise((resolve) => {
-          let settled = false;
-          const timer = setTimeout(() => {
-            if (!settled) { settled = true; resolve(null); }
-          }, 1500);
+    const stored = await chrome.storage.local.get('pinnedTabsWindowId');
+    const existingId = stored && stored.pinnedTabsWindowId;
+    if (typeof existingId === 'number') {
+      let existing = null;
+      try { existing = await chrome.windows.get(existingId); } catch (e) {}
+      if (existing) {
+        try { await chrome.windows.update(existingId, { focused: true }); } catch (e) {}
+        // 通知窗口内的 pinned-list 页面把焦点设回搜索框。
+        // 多时机通知：窗口刚激活时立刻 focus 可能被浏览器忽略，延迟补两次。
+        const refocus = function () {
           try {
-            chrome.tabs.sendMessage(activeTab.id, { action: 'mtsTogglePinnedOverlay' }, (r) => {
-              if (!settled) { settled = true; clearTimeout(timer); resolve(r || null); }
+            chrome.tabs.query({ windowId: existingId }, function (tabs) {
+              if (tabs && tabs.length) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: 'mtsFocusPinnedSearch' }, function () {});
+              }
             });
-          } catch (e) {
-            if (!settled) { settled = true; clearTimeout(timer); resolve(null); }
-          }
-        });
-        if (resp && resp.success && resp.visible) {
-          return; // 注入式弹窗已打开
-        }
-        if (resp && resp.success && !resp.visible) {
-          return; // toggle 关闭了已打开的弹窗，同样视为已处理
-        }
-        // resp 存在但 success=false，或超时无响应 → 降级
-      } catch (injectError) {
-        console.info('[open-pinned-tabs] Overlay inject failed, fallback to popup window:', injectError?.message);
+          } catch (e) {}
+        };
+        refocus();
+        setTimeout(refocus, 120);
+        setTimeout(refocus, 350);
+        return;
       }
+      // 窗口已不存在，清理陈旧 id 后新建
+      await chrome.storage.local.remove('pinnedTabsWindowId');
     }
-  } catch (error) {
-    console.info('[open-pinned-tabs] Overlay path error, fallback:', error?.message);
-  }
+  } catch (e) {}
 
-  // 降级：独立 popup 窗口（pinned-list.html）
   await openPinnedTabsWindow();
 }
 
@@ -1061,10 +1076,12 @@ async function handlePinnedOverlayAction(message, sendResponse) {
             if (!urlSet.has(t.url)) ordered.push(t);
           }
           if (ordered.length === pinnedTabs.length) {
-            await chrome.storage.local.set({ pinnedTabs: ordered });
+            // 写入 sortOrder（索引即手动顺序），使后续同步合并能优先按此保序
+            const withOrder = ordered.map((t, i) => ({ ...t, sortOrder: i }));
+            await chrome.storage.local.set({ pinnedTabs: withOrder });
           }
           // 服务器同步：逐条 updateTab 队列成本高，v1 仅本地重排；
-          // 服务器侧顺序以 addTab 时间为准，后续版本再补 order 字段
+          // 服务器 API 不存 order 字段，跨设备顺序不同步；本地顺序靠 sortOrder 保住
           sendResponse({ success: true, reordered: ordered.length === pinnedTabs.length });
         } catch (e) {
           sendResponse({ success: false, error: e.message });

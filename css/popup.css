@@ -24,9 +24,9 @@
   --highlight-bg: #fef08a;
   --highlight-text: #000;
   
-  --pinned-tab-bg: rgba(255, 165, 0, 0.2);
-  --pinned-tab-hover: rgba(255, 165, 0, 0.3);
-  --pinned-tab-selected: rgba(255, 165, 0, 0.4);
+  --pinned-tab-bg: rgba(167, 139, 250, 0.28);
+  --pinned-tab-hover: rgba(167, 139, 250, 0.32);
+  --pinned-tab-selected: rgba(167, 139, 250, 0.32);
   
   --btn-primary: #6366f1;
   --btn-hover: rgba(255, 255, 255, 0.1);
@@ -57,11 +57,11 @@
   --primary-light: #818cf8;
   --secondary: #ec4899;
   
-  --bg-primary: #e8e9eb;
+  --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f3f4;
-  --bg-hover: #dfe1e5;
-  --bg-selected: #e8f0fe;
+  --bg-tertiary: #f1f5f9;
+  --bg-hover: #f4f1e8;
+  --bg-selected: #dbeafe;
   
   --glass-bg: rgba(255, 255, 255, 0.95);
   --glass-border: rgba(0, 0, 0, 0.08);
@@ -77,9 +77,9 @@
   --highlight-bg: #fef08a;
   --highlight-text: #000;
   
-  --pinned-tab-bg: rgba(251, 188, 4, 0.15);
-  --pinned-tab-hover: rgba(251, 188, 4, 0.25);
-  --pinned-tab-selected: rgba(251, 188, 4, 0.35);
+  --pinned-tab-bg: rgba(167, 139, 250, 0.18);
+  --pinned-tab-hover: rgba(167, 139, 250, 0.24);
+  --pinned-tab-selected: rgba(167, 139, 250, 0.24);
   
   --btn-primary: #1a73e8;
   --btn-hover: #f1f3f4;
@@ -106,8 +106,8 @@
 }
 
 body {
-  width: 400px;
-  /*min-height: 600px;*/
+  width: 500px;
+  min-height: 520px; /* 高度下限，避免 tab 少时弹窗过扁 */
   height: auto; /* 让高度自适应内容，但在限制范围内 */
   padding: 0;
   margin: 0;
@@ -135,18 +135,14 @@ body::after {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
-      radial-gradient(ellipse 200% 150% at 0% 0%, var(--aurora-1) 0%, transparent 50%),
-      radial-gradient(ellipse 200% 150% at 100% 0%, var(--aurora-2) 0%, transparent 50%),
-      radial-gradient(ellipse 200% 150% at 50% 100%, var(--aurora-3) 0%, transparent 50%),
-      radial-gradient(ellipse 200% 150% at 80% 50%, var(--aurora-4) 0%, transparent 50%);
+  background: transparent; /* 去掉极光渐变动态背景，视觉统一为纯色底 */
   pointer-events: none;
   z-index: -1;
-  animation: aurora 8s ease-in-out infinite;
+  animation: none;
 }
 
 [data-theme="light"] body::after {
-  animation: aurora 8s ease-in-out infinite;
+  animation: none;
 }
 
 @keyframes aurora {
@@ -233,9 +229,10 @@ body::after {
 
 #tab-list {
   list-style: none;
-  padding: 0;
+  padding: 0 0 0 2px; /* 左侧留 2px 余量，避免 hover 左移时被裁边 */
   margin: 0;
   overflow-y: auto; /* 垂直滚动 */
+  overflow-x: hidden; /* 防止 hover 左移 2px 时冒出横向滚动条 */
   flex: 1; /* 占据容器全部空间 */
   /*border-radius: 12px;*/
   background-color: var(--bg-secondary);
@@ -269,22 +266,56 @@ body::after {
   padding: 10px 5px 10px 10px;
   margin: 0;
   background-color: var(--bg-secondary);
-  transition: all 0.3s ease;
+  /* transform 单独 0.15s 让 hover 上浮跟手，底色保留 0.3s 渐变 */
+  transition: transform 0.15s ease, background-color 0.3s ease;
   backdrop-filter: blur(5px);
   width: 100%; /* 确保不超出父容器宽度 */
   box-sizing: border-box; /* 确保padding和border包含在宽度内 */
   max-width: 100%; /* 防止内容溢出 */
   overflow: hidden; /* 防止内容溢出 */
+  position: relative; /* 按钮浮层相对 li 定位 */
 }
 
-/* 操作按钮容器 */
+/* 操作按钮容器：浮于 item 上层（absolute 脱离 flex 流），让 title/url 占满整行 */
 .action-container {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  position: relative;
-  width: 24px; /* 初始只占一个按钮的宽度 */
-  height: 24px;
+  gap: 0;
+  padding-left: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  /* 不透明背板：默认列表底色，干净盖住底下文字，避免图标与标题重叠 */
+  background-image: linear-gradient(var(--bg-secondary), var(--bg-secondary));
+}
+
+#tab-list li:hover .action-container,
+#tab-list li.selected .action-container,
+#tab-list li:focus-within .action-container {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 浮层背板跟随 item 底色（半透明状态色叠在 --bg-secondary 上得到实色） */
+#tab-list li:hover .action-container {
+  background-image: linear-gradient(var(--bg-hover), var(--bg-hover));
+}
+#tab-list li.selected .action-container {
+  background-image: linear-gradient(var(--bg-selected), var(--bg-selected)), linear-gradient(var(--bg-secondary), var(--bg-secondary));
+}
+#tab-list li.pinned-tab .action-container {
+  background-image: linear-gradient(var(--pinned-tab-bg), var(--pinned-tab-bg)), linear-gradient(var(--bg-secondary), var(--bg-secondary));
+}
+#tab-list li.pinned-tab:hover .action-container {
+  background-image: linear-gradient(var(--pinned-tab-hover), var(--pinned-tab-hover)), linear-gradient(var(--bg-secondary), var(--bg-secondary));
+}
+#tab-list li.pinned-tab.selected .action-container {
+  background-image: linear-gradient(var(--pinned-tab-selected), var(--pinned-tab-selected)), linear-gradient(var(--bg-secondary), var(--bg-secondary));
 }
 
 /* 操作按钮基础样式 */
@@ -292,72 +323,39 @@ body::after {
   vertical-align: middle;
   justify-content: center;
   padding: 5px;
-  border-radius: 50%;
+  border-radius: 6px; /* 对齐 pinned-list overlay 的扁平方角按钮 */
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
-  color: #5f6368;
+  color: var(--text-secondary);
   border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 16px;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  font-size: 13px;
+  line-height: 1;
   flex-shrink: 0; /* 防止按钮缩小 */
-  background: none;
-  position: absolute;
-  opacity: 0;
-  visibility: hidden;
-}
-
-/* 三点按钮位置（默认位置） */
-.action-btn.menu-btn {
-  right: 0;
-}
-
-/* 关闭按钮位置（与三点按钮相同位置） */
-.action-btn.close-btn {
-  right: 0;
-}
-
-/* 固定按钮位置（向左展开，可遮盖标题） */
-.action-btn.pin-btn {
-  right: 28px; /* 关闭按钮位置 + 间距 */
-  z-index: 10; /* 置顶展示 */
-}
-
-/* 刷新按钮位置（最左边） */
-.action-btn.refresh-btn {
-  right: 56px; /* 固定按钮位置 + 间距 */
-  z-index: 10;
-}
-
-/* 悬停标签项时显示三点按钮 */
-#tab-list li:hover .action-btn.menu-btn {
+  background: transparent;
+  position: static;
   opacity: 1;
   visibility: visible;
 }
 
-/* 悬停三点按钮时，显示固定和关闭按钮，隐藏三点按钮 */
-#tab-list li:hover .action-container:hover .action-btn.menu-btn {
-  opacity: 0;
-  visibility: hidden;
-}
-
-#tab-list li:hover .action-container:hover .action-btn.pin-btn,
-#tab-list li:hover .action-container:hover .action-btn.close-btn,
-#tab-list li:hover .action-container:hover .action-btn.refresh-btn {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* 操作按钮悬停效果 */
+/* 操作按钮悬停效果（对齐 overlay：底色 + 主文本色） */
 .action-btn:hover {
-  background-color: var(--btn-hover);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* 操作按钮按下效果：底色加深，松开后自动恢复 */
 .action-btn:active {
   background-color: var(--btn-active);
+}
+
+/* 键盘焦点环，与 overlay 一致 */
+.action-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
 }
 
 /* 固定按钮特殊样式 */
@@ -390,6 +388,7 @@ body::after {
 
 #tab-list li:hover {
   background-color: var(--bg-hover);
+  transform: translate(-2px, -2px); /* hover 时左上各上浮 2px */
 }
 
 #tab-list li.selected {
