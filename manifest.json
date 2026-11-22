@@ -21,8 +21,7 @@
     "storage",
     "activeTab",
     "alarms",
-    "system.display",
-    "scripting"
+    "system.display"
   ],
   "optional_permissions": [
     "identity"
