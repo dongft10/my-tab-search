@@ -86,7 +86,7 @@ export const API_CONFIG = {
 
 export const PINNED_TABS_CONFIG = {
   MAX_PINNED_TABS: 100,
-  WINDOW_WIDTH: 416,
+  WINDOW_WIDTH: 516, // 与 popup 弹窗 body 500px 视觉一致（+16px 窗口边框）
   WINDOW_HEIGHT: 800
 };
 

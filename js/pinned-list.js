@@ -27,6 +27,17 @@ let selectedIndex = -1;
 // 标签列表
 let lis;
 
+// ============== 拖动图标排序（Pointer Events 实现） ==============
+const DRAG_CLICK_SUPPRESS_MS = 350;  // 拖动结束后抑制合成 click 的时长
+
+let dragState = null;        // { li, items, fromIndex, toIndex, draggedUrl, pointerId }
+let suppressNextClick = false;
+
+// 搜索态下视图顺序由匹配度决定，与存储顺序不一致，禁止拖动
+function isSearching() {
+  return !!(searchInput && searchInput.value.trim().length > 0);
+}
+
 // Toast 提示函数
 function showToast(message, duration = 3000) {
   // 移除已存在的 toast
@@ -128,6 +139,14 @@ function updateI18nText() {
 function bindEvents() {
   // 键盘事件
   window.addEventListener('keydown', handleKeydown);
+
+  // 拖动图标排序：在列表上做事件委托（item/手柄会被重新渲染，委托到容器更稳）
+  if (pinnedTabList) {
+    pinnedTabList.addEventListener('pointerdown', onListPointerDown);
+    pinnedTabList.addEventListener('pointermove', onListPointerMove);
+    pinnedTabList.addEventListener('pointerup', onListPointerUp);
+    pinnedTabList.addEventListener('pointercancel', onListPointerCancel);
+  }
   
   // 搜索框输入事件
   if (searchInput) {
@@ -161,6 +180,8 @@ function bindEvents() {
   
   // 监听来自其他部分的语言变化消息
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // 只答本页面关心的广播，其它 action 让给 background（避免抢答导致数据响应丢失）
+    if (!['languageChanged', 'SHOW_TOAST', 'mtsFocusPinnedSearch'].includes(message && message.action)) return false;
     if (message.action === 'languageChanged') {
       i18n.setLanguage(message.language).then(() => {
         updateI18nText();
@@ -169,6 +190,12 @@ function bindEvents() {
     }
     if (message.action === 'SHOW_TOAST') {
       showToast(message.message);
+    }
+    if (message.action === 'mtsFocusPinnedSearch') {
+      // Alt+E 复用已打开的独立窗口时，background 通知本页把焦点设回搜索框
+      if (searchInput) {
+        try { searchInput.focus(); } catch (e) {}
+      }
     }
     sendResponse({ success: true });
     return true;
@@ -597,9 +624,24 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
         li.classList.add('long-term-pinned');
       }
       
+      // 拖动图标手柄（hover 时显示，按住拖动排序；搜索态视图顺序与存储不一致，不渲染）
+      let dragHandle = null;
+      if (!keywords || keywords.length === 0) {
+        dragHandle = document.createElement('span');
+        dragHandle.className = 'drag-handle';
+        dragHandle.innerHTML = '<svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">' +
+          '<circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/>' +
+          '<circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/>' +
+          '<circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></svg>';
+        dragHandle.title = i18n.getMessage('dragToReorder') || '拖动调整排序';
+        // 手柄自身的按下由容器委托处理；阻止默认动作避免文字选择/原生拖放
+        dragHandle.addEventListener('dragstart', (e) => e.preventDefault());
+      }
+
       // 标签图标
       const icon = document.createElement('img');
       icon.classList.add('li-icon');
+      icon.draggable = false; // 禁用浏览器原生拖放，避免拖 icon 时松开后新 tab 搜索
       icon.src = getFaviconURL(tab.url, tab.icon);
       applyFaviconFallback(icon, tab.url);
       
@@ -614,6 +656,8 @@ function renderPinnedTabs(pinnedTabs, targetTabId = null, keywords = [], matchMo
       } else {
         titleDiv.innerHTML = highlightMatches(tab.title, keywords, matchMode);
       }
+      // 单行省略时悬浮展示完整标题（与 URL 的 title 提示一致）
+      titleDiv.title = tab.title || '';
       
       const tabUrl = tab.url || '';
       const urlHostNameDiv = document.createElement('div');
@@ -739,12 +783,17 @@ closeBtn.addEventListener('click', function (e) {
       actionContainer.appendChild(expandActions);
       actionContainer.appendChild(menuBtn);
       
+      if (dragHandle) li.appendChild(dragHandle);
       li.appendChild(icon);
       li.appendChild(listItemDiv);
       li.appendChild(actionContainer);
       
-      // 点击切换到标签页
+      // 点击切换到标签页（长按拖动结束后会抑制紧随的合成 click，避免误跳转）
       li.addEventListener('click', (e) => {
+        if (suppressNextClick) {
+          e.stopPropagation();
+          return;
+        }
         switchToTab(tab.tabId, e);
       });
       
@@ -773,6 +822,159 @@ closeBtn.addEventListener('click', function (e) {
   if (lis.length > 0) {
     selectedIndex = 0;
     updateSelection();
+  }
+}
+
+// ============== 拖动图标排序实现 ==============
+
+// pointerdown：仅当按在拖动手柄上才进入拖动
+function onListPointerDown(e) {
+  if (e.button !== 0) return;                 // 仅左键
+  if (isSearching()) return;                  // 搜索态禁止拖动
+
+  const handle = e.target.closest('.drag-handle');
+  if (!handle) return;                        // 非手柄区域不触发拖动
+
+  const li = handle.closest('li');
+  if (!li || !pinnedTabList.contains(li)) return;
+
+  e.preventDefault(); // 阻止手柄文字选择/原生拖放
+  beginDrag(e.pointerId, li, handle);
+}
+
+// pointermove：拖动中更新指示线
+function onListPointerMove(e) {
+  if (!dragState || e.pointerId !== dragState.pointerId) return;
+
+  const listRect = pinnedTabList.getBoundingClientRect();
+  const y = e.clientY;
+  // 靠近列表上下边缘时自动滚动
+  if (y < listRect.top + 12) {
+    pinnedTabList.scrollTop -= 8;
+  } else if (y > listRect.bottom - 12) {
+    pinnedTabList.scrollTop += 8;
+  }
+
+  // 关键：不能用「单一 itemHeight 做除法」换算行号——标题完整展示会换行，
+  // 各项高度不一致，被拖项偏矮时 idx 会系统性偏大（移到顶部却判定在底部）。
+  // 改为逐项读取真实屏幕位置，找鼠标当前落在哪一项。
+  const items = dragState.items;
+  let idx = -1;
+  for (let i = 0; i < items.length; i++) {
+    const r = items[i].getBoundingClientRect();
+    if (y >= r.top && y < r.bottom) {
+      idx = i;
+      break;
+    }
+  }
+  if (idx === -1) {
+    // 鼠标在列表可视区之外：在上方归到第 0 项，在下方归到最后一项
+    idx = y < listRect.top ? 0 : items.length - 1;
+  }
+
+  if (idx !== dragState.toIndex) {
+    items.forEach(it => it.classList.remove('drag-over-top', 'drag-over-bottom'));
+    const target = items[idx];
+    if (target && target !== dragState.li) {
+      target.classList.add(idx < dragState.toIndex ? 'drag-over-top' : 'drag-over-bottom');
+    }
+    dragState.toIndex = idx;
+  }
+  e.preventDefault();
+}
+
+function onListPointerUp(e) {
+  if (!dragState || e.pointerId !== dragState.pointerId) return;
+  finishDrag();
+}
+
+function onListPointerCancel(e) {
+  if (!dragState || e.pointerId !== dragState.pointerId) return;
+  finishDrag();
+}
+
+// 按下手柄，正式进入拖动
+function beginDrag(pointerId, li, handle) {
+  if (dragState) return;
+  if (isSearching()) return;
+
+  const items = Array.prototype.slice.call(pinnedTabList.querySelectorAll('li'));
+  const fromIndex = items.indexOf(li);
+  if (fromIndex === -1) return;
+
+  dragState = {
+    li,
+    handle,
+    items,
+    fromIndex,
+    toIndex: fromIndex,
+    draggedUrl: li.dataset.tabUrl || '',
+    pointerId
+  };
+
+  li.classList.add('dragging');
+  handle.classList.add('active');
+  pinnedTabList.classList.add('drag-active'); // 拖动期间禁用 hover 上浮，避免抖动
+  try { handle.setPointerCapture(pointerId); } catch (err) {}
+}
+
+// 结束拖动：抑制合成 click，执行重排
+function finishDrag() {
+  if (!dragState) return;
+  const st = dragState;
+  dragState = null;
+
+  // pointerup 后浏览器会派发合成 click，抑制它避免拖完误跳转到光标下的 tab
+  suppressNextClick = true;
+  setTimeout(() => { suppressNextClick = false; }, DRAG_CLICK_SUPPRESS_MS);
+
+  try { st.handle.releasePointerCapture(st.pointerId); } catch (err) {}
+  st.handle.classList.remove('active');
+  st.li.classList.remove('dragging');
+  pinnedTabList.classList.remove('drag-active');
+  st.items.forEach(it => it.classList.remove('drag-over-top', 'drag-over-bottom'));
+
+  if (st.toIndex !== st.fromIndex && st.draggedUrl) {
+    reorderTabsByDrag(st.fromIndex, st.toIndex, st.draggedUrl);
+  }
+}
+
+// 拖动结束后按新顺序写回 storage，并持久化 sortOrder
+async function reorderTabsByDrag(fromIndex, toIndex, draggedUrl) {
+  if (isSearching()) {
+    await loadPinnedTabs();
+    return;
+  }
+  try {
+    // 读最新数据，避免用旧快照覆盖并发写入（background/sync 可能更新了 URL/tabId）
+    const result = await chrome.storage.local.get('pinnedTabs');
+    const fresh = result.pinnedTabs || [];
+    const movedTab = fresh.find(t => t.url === draggedUrl);
+    if (!movedTab) { await loadPinnedTabs(); return; }
+
+    const rest = fresh.filter(t => !(t.url === draggedUrl));
+    const insertAt = Math.max(0, Math.min(toIndex, rest.length));
+    rest.splice(insertAt, 0, movedTab);
+
+    // 写入全量 sortOrder（索引即顺序），任何写回 storage 的顺序都以它为准
+    const ordered = rest.map((t, i) => ({ ...t, sortOrder: i }));
+    await chrome.storage.local.set({ pinnedTabs: ordered });
+
+    // 通知 background 做一次本地重排兜底（无服务器 order 字段，跨设备顺序不同步）
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'mtsPinnedOverlayAction',
+        op: 'syncTabOrder',
+        urls: ordered.map(t => t.url)
+      });
+    } catch (e) { /* 同步失败不影响本地顺序 */ }
+
+    selectedIndex = insertAt;
+    await loadPinnedTabs();
+    showToast(i18n.getMessage('orderUpdated') || '排序已更新');
+  } catch (error) {
+    console.error('[pinned-list] reorderTabsByDrag failed:', error);
+    await loadPinnedTabs();
   }
 }
 
@@ -1525,8 +1727,8 @@ async function delegateToBackground(data) {
     if (response && response.success) {
       console.log('[pinned-list] Background operation completed successfully');
     } else {
-      console.error('[pinned-list] Background operation failed:', response?.error);
-      showToast('操作失败，请重试');
+      console.error('[pinned-list] Background operation failed:', response?.error || JSON.stringify(response) || '(no response - message port closed)');
+      showToast(i18n.getMessage('operationFailed') || '操作失败，请重试');
       return;  // 失败时不关闭窗口，让用户看到错误提示
     }
   } catch (err) {

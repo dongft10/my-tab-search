@@ -275,7 +275,9 @@ class PinnedTabsSyncService {
             ...serverTab,
             tabId: tabId,
             isLongTermPinned: true,
-            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString()
+            pinnedAt: serverTab.longTermPinnedAt || new Date().toISOString(),
+            // 服务器新项本端无手动顺序：排到已有 sortOrder 项之后
+            sortOrder: Number.MAX_SAFE_INTEGER - 1
           });
         } else {
           console.log('[PinnedTabsSync] mergeData - localTab found, localTab.tabId:', localTab.tabId);
@@ -297,7 +299,9 @@ class PinnedTabsSyncService {
               ...resolved.value,
               tabId: tabId,
               isLongTermPinned: true,
-              pinnedAt: resolved.value.longTermPinnedAt || resolved.value.pinnedAt || new Date().toISOString()
+              pinnedAt: resolved.value.longTermPinnedAt || resolved.value.pinnedAt || new Date().toISOString(),
+              // 继承本地手动排序，避免被服务器字段覆盖导致顺序丢失
+              sortOrder: localTab.sortOrder !== undefined ? localTab.sortOrder : Number.MAX_SAFE_INTEGER - 1
             });
           }
           localMap.delete(serverTab.url);
@@ -309,6 +313,12 @@ class PinnedTabsSyncService {
       }
 
       mergedTabs.sort((a, b) => {
+        // 手动拖动顺序优先：有 sortOrder 的按 sortOrder 排；都没有时回退到 pinnedAt
+        const hasA = a.sortOrder !== undefined;
+        const hasB = b.sortOrder !== undefined;
+        if (hasA && hasB) return a.sortOrder - b.sortOrder;
+        if (hasA) return -1;
+        if (hasB) return 1;
         const dateA = a.pinnedAt ? new Date(a.pinnedAt) : new Date(0);
         const dateB = b.pinnedAt ? new Date(b.pinnedAt) : new Date(0);
         return dateA - dateB;

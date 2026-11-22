@@ -76,6 +76,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Listen for language change messages from other parts
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // 只答本页面关心的广播，其它 action 让给 background（避免抢答导致数据响应丢失）
+    if (!['languageChanged', 'SHOW_TOAST'].includes(message && message.action)) return false;
     if (message.action === 'languageChanged') {
       // Update i18n language
       i18n.setLanguage(message.language).then(() => {

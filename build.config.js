@@ -169,6 +169,24 @@ async function build() {
       'js/about',
       'js/help-tour-page'
     ];
+
+    // 构建 Content Script（注入式固定标签页弹窗，IIFE 格式，无依赖）
+    console.log('Building content script pinned-overlay-content...');
+    await esbuild.build({
+      entryPoints: ['js/pinned-overlay-content.js'],
+      bundle: true,
+      outfile: path.join(outDir, 'js/pinned-overlay-content.js'),
+      format: 'iife',
+      platform: 'browser',
+      target: ['chrome120'],
+      define,
+      minify: env === 'prod' || env === 'preprod',
+      sourcemap: (env !== 'prod' && env !== 'preprod') ? 'inline' : false,
+      banner: {
+        js: '// Built with esbuild - pinned overlay content script'
+      }
+    });
+    console.log('  ✓ js/pinned-overlay-content.js');
     
     console.log('Building ESM modules...');
     for (const entry of esmEntries) {

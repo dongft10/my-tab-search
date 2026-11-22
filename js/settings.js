@@ -89,6 +89,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 监听 OAuth 登录成功消息
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // 只答本页面关心的广播，其它 action 让给 background（避免抢答导致数据响应丢失）
+    if (!['AUTH_SUCCESS', 'SHOW_TOAST'].includes(message && message.action)) return false;
     if (message.action === 'AUTH_SUCCESS') {
       // 重新加载页面以更新 Token
       setTimeout(() => {
@@ -1398,6 +1400,8 @@ function showMessage(message, type = 'info') {
 
 // Listen for language change messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // 只答本页面关心的广播，其它 action 让给 background（避免抢答导致数据响应丢失）
+  if (!['languageChanged', 'SHOW_TOAST'].includes(message && message.action)) return false;
   if (message.action === 'languageChanged') {
     applyI18n();
   }

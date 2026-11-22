@@ -7,6 +7,9 @@ import { API_CONFIG, PINNED_TABS_CONFIG } from './config.js';
 import authService from './services/auth.service.js';
 import authApi from './api/auth.js';
 import { SyncQueueService } from './services/sync-queue.common.js';
+import trialService from './services/trial.service.js';
+import vipService from './services/vip.service.js';
+import featureLimitService from './services/feature-limit.service.js';
 
 const STORAGE_KEYS_LOCAL = {
   userId: 'userId',
@@ -242,6 +245,13 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   }
 });
 
+// 直接点击工具栏图标打开 action popup 时（无命令触发），也要关闭已注入的 overlay
+if (chrome.action && chrome.action.onClicked) {
+  chrome.action.onClicked.addListener(() => {
+    broadcastCloseOverlay();
+  });
+}
+
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE || windowId === curWindowId) return;
   try {
@@ -331,10 +341,12 @@ chrome.commands.onCommand.addListener(async (command) => {
       isSwitchingToPreviousTab = false;
     }
   } else if (command === "open-pinned-tabs") {
+    // 与线上 main 分支一致：Alt+E 标准 toggle —— 已存在则关闭，否则新建。
+    // 2.3.8.14 改成"复用+refocus"后反复按 Alt+E 无反应，这里恢复 toggle；
+    // popup.js 内按钮走的 openPinnedTabs 消息入口仍用 openPinnedTabsUI()（复用+refocus）保持不变。
     try {
       const result = await chrome.storage.local.get('pinnedTabsWindowId');
       const savedWindowId = result.pinnedTabsWindowId;
-
       if (savedWindowId) {
         try {
           await chrome.windows.get(savedWindowId);
@@ -345,43 +357,22 @@ chrome.commands.onCommand.addListener(async (command) => {
           await chrome.storage.local.remove('pinnedTabsWindowId');
         }
       }
-
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
       if (windows.length > 0) {
         await chrome.windows.remove(windows[0].id);
         await chrome.storage.local.remove('pinnedTabsWindowId');
         return;
       }
-
-      const windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 400;
-      const windowHeight = PINNED_TABS_CONFIG?.WINDOW_HEIGHT || 600;
-      let screenWidth = 1920, screenHeight = 1080;
-
-      try {
-        const displays = await chrome.system.display.getInfo();
-        if (displays?.length > 0) {
-          const primaryDisplay = displays.find(d => d.isPrimary) || displays[0];
-          screenWidth = primaryDisplay.workArea.width || 1920;
-          screenHeight = primaryDisplay.workArea.height || 1080;
-        }
-      } catch (error) {}
-
-      const newWindow = await chrome.windows.create({
-        url: chrome.runtime.getURL('html/pinned-list.html'),
-        type: 'popup',
-        width: windowWidth,
-        height: windowHeight,
-        left: Math.round((screenWidth - windowWidth) / 2),
-        top: Math.round((screenHeight - windowHeight) / 2)
-      });
-
-      await chrome.storage.local.set({ pinnedTabsWindowId: newWindow.id });
+      await openPinnedTabsWindow();
     } catch (error) {
       console.error('[open-pinned-tabs] Error:', error);
       await chrome.storage.local.remove('pinnedTabsWindowId');
     }
   } else if (command === "_execute_action") {
     try {
+      // 与线上 main 分支保持一致：打开主 popup 前关闭所有 popup 窗口（含 pinned-list 独立窗口）。
+      // 2.3.8.14 曾"保留 pinned 窗口"，结果 pinned 弹窗占着焦点时 Alt+Q 打不开主弹窗（表现为无反应）。
+      await broadcastCloseOverlay();
       const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
       for (const window of windows) {
         await chrome.windows.remove(window.id);
@@ -423,162 +414,202 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 });
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  if (message.action === "switchToTab") {
-    try {
-      await handleSwitchToTab(message.data.tabId, message.data.windowId);
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+// MV3 建议的稳健写法：listener 必须是非 async 函数，同步瞬间返回布尔值
+// （true = 保持通道，供稍后 sendResponse；false = 不响应，交给其他 listener）
+// 异步逻辑放 .then/.catch 里执行，否则 async 函数返回 Promise<boolean>，
+// Chrome 无法可靠地据此保持消息通道，会导致 sendResponse 丢失 → "port closed"
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const action = message && message.action;
+  console.info('[background][msg]', action);
+
+  if (action === "switchToTab") {
+    handleSwitchToTab(message.data.tabId, message.data.windowId)
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
 
-  if (message.action === 'languageChanged') {
-    await i18n.setLanguage(message.language);
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'languageChanged',
-          language: message.language
-        }).catch(() => {});
-      });
-    });
-    sendResponse({ success: true });
-    return true;
-  }
-
-  if (message.action === 'openMainPopup') {
-    try {
-      const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-      for (const window of windows) {
-        await chrome.windows.remove(window.id);
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
-      chrome.action.openPopup();
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
-    return true;
-  }
-
-  if (message.action === 'openPinnedTabs') {
-    try {
-      const result = await chrome.storage.local.get('pinnedTabsWindowId');
-      if (result.pinnedTabsWindowId) {
-        try {
-          await chrome.windows.update(result.pinnedTabsWindowId, { focused: true });
-          sendResponse({ success: true });
-          return;
-        } catch (error) {
-          await chrome.storage.local.remove('pinnedTabsWindowId');
-        }
-      }
-
-      const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
-      if (windows.length > 0) {
-        await chrome.windows.update(windows[0].id, { focused: true });
-        await chrome.storage.local.set({ pinnedTabsWindowId: windows[0].id });
+  if (action === 'languageChanged') {
+    i18n.setLanguage(message.language)
+      .then(() => {
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach(tab => {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'languageChanged',
+              language: message.language
+            }).catch(() => {});
+          });
+        });
         sendResponse({ success: true });
-        return;
-      }
+      })
+      .catch(() => sendResponse({ success: false }));
+    return true;
+  }
 
-      const windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 400;
-      const windowHeight = PINNED_TABS_CONFIG?.WINDOW_HEIGHT || 600;
-      let screenWidth = 1920, screenHeight = 1080;
-
+  if (action === 'openMainPopup') {
+    (async () => {
       try {
-        const displays = await chrome.system.display.getInfo();
-        if (displays?.length > 0) {
-          const primaryDisplay = displays.find(d => d.isPrimary) || displays[0];
-          screenWidth = primaryDisplay.workArea.width || 1920;
-          screenHeight = primaryDisplay.workArea.height || 1080;
+        await broadcastCloseOverlay();
+        // 与线上 main 分支保持一致：pinned-list 弹窗内按 Alt+Q 时也关闭所有 popup 窗口，
+        // 由 onRemoved 监听器清理 pinnedTabsWindowId，再打开主弹窗。
+        const windows = await chrome.windows.getAll({ windowTypes: ['popup'] });
+        for (const window of windows) {
+          await chrome.windows.remove(window.id);
         }
-      } catch (error) {}
-
-      const newWindow = await chrome.windows.create({
-        url: chrome.runtime.getURL('html/pinned-list.html'),
-        type: 'popup',
-        width: windowWidth,
-        height: windowHeight,
-        left: Math.round((screenWidth - windowWidth) / 2),
-        top: Math.round((screenHeight - windowHeight) / 2)
-      });
-      await chrome.storage.local.set({ pinnedTabsWindowId: newWindow.id });
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
-    return true;
-  }
-
-  if (message.action === 'openSettings') {
-    try {
-      const settingsUrl = chrome.runtime.getURL('html/settings.html');
-      const tabs = await chrome.tabs.query({ url: settingsUrl });
-      if (tabs.length > 0) {
-        await chrome.tabs.update(tabs[0].id, { active: true });
-        if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
-      } else {
-        chrome.tabs.create({ url: settingsUrl });
+        await new Promise(resolve => setTimeout(resolve, 100));
+        chrome.action.openPopup();
+        sendResponse({ success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
       }
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+    })();
     return true;
   }
 
-  if (message.action === 'openAbout') {
-    try {
-      const aboutUrl = chrome.runtime.getURL('html/about.html');
-      const tabs = await chrome.tabs.query({ url: aboutUrl });
-      if (tabs.length > 0) {
-        await chrome.tabs.update(tabs[0].id, { active: true });
-        if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
-      } else {
-        chrome.tabs.create({ url: aboutUrl });
+  if (action === 'openPinnedTabs') {
+    openPinnedTabsUI()
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (action === 'openSettings') {
+    (async () => {
+      try {
+        const settingsUrl = chrome.runtime.getURL('html/settings.html');
+        const tabs = await chrome.tabs.query({ url: settingsUrl });
+        if (tabs.length > 0) {
+          await chrome.tabs.update(tabs[0].id, { active: true });
+          if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: settingsUrl });
+        }
+        sendResponse({ success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
       }
-      sendResponse({ success: true });
-    } catch (error) {
-      sendResponse({ success: false, error: error.message });
-    }
+    })();
     return true;
   }
 
-  if (message.action === 'syncQueueAddOperation') {
+  if (action === 'openAbout') {
+    (async () => {
+      try {
+        const aboutUrl = chrome.runtime.getURL('html/about.html');
+        const tabs = await chrome.tabs.query({ url: aboutUrl });
+        if (tabs.length > 0) {
+          await chrome.tabs.update(tabs[0].id, { active: true });
+          if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
+        } else {
+          chrome.tabs.create({ url: aboutUrl });
+        }
+        sendResponse({ success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+
+  if (action === 'mtsCloseAllOverlays') {
+    // popup.html 打开时主动通知关闭所有 overlay（最可靠信号）
+    broadcastCloseOverlay()
+      .then(() => sendResponse({ success: true }))
+      .catch(() => sendResponse({ success: false }));
+    return true;
+  }
+
+  if (action === 'syncQueueAddOperation') {
     SyncQueueService.scheduleSync?.(2000);
     return false;
   }
 
-  if (message.action === 'AUTH_SUCCESS') {
-    try {
-      console.log('[background] AUTH_SUCCESS received');
-      const syncResult = await SyncQueueService.performSync();
-      if (syncResult?.success && syncResult.isFirstSync && syncResult.pulledData) {
-        const toastMessage = i18n.getMessage('firstSyncCompleted');
-        await chrome.storage.local.set({ pendingFirstSyncToast: toastMessage });
+  if (action === 'AUTH_SUCCESS') {
+    (async () => {
+      try {
+        console.log('[background] AUTH_SUCCESS received');
+        const syncResult = await SyncQueueService.performSync();
+        if (syncResult?.success && syncResult.isFirstSync && syncResult.pulledData) {
+          const toastMessage = i18n.getMessage('firstSyncCompleted');
+          await chrome.storage.local.set({ pendingFirstSyncToast: toastMessage });
+        }
+      } catch (error) {
+        console.error('[background] Sync trigger error:', error);
       }
-    } catch (error) {
-      console.error('[background] Sync trigger error:', error);
-    }
-    sendResponse({ success: true });
+      sendResponse({ success: true });
+    })();
     return true;
   }
 
   // 处理 pinned-list 的 tab 操作委托
   // pinned-list 窗口会立即关闭，由 background 执行实际的 tab 操作
-  if (message.action === 'pinnedListTabAction') {
-    try {
-      await handlePinnedListTabAction(message.data);
-      sendResponse({ success: true });
-    } catch (error) {
-      console.error('[background] pinnedListTabAction error:', error);
-      sendResponse({ success: false, error: error.message });
-    }
+  if (action === 'pinnedListTabAction') {
+    handlePinnedListTabAction(message.data)
+      .then(() => sendResponse({ success: true }))
+      .catch(error => {
+        console.error('[background] pinnedListTabAction error:', error);
+        sendResponse({ success: false, error: error.message });
+      });
     return true;
   }
+
+  if (action === 'mtsPinnedOverlayAction') {
+    handlePinnedOverlayAction(message, sendResponse)
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  // content script 没有 chrome.tabs API，tab 查询由 background 代理
+  if (action === 'mtsQueryTabs') {
+    (async () => {
+      try {
+        const tabs = await new Promise((resolve) => {
+          chrome.tabs.query(message.query || {}, (result) => {
+            resolve(result || []);
+          });
+        });
+        sendResponse({ success: true, tabs: tabs });
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
+    return true;
+  }
+
+  if (action === 'mtsGetTab') {
+    chrome.tabs.get(message.tabId)
+      .then(tab => sendResponse({ success: true, tab: tab }))
+      .catch(e => sendResponse({ success: false, error: e.message }));
+    return true;
+  }
+
+  // 拼音回退搜索：content script 不带 pinyin 字典，由 background 用现有 pinyin-util 代理
+  if (action === 'mtsPinyinMatch') {
+    (async () => {
+      try {
+        const { pinyinUtil } = await import(chrome.runtime.getURL('js/pinyin-util.js'));
+        const lowerTitles = message.titles || []; // [{url, title}]
+        const keywords = message.keywords || [];
+        // 对每个 tab：标题转拼音后，按「完整包含」匹配所有关键字
+        const hits = [];
+        lowerTitles.forEach(function (item) {
+          const py = pinyinUtil.toPinyinForSearch ? pinyinUtil.toPinyinForSearch(item.title) : pinyinUtil.toPinyin(item.title || '');
+          const lowerPy = py.toLowerCase();
+          const ok = keywords.every(function (kw) {
+            return lowerPy.includes(kw.toLowerCase());
+          });
+          if (ok) hits.push({ url: item.url, title: item.title });
+        });
+        sendResponse({ success: true, hits: hits });
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
+    return true;
+  }
+
+  // 未匹配任何分支：不保活通道，返回 false
+  return false;
 });
 
 async function handleSwitchToTab(targetTabId, windowId) {
@@ -635,7 +666,7 @@ function waitForTabLoad(tabId, timeout = 5000) {
 async function handlePinnedListTabAction(data) {
   if (!data || !data.operation) {
     console.error('[background] pinnedListTabAction: missing operation');
-    return;
+    throw new Error('missing operation');
   }
 
   const { operation, tabId, windowId, targetUrl, matchedUrl, matchedTitle, existingTabId } = data;
@@ -646,9 +677,22 @@ async function handlePinnedListTabAction(data) {
     case 'switchAndUpdate':
       if (!tabId) {
         console.error(`[background] ${operation}: missing tabId`);
-        return;
+        throw new Error(`${operation}: missing tabId`);
       }
-      await activateTab(tabId, windowId);
+      try {
+        await activateTab(tabId, windowId);
+      } catch (tabError) {
+        // tabId 已失效（浏览器重启后 tabId 变化、同步拉下的脏数据等）。
+        // switchDirect 且带 targetUrl 时降级为打开新标签页，保持"点了就能到"的语义
+        if (operation === 'switchDirect' && targetUrl) {
+          console.info(`[background] ${operation}: tabId ${tabId} invalid, fallback to openNew:`, tabError.message);
+          const newTab = await chrome.tabs.create({ url: targetUrl, active: true });
+          const finalUrl = await waitForTabLoad(newTab.id) || targetUrl;
+          await updatePinnedTabUrlAndId(targetUrl, finalUrl, newTab.id);
+          break;
+        }
+        throw tabError;
+      }
       if (operation === 'switchAndUpdate') {
         await updatePinnedTabUrlAndId(targetUrl, matchedUrl, tabId, matchedTitle);
       } else if (operation === 'switchDirect' && targetUrl) {
@@ -686,6 +730,7 @@ async function handlePinnedListTabAction(data) {
         console.error('[background] noMatch: missing targetUrl');
         return;
       }
+      console.info('[background] noMatch: opening new tab for', targetUrl);
       const newTab = await chrome.tabs.create({ url: targetUrl });
       const finalUrl = await waitForTabLoad(newTab.id) || targetUrl;
       await updatePinnedTabUrlAndId(targetUrl, finalUrl, newTab.id);
@@ -694,6 +739,7 @@ async function handlePinnedListTabAction(data) {
 
     default:
       console.warn('[background] Unknown pinnedListTabAction operation:', operation);
+      throw new Error('unknown operation: ' + operation);
   }
 }
 
@@ -706,6 +752,348 @@ async function activateTab(tabId, windowId) {
   await chrome.tabs.update(tabId, { active: true });
   if (windowId) {
     await chrome.windows.update(windowId, { focused: true });
+  }
+}
+
+// ============== 注入式固定标签页弹窗（方案 B） ==============
+
+/**
+ * 判断 URL 是否为内容脚本无法注入的受限页面
+ * @param {string} url - 页面 URL
+ * @returns {boolean}
+ */
+function isRestrictedPageForOverlay(url) {
+  if (!url) return true;
+  const restrictedPrefixes = [
+    'chrome://', 'chrome-extension://', 'edge://', 'about:',
+    'view-source:', 'devtools:', 'https://chrome.google.com/webstore',
+    'https://chromewebstore.google.com', 'https://microsoftedge.microsoft.com/addons'
+  ];
+  return restrictedPrefixes.some(prefix => url.startsWith(prefix));
+}
+
+// 广播关闭所有已注入的 overlay（方案 B 自绘弹窗）
+// 触发时机：主 popup（Ctrl+Q/action）弹出前。overlay 是注入在网页 DOM 里的，
+// 网页窗口不会 blur，无法靠失焦自动关闭，必须由 background 显式通知各 tab 的 overlay 关闭。
+async function broadcastCloseOverlay() {
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      try {
+        await chrome.tabs.sendMessage(tab.id, { action: 'mtsCloseOverlay' });
+      } catch (e) { /* 该 tab 无 overlay/无 listener，忽略 */ }
+    }
+  } catch (e) {
+    console.info('[broadcastCloseOverlay] error:', e && e.message);
+  }
+}
+
+/**
+ * 打开固定标签页 UI（双模式）
+ * 优先向当前活动标签页注入自绘居中弹窗（无系统标题栏、宽度可控）；
+ * 受限页面或注入失败时降级为独立 popup 窗口（原有 pinned-list.html 方案）。
+ */
+async function openPinnedTabsUI() {
+  // 【2.3.8.14 改用独立窗口】放弃注入式 overlay：它被 action popup 扣住键盘焦点的问题
+  // 在扩展 API 层面无解（windows.update/tabs.update 只能激活窗口/tab，无法把 document 级焦点
+  // 从浏览器工具栏还给网页）。独立 popup 窗口（pinned-list.html）是真正的浏览器窗口，
+  // 有独立文档焦点，Alt+Q 的 action popup 关掉后不会扣住它，搜索框 focus() 是真实生效的。
+
+  // 若独立窗口已开着（如 Alt+E → Alt+Q → Alt+E 的第二次）：激活它并把焦点设回搜索框，
+  // 而不是关掉窗口——用户反复按 Alt+E 的意图是"打开并聚焦搜索"，不是 toggle 关闭。
+  try {
+    const stored = await chrome.storage.local.get('pinnedTabsWindowId');
+    const existingId = stored && stored.pinnedTabsWindowId;
+    if (typeof existingId === 'number') {
+      let existing = null;
+      try { existing = await chrome.windows.get(existingId); } catch (e) {}
+      if (existing) {
+        try { await chrome.windows.update(existingId, { focused: true }); } catch (e) {}
+        // 通知窗口内的 pinned-list 页面把焦点设回搜索框。
+        // 多时机通知：窗口刚激活时立刻 focus 可能被浏览器忽略，延迟补两次。
+        const refocus = function () {
+          try {
+            chrome.tabs.query({ windowId: existingId }, function (tabs) {
+              if (tabs && tabs.length) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: 'mtsFocusPinnedSearch' }, function () {});
+              }
+            });
+          } catch (e) {}
+        };
+        refocus();
+        setTimeout(refocus, 120);
+        setTimeout(refocus, 350);
+        return;
+      }
+      // 窗口已不存在，清理陈旧 id 后新建
+      await chrome.storage.local.remove('pinnedTabsWindowId');
+    }
+  } catch (e) {}
+
+  await openPinnedTabsWindow();
+}
+
+/**
+ * 打开独立 popup 窗口（原有方案，作为降级路径保留）
+ */
+async function openPinnedTabsWindow() {
+  const windowWidth = PINNED_TABS_CONFIG?.WINDOW_WIDTH || 400;
+  const windowHeight = PINNED_TABS_CONFIG?.WINDOW_HEIGHT || 600;
+  let screenWidth = 1920, screenHeight = 1080;
+
+  try {
+    const displays = await chrome.system.display.getInfo();
+    if (displays?.length > 0) {
+      const primaryDisplay = displays.find(d => d.isPrimary) || displays[0];
+      screenWidth = primaryDisplay.workArea.width || 1920;
+      screenHeight = primaryDisplay.workArea.height || 1080;
+    }
+  } catch (error) {}
+
+  const newWindow = await chrome.windows.create({
+    url: chrome.runtime.getURL('html/pinned-list.html'),
+    type: 'popup',
+    width: windowWidth,
+    height: windowHeight,
+    left: Math.round((screenWidth - windowWidth) / 2),
+    top: Math.round((screenHeight - windowHeight) / 2)
+  });
+
+  await chrome.storage.local.set({ pinnedTabsWindowId: newWindow.id });
+}
+
+/**
+ * 校验并执行「长期固定」/「取消长期固定」
+ * 完整复刻 pinned-list.js handleLongTermPinnedClick 的业务规则。
+ * @param {string} url - 固定 tab 的 URL
+ * @param {number} [tabId] - 固定 tab 的 tabId（可能为 undefined）
+ * @param {boolean} isCurrentlyLongTermPinned - 当前是否已长期固定
+ * @returns {Promise<{allowed:boolean, stop?:{toast:string}, applyToggle?:Function}>}
+ */
+async function resolveLongTermToggle(url, tabId, isCurrentlyLongTermPinned) {
+  // 邮箱验证
+  const isEmailVerified = await authService.isEmailVerified();
+  if (!isEmailVerified) {
+    return {
+      allowed: false,
+      stop: { toast: i18n.getMessage('longTermPinnedRequireVerification') || '长期固定功能需要完成邮箱验证后才能使用哦！' }
+    };
+  }
+
+  // 读取当前固定列表，找到目标条目
+  const result = await chrome.storage.local.get('pinnedTabs');
+  const pinnedTabs = result.pinnedTabs || [];
+  const currentTab = pinnedTabs.find(t =>
+    (url && t.url === url) || (tabId !== undefined && t.tabId === tabId)
+  );
+
+  // 体验期状态（乐观模式，本地缓存优先）
+  let localTrialStatus = null;
+  let trialStatusError = null;
+  try {
+    localTrialStatus = await trialService.getTrialStatus();
+  } catch (e) {
+    trialStatusError = e;
+  }
+
+  // 额度检查与切换动作（在满足条件时执行）
+  const makeApplier = (next) => async () => {
+    const now = new Date().toISOString();
+    // 写库前重新读取最新 pinnedTabs，缩小并发竞态窗口（防覆盖他端/后台变更）
+    const freshResult = await chrome.storage.local.get('pinnedTabs');
+    const freshTabs = freshResult.pinnedTabs || [];
+    const updated = freshTabs.map(t => {
+      if ((url && t.url === url) || (tabId !== undefined && t.tabId === tabId)) {
+        return { ...t, isLongTermPinned: next, longTermPinnedAt: next ? now : null };
+      }
+      return t;
+    });
+    await chrome.storage.local.set({ pinnedTabs: updated });
+    // 服务器同步
+    try {
+      const syncModule = await import(chrome.runtime.getURL('js/services/sync-queue.service.js'));
+      syncModule.default.addOperation('updateTab', {
+        tabId: tabId !== undefined && tabId !== null ? tabId : ('url:' + url),
+        url,
+        isLongTermPinned: next,
+        longTermPinnedAt: next ? now : null
+      }).catch(() => {});
+    } catch (e) { /* 同步失败不影响本地 */ }
+  };
+  const applySet = makeApplier(true);
+  const applyCancel = makeApplier(false);
+
+  const checkLimit = async () => {
+    const limit = await featureLimitService.getFeatureLimit('longTermPinned', false, true);
+    const longTermCount = pinnedTabs.filter(t => t.isLongTermPinned).length;
+    if (!isCurrentlyLongTermPinned && limit !== -1 && longTermCount >= limit) {
+      return { blocked: true, limit };
+    }
+    return { blocked: false };
+  };
+
+  // 体验期内：限量 100（getFeatureLimit 决定）
+  if (localTrialStatus && localTrialStatus.isInTrialPeriod) {
+    const lim = await checkLimit();
+    if (lim.blocked) {
+      return { allowed: false, stop: { toast: i18n.getMessage('pinnedTabsLimit', lim.limit.toString()) || `长期固定标签页数量已达上限（最多${lim.limit}个）` } };
+    }
+    trialService.fetchTrialStatus().catch(err => console.info('[background] fetchTrialStatus failed:', err));
+    return { allowed: true, applyToggle: isCurrentlyLongTermPinned ? applyCancel : applySet };
+  }
+
+  // VIP 或 服务器异常乐观模式：限量
+  let vipStatus = null;
+  let vipStatusError = null;
+  try {
+    vipStatus = await vipService.getVipStatus(false);
+  } catch (e) {
+    vipStatusError = e;
+  }
+
+  if ((vipStatus && vipStatus.isVip) || trialStatusError || vipStatusError) {
+    if (trialStatusError || vipStatusError) {
+      console.info('[background] trial/vip server error, optimistic mode');
+    }
+    const lim = await checkLimit();
+    if (lim.blocked) {
+      return { allowed: false, stop: { toast: i18n.getMessage('pinnedTabsLimit', lim.limit.toString()) || `长期固定标签页数量已达上限（最多${lim.limit}个）` } };
+    }
+    return { allowed: true, applyToggle: isCurrentlyLongTermPinned ? applyCancel : applySet };
+  }
+
+  // 体验期结束 + 非 VIP 普通用户：限量并引导升级（用体验期映射的专用提示）
+  const lim = await checkLimit();
+  if (lim.blocked) {
+    const trialEnabled = localTrialStatus && localTrialStatus.trialEnabled;
+    const messageKey = trialEnabled ? 'longTermPinnedLimitExpired' : 'longTermPinnedLimitNoTrial';
+    const fallback = trialEnabled
+      ? `长期固定标签页数量已达上限（最多${lim.limit}个），体验期已结束，升级VIP会员即可继续使用更多功能哦！`
+      : `长期固定标签页数量已达上限（最多${lim.limit}个），升级VIP会员即可继续使用更多功能！`;
+    return { allowed: false, stop: { toast: i18n.getMessage(messageKey) || fallback } };
+  }
+
+  return { allowed: true, applyToggle: isCurrentlyLongTermPinned ? applyCancel : applySet };
+}
+
+/**
+ * 处理注入式弹窗的 tab 操作（closeTab / refreshTab / syncLongTerm）
+ * @param {Object} message - 消息
+ * @param {Function} sendResponse - 响应回调
+ */
+async function handlePinnedOverlayAction(message, sendResponse) {
+  try {
+    switch (message.op) {
+      case 'closeTab': {
+        const { tabId, tabUrl, isLongTermPinned } = message;
+        let closed = false;
+        if (tabId != null) {
+          try {
+            await chrome.tabs.get(tabId);
+            await chrome.tabs.remove(tabId);
+            closed = true;
+          } catch (e) { /* tabId 无效 */ }
+        }
+        if (!closed && tabUrl) {
+          const allTabs = await chrome.tabs.query({});
+          const matches = allTabs.filter(t => t.url === tabUrl);
+          if (matches.length > 0) {
+            await chrome.tabs.remove(matches[0].id);
+            closed = true;
+          }
+        }
+        // 非长期固定的 tab：从列表中移除
+        if (!isLongTermPinned) {
+          const result = await chrome.storage.local.get('pinnedTabs');
+          const pinnedTabs = (result.pinnedTabs || []).filter(t =>
+            !((tabUrl && t.url === tabUrl) || (tabId != null && t.tabId === tabId))
+          );
+          await chrome.storage.local.set({ pinnedTabs });
+        }
+        sendResponse({ success: closed || isLongTermPinned });
+        break;
+      }
+
+      case 'refreshTab': {
+        try {
+          await chrome.tabs.reload(message.tabId);
+          sendResponse({ success: true });
+        } catch (e) {
+          sendResponse({ success: false, error: e.message });
+        }
+        break;
+      }
+
+      case 'syncLongTerm': {
+        try {
+          const syncQueueService = await import(chrome.runtime.getURL('js/services/sync-queue.service.js'));
+          syncQueueService.default.addOperation('updateTab', {
+            tabId: message.tabId,
+            url: message.url,
+            isLongTermPinned: message.isLongTermPinned,
+            longTermPinnedAt: message.longTermPinnedAt
+          }).catch(() => {});
+          sendResponse({ success: true });
+        } catch (e) {
+          // 同步失败不影响本地操作
+          sendResponse({ success: false, error: e.message });
+        }
+        break;
+      }
+
+      case 'toggleLongTerm': {
+        // 完整复刻 pinned-list.js handleLongTermPinnedClick 的校验链后再执行切换。
+        // 校验在 background 进行，因为 content script 无法访问这些服务层。
+        const { tabId, url, isCurrentlyLongTermPinned } = message;
+        try {
+          const { allowed, stop, applyToggle } = await resolveLongTermToggle(url, tabId, isCurrentlyLongTermPinned);
+          if (!allowed) {
+            sendResponse({ success: false, blocked: true, toast: stop.toast });
+            break;
+          }
+          await applyToggle();
+          sendResponse({ success: true, toggleApplied: true });
+        } catch (e) {
+          console.error('[background] toggleLongTerm error:', e);
+          sendResponse({ success: false, error: e.message });
+        }
+        break;
+      }
+
+      case 'syncTabOrder': {
+        try {
+          // 按新顺序重排服务器侧固定列表（全量 url 顺序）
+          const result = await chrome.storage.local.get('pinnedTabs');
+          const pinnedTabs = result.pinnedTabs || [];
+          const urlSet = new Set(message.urls || []);
+          const ordered = [];
+          for (const url of message.urls || []) {
+            const tab = pinnedTabs.find(t => t.url === url);
+            if (tab) ordered.push(tab);
+          }
+          // 兜底：不在 urls 里的（新增未同步的）追加到末尾，避免丢数据
+          for (const t of pinnedTabs) {
+            if (!urlSet.has(t.url)) ordered.push(t);
+          }
+          if (ordered.length === pinnedTabs.length) {
+            // 写入 sortOrder（索引即手动顺序），使后续同步合并能优先按此保序
+            const withOrder = ordered.map((t, i) => ({ ...t, sortOrder: i }));
+            await chrome.storage.local.set({ pinnedTabs: withOrder });
+          }
+          // 服务器同步：逐条 updateTab 队列成本高，v1 仅本地重排；
+          // 服务器 API 不存 order 字段，跨设备顺序不同步；本地顺序靠 sortOrder 保住
+          sendResponse({ success: true, reordered: ordered.length === pinnedTabs.length });
+        } catch (e) {
+          sendResponse({ success: false, error: e.message });
+        }
+        break;
+      }
+
+      default:
+        sendResponse({ success: false, error: 'unknown op: ' + message.op });
+    }
+  } catch (error) {
+    sendResponse({ success: false, error: error.message });
   }
 }
 
